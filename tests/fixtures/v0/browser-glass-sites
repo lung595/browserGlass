@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""browser-glass-sites — styles de transparence par site, depuis my-internet (MIT).
+
+Source : https://github.com/sameerasw/my-internet (styles du module Zen Internet).
+  fetch  : télécharge styles.json + css-mapping.json dans le cache (si changés) ;
+           avec MAX_AGE (secondes), ne fait rien si le dernier fetch est plus récent
+  build  : écrit sur stdout un CSS userContent avec un bloc @-moz-document par site,
+           en reproduisant la logique de l'extension (meilleure correspondance unique,
+           préfixes "+" et "-", mapping, et "force styling" pour les autres sites).
+
+Usage : browser-glass-sites fetch CACHE_DIR [MAX_AGE]
+        browser-glass-sites build CACHE_DIR [EXCLUSIONS séparées par des virgules]
+"""
+import json
+import os
+import re
+import sys
+import time
+import urllib.request
+
+BASE = "https://raw.githubusercontent.com/sameerasw/my-internet/main/"
+FILES = ("styles.json", "css-mapping.json")
+# Seules les fonctionnalités de transparence (pas de suppression de footer, etc.)
+KEEP = re.compile(r"transparen|glass|translucent", re.I)
+
+
+def fetch(cache, max_age=0):
+    os.makedirs(cache, exist_ok=True)
+    stamp = os.path.join(cache, ".fetched")
+    if max_age and os.path.exists(stamp) and time.time() - os.path.getmtime(stamp) < max_age:
+        print("fresh")
+        return
+    changed = False
+    for name in FILES:
+        path = os.path.join(cache, name)
+        req = urllib.request.Request(BASE + name, headers={"User-Agent": "browser-glass"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = r.read()
+        json.loads(data)  # refuse un fichier corrompu
+        old = open(path, "rb").read() if os.path.exists(path) else None
+        if data != old:
+            with open(path + ".tmp", "wb") as f:
+                f.write(data)
+            os.replace(path + ".tmp", path)
+            changed = True
+    open(stamp, "w").close()
+    print("updated" if changed else "unchanged")
+
+
+def esc(domain):
+    # regex dans une chaîne CSS : "\." s'écrit "\\."
+    return re.escape(domain).replace("\\", "\\\\")
+
+
+def alt(domains):
+    return "|".join(esc(d) for d in sorted(set(domains), key=len, reverse=True))
+
+
+def css_of(features):
+    return "\n".join(css for name, css in features.items() if KEEP.search(name))
+
+
+def build(cache, exclude):
+    styles = json.load(open(os.path.join(cache, "styles.json")))["website"]
+    try:
+        mapping = json.load(open(os.path.join(cache, "css-mapping.json")))
+    except (OSError, ValueError):
+        mapping = {}
+
+    excl = [d for d in exclude.split(",") if re.fullmatch(r"[A-Za-z0-9.-]+", d)]
+    neg_excl = f"(?!(?:[^/]*\\\\.)?(?:{alt(excl)})(?:[:/]|$))" if excl else ""
+    end = "(?:[:/].*)?"
+
+    suffix = {}  # "x.com" et "+x.com" : x.com et ses sous-domaines
+    dash = {}    # "-google.com" : google.<n'importe quel tld>
+    for key, feats in styles.items():
+        name = key[:-4] if key.endswith(".css") else key
+        css = css_of(feats)
+        if not css.strip():
+            continue
+        if name.startswith("-"):
+            dash[name[1:].rsplit(".", 1)[0]] = (key, css)
+        else:
+            d = name.lstrip("+")
+            d = d[4:] if d.startswith("www.") else d
+            # le nom exact prime sur "+" (l'extension s'arrête dessus)
+            if d not in suffix or not name.startswith("+"):
+                suffix[d] = (key, css)
+
+    out = ["/* Styles par site : sameerasw/my-internet (MIT) — généré, ne pas éditer */"]
+
+    for d, (key, css) in sorted(suffix.items()):
+        deeper = [o for o in suffix if o.endswith("." + d)]
+        neg = f"(?!(?:[^/]*\\\\.)?(?:{alt(deeper)})(?:[:/]|$))" if deeper else ""
+        rx = f"https?://{neg_excl}{neg}(?:[^/]*\\\\.)?{esc(d)}{end}"
+        out.append(f'/* {key} */\n@-moz-document regexp("{rx}") {{\n{css}\n}}')
+
+    for base, (key, css) in sorted(dash.items()):
+        rx = f"https?://{neg_excl}(?:www\\\\.)?{esc(base)}\\\\.[^./:]+{end}"
+        out.append(f'/* {key} */\n@-moz-document regexp("{rx}") {{\n{css}\n}}')
+
+    mapped = []
+    for src, targets in mapping.items():
+        hosts = [t for t in targets if re.fullmatch(r"[A-Za-z0-9.-]+", t)
+                 and not any(t == d or t.endswith("." + d) for d in suffix)]
+        if src in styles and hosts and css_of(styles[src]).strip():
+            mapped += hosts
+            rx = f"https?://{neg_excl}(?:www\\\\.)?(?:{alt(hosts)}){end}"
+            out.append(f'/* {src} (mapping) */\n@-moz-document regexp("{rx}") {{\n{css_of(styles[src])}\n}}')
+
+    # "Force styling" : tous les autres sites reçoivent le style générique.
+    generic = styles.get("example.com.css")
+    if generic and css_of(generic).strip():
+        known = (f"(?:[^/]*\\\\.)?(?:{alt(suffix)})(?:[:/]|$)"
+                 f"|(?:www\\\\.)?(?:{alt(dash)})\\\\.[^./:]+(?:[:/]|$)")
+        if mapped:
+            known += f"|(?:www\\\\.)?(?:{alt(mapped)})(?:[:/]|$)"
+        rx = f"https?://{neg_excl}(?!{known}).*"
+        out.append(f'/* Autres sites : style générique (example.com.css) */\n'
+                   f'@-moz-document regexp("{rx}") {{\n{css_of(generic)}\n}}')
+
+    sys.stdout.write("\n\n".join(out) + "\n")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "fetch":
+        fetch(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 0)
+    elif len(sys.argv) >= 3 and sys.argv[1] == "build":
+        build(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "")
+    else:
+        sys.exit(__doc__)

@@ -1,0 +1,20 @@
+// window-rule { opacity 0.1; }
+/* window-rule { opacity 0.2; }
+   /* nested: window-rule { opacity 0.3; } */
+   still inside the outer comment: window-rule { opacity 0.25; }
+*/
+/-window-rule {
+    opacity 0.4
+}
+/- window-rule { opacity 0.45; }
+window-rule /* a comment between the name and the block */ {
+    // opacity 0.5
+    /* opacity 0.55 */
+    /-opacity 0.6
+    /-match app-id="firefox"
+    geometry-corner-radius 12 /* inline */ // trailing
+    opacity 0.7 // the global opacity
+}
+window-rule {
+    opacity 0.8
+}

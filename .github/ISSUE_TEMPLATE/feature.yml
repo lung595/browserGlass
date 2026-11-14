@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an idea or an improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check ROADMAP.md first: some ideas are planned, and some are out of scope (Chromium-based browsers, for one).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The need behind the idea, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could browserGlass help?
+      description: What it could look like (a setting, a widget action, a command, ...).
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

@@ -1,0 +1,21 @@
+{
+  "a.test.css": [
+    "a-mirror.test",
+    "sub.a.test",
+    "-bad.test",
+    "A-Mirror.test"
+  ],
+  "example.com.css": [
+    "generic-host.test",
+    "www.generic-host.test"
+  ],
+  "missing.test.css": [
+    "x.test"
+  ],
+  "+b.test.css": [
+    "b-alt.test"
+  ],
+  "nofeat.test.css": [
+    "nofeat-alt.test"
+  ]
+}

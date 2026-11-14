@@ -1,0 +1,524 @@
+@@@@ cases
+default
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+.c {
+  background: transparent !important;
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+.dup {
+  background: transparent !important;
+}
+}
+
+/* example.com.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+html, body {
+  background: transparent !important;
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+.gist {
+  background: transparent !important;
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+.my-site {
+  background: transparent !important;
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+.numbers {
+  background: transparent !important;
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+.spaced {
+  background: transparent !important;
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+.upper {
+  background: transparent !important;
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+.goo {
+  background: transparent !important;
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+.shop {
+  background: transparent !important;
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* example.com.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+html, body {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* Other sites: generic style (example.com.css) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+html, body {
+  background: transparent !important;
+}
+}
+@@@@ end
+@@@@ cases
+excluded
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+.c {
+  background: transparent !important;
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+.dup {
+  background: transparent !important;
+}
+}
+
+/* example.com.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+html, body {
+  background: transparent !important;
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+.gist {
+  background: transparent !important;
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+.my-site {
+  background: transparent !important;
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+.numbers {
+  background: transparent !important;
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+.spaced {
+  background: transparent !important;
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+.upper {
+  background: transparent !important;
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+.goo {
+  background: transparent !important;
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+.shop {
+  background: transparent !important;
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* example.com.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+html, body {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* Other sites: generic style (example.com.css) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+html, body {
+  background: transparent !important;
+}
+}
+@@@@ end
+@@@@ cases
+disabled
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+.c {
+  background: transparent !important;
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+.dup {
+  background: transparent !important;
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+.gist {
+  background: transparent !important;
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+.my-site {
+  background: transparent !important;
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+.numbers {
+  background: transparent !important;
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+.spaced {
+  background: transparent !important;
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+.upper {
+  background: transparent !important;
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+.shop {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+@@@@ end
+@@@@ cases
+generic-off
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+.c {
+  background: transparent !important;
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+.dup {
+  background: transparent !important;
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+.gist {
+  background: transparent !important;
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+.my-site {
+  background: transparent !important;
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+.numbers {
+  background: transparent !important;
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+.spaced {
+  background: transparent !important;
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+.upper {
+  background: transparent !important;
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+.goo {
+  background: transparent !important;
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+.shop {
+  background: transparent !important;
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+@@@@ end
+@@@@ cases
+excluded-disabled-generic-off
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+.c {
+  background: transparent !important;
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+.dup {
+  background: transparent !important;
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+.my-site {
+  background: transparent !important;
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+.numbers {
+  background: transparent !important;
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+.spaced {
+  background: transparent !important;
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+.upper {
+  background: transparent !important;
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+.goo {
+  background: transparent !important;
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+.shop {
+  background: transparent !important;
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+.a-main {
+  background: transparent !important;
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+.b-side {
+  background: transparent !important;
+}
+.b-head {
+  background: transparent !important;
+}
+}
+@@@@ end

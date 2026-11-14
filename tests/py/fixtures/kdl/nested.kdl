@@ -1,0 +1,23 @@
+layout {
+    window-rule {
+        opacity 0.1
+    }
+}
+some-block {
+    inner {
+        window-rule { opacity 0.15; }
+    }
+}
+window-rule {
+    background-effect {
+        opacity 0.2
+        nested {
+            opacity 0.25
+        }
+    }
+    title-bar { window-rule { opacity 0.3; } }
+    opacity 0.75
+}
+window-rule {
+    opacity 0.95
+}

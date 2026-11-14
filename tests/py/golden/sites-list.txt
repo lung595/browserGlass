@@ -1,0 +1,99 @@
+@@@@ cases
+fixture
+@@@@ text
+[
+ {
+  "name": "a.test",
+  "domains": [
+   "a.test",
+   "*.a.test",
+   "a-mirror.test"
+  ]
+ },
+ {
+  "name": "+b.test",
+  "domains": [
+   "b.test",
+   "*.b.test",
+   "b-alt.test"
+  ]
+ },
+ {
+  "name": "broken.test",
+  "domains": [
+   "broken.test",
+   "*.broken.test"
+  ]
+ },
+ {
+  "name": "www.c.test",
+  "domains": [
+   "c.test",
+   "*.c.test"
+  ]
+ },
+ {
+  "name": "dup.test",
+  "domains": [
+   "dup.test",
+   "*.dup.test"
+  ]
+ },
+ {
+  "name": "gist.a.test",
+  "domains": [
+   "gist.a.test",
+   "*.gist.a.test"
+  ]
+ },
+ {
+  "name": "-goo.test",
+  "domains": [
+   "goo.*",
+   "www.goo.*"
+  ]
+ },
+ {
+  "name": "imports.test",
+  "domains": [
+   "imports.test",
+   "*.imports.test"
+  ]
+ },
+ {
+  "name": "my-site.net",
+  "domains": [
+   "my-site.net",
+   "*.my-site.net"
+  ]
+ },
+ {
+  "name": "numbers.test",
+  "domains": [
+   "numbers.test",
+   "*.numbers.test"
+  ]
+ },
+ {
+  "name": "-shop.co.uk",
+  "domains": [
+   "shop.co.*",
+   "www.shop.co.*"
+  ]
+ },
+ {
+  "name": "spaced.test",
+  "domains": [
+   "spaced.test",
+   "*.spaced.test"
+  ]
+ },
+ {
+  "name": "upper.test",
+  "domains": [
+   "upper.test",
+   "*.upper.test"
+  ]
+ }
+]
+@@@@ end

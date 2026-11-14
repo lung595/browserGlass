@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: A site looks wrong in glass mode
+    url: https://github.com/sameerasw/my-internet/issues
+    about: The per-site styles come from sameerasw/my-internet. Report a broken site style there; browserGlass picks up fixes in its weekly refresh.

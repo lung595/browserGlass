@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+# browser-glass-sync — applique le "verre" DMS aux navigateurs de la famille Firefox.
+#
+# Lit l'opacité de la règle niri globale de DMS (windowrules.kdl) et les couleurs
+# Material You de DMS (dms-colors.json), puis pour chaque profil trouvé :
+#   - user.js         : bloc géré (prefs de transparence)
+#   - chrome/dms-glass-chrome.css / dms-glass-content.css : CSS générés
+#   - userChrome.css / userContent.css : un @import ajouté en tête (rien d'autre touché)
+# Et une règle niri opacity 1.0 pour ces navigateurs (le navigateur gère sa transparence).
+#
+# Usage : browser-glass-sync [--blur 0|1] [--pages 0|1] [--exclude "dom1,dom2"]
+#         browser-glass-sync --uninstall   (retire tout ce que le plugin a écrit hors de son dossier)
+# Sortie : une ligne "changed <chemin>" / "removed <chemin>" par fichier modifié.
+
+set -euo pipefail
+
+BLUR=1 PAGES=1 EXCLUDE="" MODE_RUN=sync
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --blur) BLUR="$2"; shift 2 ;;
+    --pages) PAGES="$2"; shift 2 ;;
+    --exclude) EXCLUDE="$2"; shift 2 ;;
+    --uninstall) MODE_RUN=uninstall; shift ;;
+    --clean-prefs) MODE_RUN=clean-prefs; shift; break ;; # interne : profils en arguments
+    *) echo "argument inconnu: $1" >&2; exit 2 ;;
+  esac
+done
+
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
+NIRI_DIR="$CFG/niri"
+DMS_RULES="$NIRI_DIR/dms/windowrules.kdl"
+DMS_COLORS="$CACHE/dms/dms-colors.json"
+NIRI_OUT="$NIRI_DIR/dms-browser-glass.kdl"
+INCLUDE='include optional=true "dms-browser-glass.kdl"'
+SITES_CACHE="$CACHE/dms/browserGlass"
+MARK_BEGIN="// >>> dms-browser-glass (généré, ne pas éditer)"
+MARK_END="// <<< dms-browser-glass"
+
+write_if_changed() { # $1 fichier, contenu sur stdin
+  local tmp; tmp="$(mktemp)"; cat >"$tmp"
+  if [ -f "$1" ] && cmp -s "$tmp" "$1"; then rm -f "$tmp"; return; fi
+  if [ -f "$1" ]; then chmod --reference="$1" "$tmp"; fi
+  mkdir -p "$(dirname "$1")"; mv "$tmp" "$1"; echo "changed $1"
+}
+
+ROOTS=(
+  "$CFG/mozilla/firefox" "$HOME/.mozilla/firefox"
+  "$CFG/librewolf/librewolf" "$HOME/.librewolf"
+  "$CFG/zen" "$HOME/.zen"
+  "$HOME/.floorp" "$HOME/.waterfox"
+  "$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox"
+  "$HOME/.var/app/org.mozilla.firefox/config/mozilla/firefox"
+  "$HOME/.var/app/io.gitlab.librewolf-community/.librewolf"
+  "$HOME/.var/app/app.zen_browser.zen/.zen"
+)
+
+profiles() { # un dossier de profil par ligne
+  local root rel path dir
+  for root in "${ROOTS[@]}"; do
+    [ -f "$root/profiles.ini" ] || continue
+    while IFS=$'\t' read -r rel path; do
+      [ -n "$path" ] || continue
+      [ "$rel" = 1 ] && dir="$root/$path" || dir="$path"
+      [ -d "$dir" ] && printf '%s\n' "$dir"
+    done < <(awk -F= '
+      /^\[/ { if (path!="") print rel "\t" path; path=""; rel=1; next }
+      $1=="Path" { path=substr($0, 6) }
+      $1=="IsRelative" { rel=$2 }
+      END { if (path!="") print rel "\t" path }' "$root/profiles.ini")
+  done
+  return 0
+}
+
+# ============================ Désinstallation ============================
+# Prefs posées par user.js : le navigateur les recopie dans prefs.js, il faut les y retirer aussi.
+PREFS_RE='^user_pref\("(toolkit\.legacyUserProfileCustomizations\.stylesheets|browser\.tabs\.allow_transparent_browser|layout\.css\.prefers-color-scheme\.content-override)",'
+
+rewrite() { # $1 fichier, puis un filtre qui le lit ; supprime le fichier s'il ne reste rien
+  local f="$1" out; shift
+  out="$("$@" "$f" || true)"
+  if [ -z "${out//[[:space:]]/}" ]; then rm -f "$f"; echo "removed $f"
+  else printf '%s\n' "$out" | write_if_changed "$f"; fi
+}
+
+profile_running() { # le lien "lock" pointe vers "ip:+pid" tant que le navigateur tourne
+  local t; t="$(readlink "$1/lock" 2>/dev/null)" || return 1
+  kill -0 "${t##*+}" 2>/dev/null
+}
+
+clean_prefs() {
+  [ -f "$1/prefs.js" ] && grep -Eq "$PREFS_RE" "$1/prefs.js" && rewrite "$1/prefs.js" grep -Ev "$PREFS_RE"
+  return 0
+}
+
+uninstall() {
+  local p f pending=()
+  while IFS= read -r p; do
+    for f in "$p/chrome/dms-glass-chrome.css" "$p/chrome/dms-glass-content.css"; do
+      [ -f "$f" ] && rm -f "$f" && echo "removed $f"
+    done
+    f="$p/chrome/userChrome.css"
+    [ -f "$f" ] && grep -qxF '@import "dms-glass-chrome.css";' "$f" && rewrite "$f" grep -vxF '@import "dms-glass-chrome.css";'
+    f="$p/chrome/userContent.css"
+    [ -f "$f" ] && grep -qxF '@import "dms-glass-content.css";' "$f" && rewrite "$f" grep -vxF '@import "dms-glass-content.css";'
+    rmdir "$p/chrome" 2>/dev/null && echo "removed $p/chrome"
+    f="$p/user.js"
+    [ -f "$f" ] && grep -qxF "$MARK_BEGIN" "$f" && rewrite "$f" awk -v b="$MARK_BEGIN" -v e="$MARK_END" \
+      '$0==b{skip=1} !skip{print} $0==e{skip=0}'
+    if profile_running "$p"; then pending+=("$p"); else clean_prefs "$p"; fi
+  done < <(profiles)
+
+  [ -f "$NIRI_OUT" ] && rm -f "$NIRI_OUT" && echo "removed $NIRI_OUT"
+  # retire la ligne include et la ligne vide ajoutée juste avant
+  [ -f "$NIRI_DIR/config.kdl" ] && grep -qxF "$INCLUDE" "$NIRI_DIR/config.kdl" && \
+    rewrite "$NIRI_DIR/config.kdl" awk -v inc="$INCLUDE" '
+      $0==inc { blank=0; next }
+      { if (blank) print ""; blank=0 }
+      $0=="" { blank=1; next }
+      { print }
+      END { if (blank) print "" }'
+  [ -d "$SITES_CACHE" ] && rm -rf "$SITES_CACHE" && echo "removed $SITES_CACHE"
+
+  # Navigateur ouvert : il réécrira prefs.js en quittant, on nettoie après sa fermeture.
+  if [ ${#pending[@]} -gt 0 ]; then
+    setsid -f "$(readlink -f "$0")" --clean-prefs "${pending[@]}" </dev/null >/dev/null 2>&1
+    printf 'pending %s\n' "${pending[@]}"
+  fi
+}
+
+if [ "$MODE_RUN" = clean-prefs ]; then
+  for p in "$@"; do
+    while profile_running "$p"; do sleep 5; done
+    clean_prefs "$p"
+  done
+  exit 0
+fi
+if [ "$MODE_RUN" = uninstall ]; then uninstall; exit 0; fi
+
+# --- Opacité : première règle window-rule globale (sans match) qui a "opacity" ---
+OPACITY="$(awk '
+  depth==0 && /^[[:space:]]*window-rule[[:space:]]*\{/ { inrule=1; hasmatch=0; op="" }
+  inrule && /^[[:space:]]*match[[:space:]]/ { hasmatch=1 }
+  inrule && depth==1 && /^[[:space:]]*opacity[[:space:]]/ { op=$2 }
+  { o=gsub(/\{/,"{"); c=gsub(/\}/,"}"); depth+=o-c
+    if (inrule && depth==0) { if (!hasmatch && op!="") { print op; exit } inrule=0 } }
+' "$DMS_RULES" 2>/dev/null || true)"
+OPACITY="${OPACITY:-1}"
+
+GLASS=0
+if [ "$BLUR" = 1 ] && awk -v o="$OPACITY" 'BEGIN{exit !(o<1)}'; then GLASS=1; fi
+
+# --- Couleurs DMS (mode sombre/clair courant) ---
+color() { jq -r --arg k "$1" '.colors[.mode][$k] // empty' "$DMS_COLORS" 2>/dev/null || true; }
+SURFACE="$(color surface)"; SURFACE="${SURFACE:-#101418}"
+rgba() { # $1 #rrggbb  $2 alpha
+  local h="${1#\#}"
+  printf 'rgba(%d, %d, %d, %s)' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}" "$2"
+}
+# Une seule couche de teinte, peinte par l'interface derrière tout (barres ET pages) :
+# le rendu est identique partout et les pages n'ont qu'à devenir transparentes.
+GLASS_BG="$(rgba "$SURFACE" "$OPACITY")"
+# Thème des sites (prefers-color-scheme) = mode DMS : texte clair sur verre sombre, et inversement.
+MODE="$(jq -r '.mode // empty' "$DMS_COLORS" 2>/dev/null || true)"
+[ "$MODE" = light ] && SCHEME=1 || SCHEME=0
+
+SITES_BIN="$(dirname "$(readlink -f "$0")")/browser-glass-sites"
+
+# --- CSS générés ---
+if [ "$GLASS" = 1 ]; then
+  CHROME_CSS="/* Généré par browser-glass-sync — opacité DMS $OPACITY */
+body {
+  background: $GLASS_BG !important;
+}
+:root, #main-window, #browser, #appcontent, #navigator-toolbox,
+#TabsToolbar, #nav-bar, #PersonalToolbar,
+#tabbrowser-tabbox, #tabbrowser-tabpanels,
+.browserContainer, .browserStack, browser {
+  background: transparent !important;
+  border: none !important;
+}"
+
+  if [ "$PAGES" = 1 ]; then
+    EXCL_RE=""
+    if [ -n "$EXCLUDE" ]; then
+      EXCL_RE="$(printf '%s' "$EXCLUDE" | tr ',' '\n' | sed 's/[[:space:]]//g; /^$/d; s/\./\\\\./g' | paste -sd'|')"
+    fi
+    if [ -n "$EXCL_RE" ]; then
+      URL_RE="https?://(?!(?:[^/]*\\\\.)?(?:$EXCL_RE)(?::|/|\$)).*"
+    else
+      URL_RE="https?://.*"
+    fi
+    CONTENT_CSS="/* Généré par browser-glass-sync — opacité DMS $OPACITY */
+/* Fond des pages transparent (la teinte DMS est derrière) ; images, vidéos et texte restent opaques. */
+@-moz-document regexp(\"$URL_RE\") {
+  html, body { background: transparent !important; }
+}"
+    if [ -f "$SITES_CACHE/styles.json" ] && SITES_CSS="$(python3 -I "$SITES_BIN" build "$SITES_CACHE" "$EXCLUDE")"; then
+      CONTENT_CSS="$CONTENT_CSS
+
+$SITES_CSS"
+    fi
+  else
+    CONTENT_CSS="/* Généré par browser-glass-sync — transparence des pages désactivée */"
+  fi
+else
+  CHROME_CSS="/* Généré par browser-glass-sync — verre désactivé (blur DMS off ou opacité 1) */"
+  CONTENT_CSS="$CHROME_CSS"
+fi
+
+[ "$GLASS" = 1 ] && TRANSP=true || TRANSP=false
+USERJS_BLOCK="$MARK_BEGIN
+user_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);
+user_pref(\"browser.tabs.allow_transparent_browser\", $TRANSP);
+user_pref(\"layout.css.prefers-color-scheme.content-override\", $SCHEME);
+$MARK_END"
+
+ensure_import() { # $1 fichier css, $2 nom du css importé
+  local line="@import \"$2\";"
+  if [ -f "$1" ] && grep -qF "$line" "$1"; then return; fi
+  { echo "$line"; if [ -f "$1" ]; then cat "$1"; fi; } | write_if_changed "$1"
+}
+
+sync_profile() { # $1 dossier profil
+  local p="$1"
+  printf '%s\n' "$CHROME_CSS" | write_if_changed "$p/chrome/dms-glass-chrome.css"
+  printf '%s\n' "$CONTENT_CSS" | write_if_changed "$p/chrome/dms-glass-content.css"
+  ensure_import "$p/chrome/userChrome.css" "dms-glass-chrome.css"
+  ensure_import "$p/chrome/userContent.css" "dms-glass-content.css"
+  { if [ -f "$p/user.js" ]; then awk -v b="$MARK_BEGIN" -v e="$MARK_END" \
+      '$0==b{skip=1} !skip{print} $0==e{skip=0}' "$p/user.js"; fi
+    printf '%s\n' "$USERJS_BLOCK"; } | write_if_changed "$p/user.js"
+}
+
+# --- Profils de la famille Firefox ---
+profiles | while IFS= read -r dir; do sync_profile "$dir"; done
+
+# --- Niri : ces navigateurs gèrent eux-mêmes leur transparence ---
+write_if_changed "$NIRI_OUT" <<'EOF'
+// Généré par le plugin DMS browserGlass — ne pas éditer.
+// Les navigateurs Firefox-like dessinent leur propre transparence (fonds en verre,
+// vidéos et texte opaques) : niri ne doit pas atténuer toute la fenêtre.
+window-rule {
+    match app-id=r#"^(firefox|firefox-esr|librewolf|zen|zen-browser|zen-beta|floorp|waterfox|org\.mozilla\.firefox|io\.gitlab\.librewolf-community|app\.zen_browser\.zen)$"#
+    opacity 1.0
+}
+EOF
+if [ -f "$NIRI_DIR/config.kdl" ] && ! grep -qF "$INCLUDE" "$NIRI_DIR/config.kdl"; then
+  printf '\n%s\n' "$INCLUDE" >>"$NIRI_DIR/config.kdl"; echo "changed $NIRI_DIR/config.kdl"
+fi
+
+echo "glass=$GLASS opacity=$OPACITY"

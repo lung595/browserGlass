@@ -1,0 +1,15 @@
+window-rule {
+    match title="a \" } { quote // /*"
+    opacity 0.3
+}
+window-rule {
+    match title=r#"raw "}" /* { "#
+    opacity 0.35
+}
+window-rule {
+    match title=#"v2 raw } " opacity { "#
+    opacity 0.4
+}
+"window-rule" {
+    open-floating false; opacity 0.65; geometry-corner-radius 4
+}

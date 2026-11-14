@@ -1,0 +1,380 @@
+{
+  "%1 browser profiles": {
+    "%1 browser profiles": "%1 profils de navigateur"
+  },
+  "%1 of %2 styles shown, %3 switched off": {
+    "%1 of %2 styles shown, %3 switched off": "%1 styles affichés sur %2, %3 désactivés"
+  },
+  "%1 profiles": {
+    "%1 profiles": "%1 profils"
+  },
+  "%1 running": {
+    "%1 running": "%1 ouvert(s)"
+  },
+  "%1 warnings, details in the settings": {
+    "%1 warnings, details in the settings": "%1 avertissements, détails dans les paramètres"
+  },
+  "%1 without glass": {
+    "%1 without glass": "%1 sans verre"
+  },
+  "%1%, browser override": {
+    "%1%, browser override": "%1 %, opacité personnalisée"
+  },
+  "%1%, forced": {
+    "%1%, forced": "%1 %, forcée"
+  },
+  "%1%, from DMS": {
+    "%1%, from DMS": "%1 %, selon DMS"
+  },
+  "1 browser profile": {
+    "1 browser profile": "1 profil de navigateur"
+  },
+  "1 profile": {
+    "1 profile": "1 profil"
+  },
+  "1 warning, details in the settings": {
+    "1 warning, details in the settings": "1 avertissement, détails dans les paramètres"
+  },
+  "100% turns the glass off.": {
+    "100% turns the glass off.": "100 % désactive le verre."
+  },
+  "A browser file is a broken link: it was left unchanged": {
+    "A browser file is a broken link: it was left unchanged": "Un fichier du navigateur est un lien cassé : il n'a pas été modifié"
+  },
+  "A browser file is read-only: it was left unchanged": {
+    "A browser file is read-only: it was left unchanged": "Un fichier du navigateur est en lecture seule : il n'a pas été modifié"
+  },
+  "A browser file was edited since its backup: the original was kept": {
+    "A browser file was edited since its backup: the original was kept": "Un fichier du navigateur a été modifié depuis sa sauvegarde : l'original a été conservé"
+  },
+  "A browser profile folder was not found": {
+    "A browser profile folder was not found": "Un dossier de profil de navigateur est introuvable"
+  },
+  "A browser profile was skipped: a file could not be read": {
+    "A browser profile was skipped: a file could not be read": "Un profil de navigateur a été ignoré : un fichier n'a pas pu être lu"
+  },
+  "A browser profile was skipped: no backup could be taken": {
+    "A browser profile was skipped: no backup could be taken": "Un profil de navigateur a été ignoré : aucune sauvegarde n'a pu être faite"
+  },
+  "A file could not be written": {
+    "A file could not be written": "Un fichier n'a pas pu être écrit"
+  },
+  "A site style was skipped: it is not valid": {
+    "A site style was skipped: it is not valid": "Un style de site a été ignoré : il n'est pas valide"
+  },
+  "Advanced & help": {
+    "Advanced & help": "Avancé et aide"
+  },
+  "Always dark": {
+    "Always dark": "Toujours sombre"
+  },
+  "Appearance": {
+    "Appearance": "Apparence"
+  },
+  "Applying the change…": {
+    "Applying the change…": "Application du changement…"
+  },
+  "Applying the settings…": {
+    "Applying the settings…": "Application des paramètres…"
+  },
+  "Browser Glass": {
+    "Browser Glass": "Browser Glass"
+  },
+  "Browser Glass disabled: restoring the browsers": {
+    "Browser Glass disabled: restoring the browsers": "Browser Glass désactivé : restauration des navigateurs"
+  },
+  "Browser Glass is set up, but glass is off": {
+    "Browser Glass is set up, but glass is off": "Browser Glass est installé, mais le verre est désactivé"
+  },
+  "Browser Glass is set up: restart your browser to see the glass": {
+    "Browser Glass is set up: restart your browser to see the glass": "Browser Glass est installé : redémarrez votre navigateur pour voir le verre"
+  },
+  "Browser Glass removed, but restoring the browsers failed": {
+    "Browser Glass removed, but restoring the browsers failed": "Browser Glass supprimé, mais la restauration des navigateurs a échoué"
+  },
+  "Browser Glass removed: browsers restored": {
+    "Browser Glass removed: browsers restored": "Browser Glass supprimé : navigateurs restaurés"
+  },
+  "Browser Glass sync failed": {
+    "Browser Glass sync failed": "La synchronisation de Browser Glass a échoué"
+  },
+  "Browser Glass warning": {
+    "Browser Glass warning": "Avertissement de Browser Glass"
+  },
+  "Browser opacity": {
+    "Browser opacity": "Opacité du navigateur"
+  },
+  "Browsers": {
+    "Browsers": "Navigateurs"
+  },
+  "Command copied to the clipboard": {
+    "Command copied to the clipboard": "Commande copiée dans le presse-papiers"
+  },
+  "Copy command": {
+    "Copy command": "Copier la commande"
+  },
+  "Copy report": {
+    "Copy report": "Copier le rapport"
+  },
+  "Could not build the report": {
+    "Could not build the report": "Impossible de générer le rapport"
+  },
+  "DMS blur is off": {
+    "DMS blur is off": "Le flou de DMS est désactivé"
+  },
+  "DMS window opacity: %1% (the first global window rule)": {
+    "DMS window opacity: %1% (the first global window rule)": "Opacité des fenêtres DMS : %1 % (la première règle de fenêtre globale)"
+  },
+  "DMS window opacity: %1%, the glass uses %2%": {
+    "DMS window opacity: %1%, the glass uses %2%": "Opacité des fenêtres DMS : %1 %, le verre utilise %2 %"
+  },
+  "DMS window opacity: not known yet": {
+    "DMS window opacity: not known yet": "Opacité des fenêtres DMS : pas encore connue"
+  },
+  "DMS window opacity: replaced, the glass uses %1%": {
+    "DMS window opacity: replaced, the glass uses %1%": "Opacité des fenêtres DMS : remplacée, le verre utilise %1 %"
+  },
+  "Dedicated site styles": {
+    "Dedicated site styles": "Styles dédiés aux sites"
+  },
+  "Disabling or removing the plugin removes all of it and restores the browsers' files and preferences; the browsers can stay open. To do it by hand, disable the plugin first, then run:": {
+    "Disabling or removing the plugin removes all of it and restores the browsers' files and preferences; the browsers can stay open. To do it by hand, disable the plugin first, then run:": "Désactiver ou supprimer le plugin retire tout et restaure les fichiers et les préférences des navigateurs ; les navigateurs peuvent rester ouverts. Pour le faire à la main, désactivez d'abord le plugin, puis lancez :"
+  },
+  "Documentation": {
+    "Documentation": "Documentation"
+  },
+  "Domain": {
+    "Domain": "Domaine"
+  },
+  "Exclude copied URL": {
+    "Exclude copied URL": "Exclure l'URL copiée"
+  },
+  "Excluded sites": {
+    "Excluded sites": "Sites exclus"
+  },
+  "Files written": {
+    "Files written": "Fichiers écrits"
+  },
+  "Follow DMS": {
+    "Follow DMS": "Suivre DMS"
+  },
+  "Generic style for other sites": {
+    "Generic style for other sites": "Style générique pour les autres sites"
+  },
+  "Gives Firefox-family browsers (Firefox, LibreWolf, Zen, Floorp, Waterfox) the DMS glass under niri. Opacity and colours follow DMS; video, images and text stay opaque. Restart the browser after a change.": {
+    "Gives Firefox-family browsers (Firefox, LibreWolf, Zen, Floorp, Waterfox) the DMS glass under niri. Opacity and colours follow DMS; video, images and text stay opaque. Restart the browser after a change.": "Donne l'effet verre de DMS aux navigateurs de la famille Firefox (Firefox, LibreWolf, Zen, Floorp, Waterfox) sous niri. L'opacité et les couleurs suivent DMS ; vidéos, images et texte restent opaques. Redémarrez le navigateur après un changement."
+  },
+  "Glass": {
+    "Glass": "Verre"
+  },
+  "Glass is forced off": {
+    "Glass is forced off": "Le verre est désactivé de force"
+  },
+  "Glass is off": {
+    "Glass is off": "Le verre est désactivé"
+  },
+  "Glass is on": {
+    "Glass is on": "Le verre est actif"
+  },
+  "Glass is turned off": {
+    "Glass is turned off": "Le verre est éteint"
+  },
+  "Glass new tab": {
+    "Glass new tab": "Nouvel onglet en verre"
+  },
+  "Glass private windows": {
+    "Glass private windows": "Fenêtres privées en verre"
+  },
+  "Glass web pages": {
+    "Glass web pages": "Pages web en verre"
+  },
+  "Guide": {
+    "Guide": "Guide"
+  },
+  "In each browser profile: chrome/dms-glass-*.css, one @import line in userChrome.css and userContent.css, a marked block in user.js, and the cleanup of prefs.js.": {
+    "In each browser profile: chrome/dms-glass-*.css, one @import line in userChrome.css and userContent.css, a marked block in user.js, and the cleanup of prefs.js.": "Dans chaque profil de navigateur : chrome/dms-glass-*.css, une ligne @import dans userChrome.css et userContent.css, un bloc balisé dans user.js, et le nettoyage de prefs.js."
+  },
+  "Keeps reader view and the PDF viewer solid, for reading.": {
+    "Keeps reader view and the PDF viewer solid, for reading.": "Garde le mode lecture et la visionneuse PDF opaques, pour la lecture."
+  },
+  "Last error: %1": {
+    "Last error: %1": "Dernière erreur : %1"
+  },
+  "Leave as is": {
+    "Leave as is": "Laisser tel quel"
+  },
+  "Loading the site styles…": {
+    "Loading the site styles…": "Chargement des styles de sites…"
+  },
+  "No Firefox-family browser found": {
+    "No Firefox-family browser found": "Aucun navigateur de la famille Firefox trouvé"
+  },
+  "No niri rule": {
+    "No niri rule": "Aucune règle niri"
+  },
+  "No site matches": {
+    "No site matches": "Aucun site ne correspond"
+  },
+  "No status yet": {
+    "No status yet": "Pas encore d'état"
+  },
+  "None found": {
+    "None found": "Aucun trouvé"
+  },
+  "Off: only the browser's own interface (tabs, address bar) is glass.": {
+    "Off: only the browser's own interface (tabs, address bar) is glass.": "Désactivé : seule l'interface du navigateur (onglets, barre d'adresse) est en verre."
+  },
+  "Off: private windows keep a solid background.": {
+    "Off: private windows keep a solid background.": "Désactivé : les fenêtres privées gardent un fond opaque."
+  },
+  "Off: the browsers follow the DMS window opacity again; the plugin stays installed": {
+    "Off: the browsers follow the DMS window opacity again; the plugin stays installed": "Désactivé : les navigateurs suivent à nouveau l'opacité des fenêtres DMS ; le plugin reste installé"
+  },
+  "Opacity": {
+    "Opacity": "Opacité"
+  },
+  "Opacity %1%, forced": {
+    "Opacity %1%, forced": "Opacité %1 %, forcée"
+  },
+  "Opacity %1%, from the DMS window rules": {
+    "Opacity %1%, from the DMS window rules": "Opacité %1 %, selon les règles de fenêtre DMS"
+  },
+  "Opacity %1%, set by the override": {
+    "Opacity %1%, set by the override": "Opacité %1 %, fixée par le réglage personnalisé"
+  },
+  "Opaque reader view and PDF": {
+    "Opaque reader view and PDF": "Mode lecture et PDF opaques"
+  },
+  "Open settings": {
+    "Open settings": "Ouvrir les paramètres"
+  },
+  "Override": {
+    "Override": "Personnaliser"
+  },
+  "Re-sync": {
+    "Re-sync": "Resynchroniser"
+  },
+  "Report a problem": {
+    "Report a problem": "Signaler un problème"
+  },
+  "Report copied to the clipboard": {
+    "Report copied to the clipboard": "Rapport copié dans le presse-papiers"
+  },
+  "Restart %1 to see the change": {
+    "Restart %1 to see the change": "Redémarrez %1 pour voir le changement"
+  },
+  "Restart the browser to see the change": {
+    "Restart the browser to see the change": "Redémarrez le navigateur pour voir le changement"
+  },
+  "Restart your browser to apply Browser Glass": {
+    "Restart your browser to apply Browser Glass": "Redémarrez votre navigateur pour appliquer Browser Glass"
+  },
+  "Search sites": {
+    "Search sites": "Rechercher des sites"
+  },
+  "Site already excluded": {
+    "Site already excluded": "Site déjà exclu"
+  },
+  "Site excluded from glass": {
+    "Site excluded from glass": "Site exclu du verre"
+  },
+  "Site theme": {
+    "Site theme": "Thème des sites"
+  },
+  "Sites": {
+    "Sites": "Sites"
+  },
+  "Sites without a dedicated style get a see-through background too.": {
+    "Sites without a dedicated style get a see-through background too.": "Les sites sans style dédié reçoivent eux aussi un fond transparent."
+  },
+  "Status": {
+    "Status": "État"
+  },
+  "Styles from my-internet that make known sites glass-friendly. Switch one off and that site keeps only the plain see-through page background: the generic style does not take its place.": {
+    "Styles from my-internet that make known sites glass-friendly. Switch one off and that site keeps only the plain see-through page background: the generic style does not take its place.": "Styles de my-internet qui adaptent des sites connus au verre. Désactivez-en un et ce site ne garde que le fond de page transparent de base : le style générique ne prend pas sa place."
+  },
+  "The Browser Glass daemon is not running: enable the plugin to apply the glass.": {
+    "The Browser Glass daemon is not running: enable the plugin to apply the glass.": "Le démon de Browser Glass ne tourne pas : activez le plugin pour appliquer le verre."
+  },
+  "The browser must restart to show a change. The niri rule applies to every window of these browsers, other profiles included.": {
+    "The browser must restart to show a change. The niri rule applies to every window of these browsers, other profiles included.": "Le navigateur doit redémarrer pour afficher un changement. La règle niri s'applique à toutes les fenêtres de ces navigateurs, autres profils compris."
+  },
+  "The clean-up after the browser closes could not start": {
+    "The clean-up after the browser closes could not start": "Le nettoyage prévu à la fermeture du navigateur n'a pas pu démarrer"
+  },
+  "The clipboard holds no web address": {
+    "The clipboard holds no web address": "Le presse-papiers ne contient aucune adresse web"
+  },
+  "The light or dark scheme websites are asked for.": {
+    "The light or dark scheme websites are asked for.": "Le thème clair ou sombre demandé aux sites web."
+  },
+  "The new tab, home and private browsing pages.": {
+    "The new tab, home and private browsing pages.": "Les pages nouvel onglet, accueil et navigation privée."
+  },
+  "The niri rule is out of date": {
+    "The niri rule is out of date": "La règle niri n'est plus à jour"
+  },
+  "The niri rule stays until the running browsers restart": {
+    "The niri rule stays until the running browsers restart": "La règle niri reste jusqu'au redémarrage des navigateurs ouverts"
+  },
+  "The plugin's saved state could not be used": {
+    "The plugin's saved state could not be used": "L'état enregistré du plugin n'a pas pu être utilisé"
+  },
+  "The plugin's saved state was unusable: it starts afresh": {
+    "The plugin's saved state was unusable: it starts afresh": "L'état enregistré du plugin était inutilisable : il repart de zéro"
+  },
+  "The report holds no path, profile name or address: paste it in a bug report.": {
+    "The report holds no path, profile name or address: paste it in a bug report.": "Le rapport ne contient ni chemin, ni nom de profil, ni adresse : collez-le dans un rapport de bug."
+  },
+  "The script needs no other file: from a copy of browserglass.py alone (the plugin folder already gone), run:": {
+    "The script needs no other file: from a copy of browserglass.py alone (the plugin folder already gone), run:": "Le script n'a besoin d'aucun autre fichier : depuis une simple copie de browserglass.py (le dossier du plugin déjà supprimé), lancez :"
+  },
+  "The site styles could not be read": {
+    "The site styles could not be read": "Les styles de sites n'ont pas pu être lus"
+  },
+  "These sites keep their normal background (a light site hard to read on glass, say). Subdomains included.": {
+    "These sites keep their normal background (a light site hard to read on glass, say). Subdomains included.": "Ces sites gardent leur fond normal (un site clair difficile à lire sur le verre, par exemple). Sous-domaines compris."
+  },
+  "Tint %1, dark mode": {
+    "Tint %1, dark mode": "Teinte %1, mode sombre"
+  },
+  "Tint %1, light mode": {
+    "Tint %1, light mode": "Teinte %1, mode clair"
+  },
+  "Turn glass on": {
+    "Turn glass on": "Activer le verre"
+  },
+  "Uninstall": {
+    "Uninstall": "Désinstallation"
+  },
+  "Use an opacity of your own for the browsers instead of the DMS one.": {
+    "Use an opacity of your own for the browsers instead of the DMS one.": "Utiliser votre propre opacité pour les navigateurs au lieu de celle de DMS."
+  },
+  "Window opacity is 100%": {
+    "Window opacity is 100%": "L'opacité des fenêtres est à 100 %"
+  },
+  "Zen transparency mod detected: it may stack with Browser Glass": {
+    "Zen transparency mod detected: it may stack with Browser Glass": "Mod de transparence Zen détecté : il peut se cumuler avec Browser Glass"
+  },
+  "Zen: its own transparency mods (Zen Mods) stack with Browser Glass and make the window too see-through. Keep only one of the two.": {
+    "Zen: its own transparency mods (Zen Mods) stack with Browser Glass and make the window too see-through. Keep only one of the two.": "Zen : ses propres mods de transparence (Zen Mods) se cumulent avec Browser Glass et rendent la fenêtre trop transparente. N'en gardez qu'un des deux."
+  },
+  "niri config.kdl not found": {
+    "niri config.kdl not found": "config.kdl de niri introuvable"
+  },
+  "niri rule in place": {
+    "niri rule in place": "Règle niri en place"
+  },
+  "niri rule written, but config.kdl does not include it": {
+    "niri rule written, but config.kdl does not include it": "Règle niri écrite, mais config.kdl ne l'inclut pas"
+  },
+  "restart needed": {
+    "restart needed": "redémarrage nécessaire"
+  },
+  "~/.config/niri/dms-browser-glass.kdl, and its include line in ~/.config/niri/config.kdl.": {
+    "~/.config/niri/dms-browser-glass.kdl, and its include line in ~/.config/niri/config.kdl.": "~/.config/niri/dms-browser-glass.kdl, et sa ligne include dans ~/.config/niri/config.kdl."
+  },
+  "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values.": {
+    "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values.": "~/.local/state/dms/browserGlass/ : l'état, une sauvegarde des fichiers modifiés, les valeurs d'origine des préférences."
+  }
+}

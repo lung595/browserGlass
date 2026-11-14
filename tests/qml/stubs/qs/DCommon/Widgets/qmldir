@@ -1,0 +1,5 @@
+module qs.DCommon.Widgets
+DButton 1.0 DButton.qml
+DIcon 1.0 DIcon.qml
+DTextField 1.0 DTextField.qml
+DToggle 1.0 DToggle.qml

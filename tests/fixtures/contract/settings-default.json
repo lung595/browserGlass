@@ -1,0 +1,15 @@
+{
+  "blur": true,
+  "isLight": false,
+  "glassEnabled": true,
+  "opacityOverride": false,
+  "opacity": 0.85,
+  "siteTheme": "follow",
+  "pagesTransparent": true,
+  "genericStyle": true,
+  "excluded": [],
+  "disabledStyles": [],
+  "newTabGlass": true,
+  "readerOpaque": true,
+  "privateGlass": true
+}

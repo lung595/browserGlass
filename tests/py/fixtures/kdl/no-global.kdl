@@ -1,0 +1,8 @@
+// Only rules that match something: no global opacity.
+window-rule {
+    match app-id="^org\\.example\\.app$"
+    opacity 0.5
+}
+window-rule {
+    geometry-corner-radius 16
+}

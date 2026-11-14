@@ -1,0 +1,10 @@
+# Upstream styles excluded from the bundle.
+#
+# One entry per line, sha256 hex digests of lowercase UTF-8 text:
+#   name <digest>           a style file name (a key of styles.json "website")
+#   word <length> <digest>  a word the bundled data must not contain
+#                           (matched case-insensitively inside letter runs)
+name 937039a366271684e2240abddefc70accb4edb19aaee6d02d66c734b3eba0472
+name a4183e4766ad1e65473ccb2b7081c0ee50635e2bd4b0e118866bf264ed11f025
+word 6 c857d09db23e6822e3600bc06ad8d58f92ed62bc8efd81c753f77048662cb97d
+word 9 c70eca6b0f88f44d81a41311647e50fda1ac454ec04ffd442b0eb4743a993131

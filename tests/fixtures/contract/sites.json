@@ -1,0 +1,6 @@
+[
+  {"name": "github.com", "domains": ["github.com", "*.github.com"]},
+  {"name": "+wikipedia.org", "domains": ["wikipedia.org", "*.wikipedia.org"]},
+  {"name": "-google.com", "domains": ["google.*", "www.google.*"]},
+  {"name": "youtube.com", "domains": ["youtube.com", "*.youtube.com", "youtube-nocookie.com"]}
+]

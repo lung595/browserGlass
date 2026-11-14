@@ -1,0 +1,67 @@
+{
+  "website": {
+    "a.test.css": {
+      "Transparency": ".a-main {\n  background: transparent !important;\n}",
+      "Hide footer": "footer { display: none !important; }"
+    },
+    "+a.test.css": {
+      "Transparency": ".a-plus {\n  background: transparent !important;\n}"
+    },
+    "gist.a.test.css": {
+      "Transparency": ".gist {\n  background: transparent !important;\n}"
+    },
+    "+b.test.css": {
+      "Glass sidebar": ".b-side {\n  background: transparent !important;\n}",
+      "Translucent header": ".b-head {\n  background: transparent !important;\n}"
+    },
+    "www.c.test.css": {
+      "transparent page": ".c {\n  background: transparent !important;\n}"
+    },
+    "-goo.test.css": {
+      "Transparency": ".goo {\n  background: transparent !important;\n}"
+    },
+    "-shop.co.uk.css": {
+      "Transparency": ".shop {\n  background: transparent !important;\n}"
+    },
+    "my-site.net.css": {
+      "Transparency": ".my-site {\n  background: transparent !important;\n}"
+    },
+    "nofeat.test.css": {
+      "Hide ads": ".ad { display: none !important; }"
+    },
+    "broken.test.css": {
+      "Transparency": ".broken { background: none !important;"
+    },
+    "imports.test.css": {
+      "Transparency": "@import url(\"https://evil.test/x.css\");\n.i {\n  background: transparent !important;\n}"
+    },
+    "spaced.test .css": {
+      "Transparency": ".spaced {\n  background: transparent !important;\n}"
+    },
+    "Upper.Test.css": {
+      "Transparency": ".upper {\n  background: transparent !important;\n}"
+    },
+    "dup.test .css": {
+      "Transparency": ".dup-spaced {\n  background: transparent !important;\n}"
+    },
+    "dup.test.css": {
+      "Transparency": ".dup {\n  background: transparent !important;\n}"
+    },
+    "bad key!.css": {
+      "Transparency": ".bad {\n  background: transparent !important;\n}"
+    },
+    "numbers.test.css": {
+      "Transparency": 42,
+      "Glass": ".numbers {\n  background: transparent !important;\n}"
+    },
+    "example.com.css": {
+      "Transparency": "html, body {\n  background: transparent !important;\n}",
+      "Hide cookie banner": ".cookie { display: none; }"
+    }
+  },
+  "mapping": {
+    "ignored.css": [
+      "v0-uses-css-mapping.json"
+    ]
+  }
+}

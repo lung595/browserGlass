@@ -1,0 +1,1 @@
+{"glass": true, "opacity": 0.85, "reason": "active", "first_run": true, "changed": ["a1b2c3d4e5f6", "0f1e2d3c4b5a", "13579bdf0246"], "running_changed": ["0f1e2d3c4b5a"], "niri_changed": true, "warnings": [{"code": "zen_transparency_mod", "message": "Zen transparency mod detected; it may stack with browserGlass.", "family": "zen", "profile": "13579bdf0246"}]}

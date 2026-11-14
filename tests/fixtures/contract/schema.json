@@ -1,0 +1,145 @@
+{
+  "$comment": "browserGlass CLI contract v1 (frozen in P0). Mini-language, checked by tests/py/test_contract.py: a spec has 'type' (string or list of: object, array, string, number, integer, boolean, null) or 'ref' (name in defs); object specs list 'fields' and are closed (no extra keys); a field is required unless 'required': false; other keys: enum, pattern (re.search, anchor it), min, max (number bounds; min = minimum length for strings), items (array element spec), min_items, unique, default (settings only), doc.",
+  "defs": {
+    "profile_id": {"type": "string", "pattern": "^[0-9a-f]{12}$", "doc": "first 12 hex chars of sha256(os.fsencode(os.path.realpath(path))): the canonical absolute profile path, symlinks resolved; compute it only through browserglass.profile_id()"},
+    "family": {"type": "string", "enum": ["firefox", "librewolf", "zen", "floorp", "waterfox"]},
+    "variant": {"type": "string", "enum": ["native", "flatpak", "snap"]},
+    "reason": {"type": "string", "enum": ["active", "blur_disabled", "opaque", "toggled_off", "forced_off"], "doc": "active when glass is on, else why it is off"},
+    "opacity": {"type": "number", "min": 0, "max": 1},
+    "tilde_path": {"type": "string", "pattern": "^~(/[^\\n]*)?$", "doc": "paths are always shown relative to HOME"},
+    "domain": {"type": "string", "pattern": "^[A-Za-z0-9.-]+$", "doc": "an excluded host, as normalize_domain() gives it: lowercase ASCII (IDN as xn--), scheme/path/port/'*.' dropped, a leading 'www.' kept as entered (like v0); it covers that host and its subdomains"},
+    "site_name": {"type": "string", "pattern": "^[+-]?[a-z0-9][a-z0-9.-]*$", "doc": "my-internet style key without .css, as v0 matched it: 'x.com' and '+x.com' both cover x.com and its subdomains (a leading 'www.' is dropped; the plain name wins over '+x.com' when both exist; a more specific style, e.g. gist.x.com, wins on its own subdomain); '-x.com' covers x.<any TLD> and www.x.<any TLD>. sites.load (P2) strips surrounding whitespace from keys (upstream has 'bestbuy.com .css'; in v0 such a key could never match, documented difference) and drops a key that still fails this pattern; when a stripped key collides with an existing one, the untouched key wins"},
+    "site_domain": {"type": "string", "pattern": "^(\\*\\.)?[a-z0-9][a-z0-9.-]*(\\.\\*)?$", "doc": "a host ('x.com'), every subdomain ('*.x.com') or every TLD ('x.*'). css-mapping.json targets that fail this pattern (upstream has '-cifraclub.com.br') are dropped: no hostname starts with '-', so v0's literal match never hit either"},
+    "warning": {
+      "type": "object",
+      "fields": {
+        "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "message": {"type": "string", "min": 1},
+        "family": {"type": ["string", "null"], "enum": ["firefox", "librewolf", "zen", "floorp", "waterfox", null]},
+        "profile": {"type": ["string", "null"], "pattern": "^[0-9a-f]{12}$"}
+      }
+    },
+    "profile": {
+      "type": "object",
+      "fields": {
+        "id": {"ref": "profile_id"},
+        "name": {"type": "string"},
+        "path": {"ref": "tilde_path"},
+        "default": {"type": "boolean"},
+        "running": {"type": "boolean"},
+        "restart_needed": {"type": "boolean", "doc": "files changed since this browser started"},
+        "applied": {"type": "boolean", "doc": "generated files and user.js block match the current state"}
+      }
+    },
+    "browser": {
+      "type": "object",
+      "fields": {
+        "family": {"ref": "family"},
+        "variant": {"ref": "variant"},
+        "root": {"ref": "tilde_path"},
+        "running": {"type": "boolean"},
+        "restart_needed": {"type": "boolean"},
+        "profiles": {"type": "array", "items": {"ref": "profile"}}
+      }
+    }
+  },
+  "sync": {
+    "type": "object",
+    "fields": {
+      "glass": {"type": "boolean"},
+      "opacity": {"ref": "opacity"},
+      "reason": {"ref": "reason"},
+      "first_run": {"type": "boolean", "doc": "no v1 state existed before this sync (daemon toast)"},
+      "changed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true},
+      "running_changed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "subset of changed whose browser is running"},
+      "niri_changed": {"type": "boolean"},
+      "warnings": {"type": "array", "items": {"ref": "warning"}}
+    }
+  },
+  "status": {
+    "type": "object",
+    "fields": {
+      "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+      "glass": {
+        "type": "object",
+        "fields": {
+          "active": {"type": "boolean"},
+          "reason": {"ref": "reason"},
+          "opacity": {"ref": "opacity"},
+          "opacity_source": {"type": "string", "enum": ["dms", "override", "forced"]},
+          "surface": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+          "mode": {"type": "string", "enum": ["dark", "light"]},
+          "dms_opacity": {"ref": "opacity", "doc": "the DMS global window opacity read now (windowrules.kdl), whatever opacity_source says"}
+        }
+      },
+      "niri": {
+        "type": "object",
+        "fields": {
+          "config": {"type": "boolean", "doc": "niri config.kdl exists"},
+          "include": {"type": "boolean", "doc": "config.kdl has the include line"},
+          "rule": {"type": "boolean", "doc": "dms-browser-glass.kdl exists and is current"}
+        }
+      },
+      "restart_needed": {"type": "boolean"},
+      "browsers": {"type": "array", "items": {"ref": "browser"}},
+      "warnings": {"type": "array", "items": {"ref": "warning"}}
+    }
+  },
+  "sites": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "fields": {
+        "name": {"ref": "site_name"},
+        "domains": {"type": "array", "items": {"ref": "site_domain"}, "min_items": 1, "unique": true, "doc": "where the style applies: [x.com, *.x.com] for 'x.com' and '+x.com', [x.*, www.x.*] for '-x.com', then the css-mapping.json targets of that style (exact hosts, www. implied, as in v0)"}
+      }
+    }
+  },
+  "settings": {
+    "type": "object",
+    "fields": {
+      "blur": {"type": "boolean", "required": false, "default": true, "doc": "SettingsData.blurEnabled"},
+      "isLight": {"type": "boolean", "required": false, "default": false, "doc": "SessionData.isLightMode"},
+      "glassEnabled": {"type": "boolean", "required": false, "default": true},
+      "opacityOverride": {"type": "boolean", "required": false, "default": false},
+      "opacity": {"ref": "opacity", "required": false, "default": 0.85, "doc": "0..1; the QML slider stores an int percent, logic.js divides by 100"},
+      "siteTheme": {"type": "string", "enum": ["follow", "dark", "none"], "required": false, "default": "follow"},
+      "pagesTransparent": {"type": "boolean", "required": false, "default": true},
+      "genericStyle": {"type": "boolean", "required": false, "default": true},
+      "excluded": {"type": "array", "items": {"ref": "domain"}, "required": false, "default": []},
+      "disabledStyles": {"type": "array", "items": {"ref": "site_name"}, "required": false, "default": []},
+      "newTabGlass": {"type": "boolean", "required": false, "default": true},
+      "readerOpaque": {"type": "boolean", "required": false, "default": true},
+      "privateGlass": {"type": "boolean", "required": false, "default": true}
+    }
+  },
+  "uninstall": {
+    "type": "object",
+    "doc": "uninstall prints this line even when nothing was installed (then every list is empty and every flag false); exit 0, or 1 with the error line",
+    "fields": {
+      "removed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "profiles where a browserGlass file (chrome/dms-glass-*.css), @import line or user.js block (v0 or v1) was removed"},
+      "restored": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "profiles where a backup file or an original pref value (H2, H3) was put back"},
+      "pending": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "profiles whose browser is running: prefs.js is cleaned later by a detached clean-prefs (H6); subset of removed + restored"},
+      "niri_changed": {"type": "boolean", "doc": "dms-browser-glass.kdl or its include line in config.kdl was removed"},
+      "state_removed": {"type": "boolean", "doc": "$XDG_STATE_HOME/dms/browserGlass/ was removed; a pending profile only leaves its pending/<id>.json record there (with the lock file) until its cleanup is done, and that still counts as removed. False when the state is kept for a retry (a profile not fully cleaned: see warnings) or for a kept backup"},
+      "v0_cache_removed": {"type": "boolean", "doc": "the v0 cache ~/.cache/dms/browserGlass/ was removed"},
+      "warnings": {"type": "array", "items": {"ref": "warning"}}
+    }
+  },
+  "error": {
+    "type": "object",
+    "fields": {
+      "error": {"type": "string", "min": 1}
+    }
+  },
+  "commands": {
+    "doc": "what each subcommand prints on stdout: a spec name above, 'report_lines' (plain text, see below) or null (prints nothing at all, exit 0). Any command that fails prints the 'error' line instead and exits 1 (2 for a usage error)",
+    "sync": "sync",
+    "status": "status",
+    "uninstall": "uninstall",
+    "clean-prefs": null,
+    "report": "report_lines",
+    "sites": "sites"
+  },
+  "report_lines": ["browserGlass report", "version: ", "python: ", "glass: ", "niri: ", "profiles:", "settings: ", "warnings: "]
+}

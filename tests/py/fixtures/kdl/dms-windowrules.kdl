@@ -1,0 +1,26 @@
+// DMS Window Rules - Managed by DMS
+// Do not edit manually - changes may be overwritten
+
+// @id=wr_0000000000000000001 @name=Glass blur
+window-rule {
+    opacity 0.85
+    geometry-corner-radius 16
+    clip-to-geometry true
+    tiled-state true
+    background-effect {
+        blur true
+        noise 0.1
+    }
+}
+
+// @id=dms-floating-windows @name=DMS Floating Windows
+window-rule {
+    match app-id="^(dev\\.duxlabs\\.shell|com\\.danklinux\\.dms)$"
+    open-floating true
+}
+
+// @id=dms-window-opaque @name=DMS Window Opaque
+window-rule {
+    match app-id="^(dev\\.duxlabs\\.shell|com\\.danklinux\\.dms)$"
+    opacity 1.00
+}

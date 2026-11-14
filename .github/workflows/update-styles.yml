@@ -1,0 +1,96 @@
+# Weekly refresh of data/styles.json, data/css-mapping.json and
+# data/MY-INTERNET-LICENSE from sameerasw/my-internet. When the bundled data
+# changes, a pull request is opened (or the open one is updated).
+#
+# No third-party action: git, python3 and gh come with the runner image.
+# The repository setting "Allow GitHub Actions to create and approve pull
+# requests" must be on for `gh pr create` to work with GITHUB_TOKEN.
+# The bot's commit is only a proposal: the maintainer squash-merges the pull
+# request, so the commit on the default branch is the maintainer's.
+# GitHub disables scheduled workflows after 60 days without repository
+# activity: re-enable it from the Actions tab (or run it by hand).
+name: Update site styles
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-styles
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash   # -eo pipefail: a failing update_styles.py fails the step
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: automation/update-styles
+    steps:
+      - name: Check out the repository
+        run: |
+          BASE="$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)"
+          echo "BASE=$BASE" >> "$GITHUB_ENV"
+          # Same authentication as actions/checkout: a basic auth header
+          # with the job token, kept in the clone's local git config only.
+          basic="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$basic"
+          auth="AUTHORIZATION: basic $basic"
+          git -c "http.https://github.com/.extraheader=$auth" \
+            clone --depth 1 --branch "$BASE" "https://github.com/$GITHUB_REPOSITORY.git" repo
+          git -C repo config "http.https://github.com/.extraheader" "$auth"
+
+      - name: Fetch the upstream styles
+        working-directory: repo
+        run: python3 -I -B tools/update_styles.py | tee "$RUNNER_TEMP/summary.txt"
+
+      - name: Check the bundled data
+        working-directory: repo
+        run: python3 -I -B tools/update_styles.py --check data
+
+      - name: Open or update the pull request
+        working-directory: repo
+        run: |
+          if [ -z "$(git status --porcelain -- data)" ]; then
+            echo "The bundled styles are up to date."
+            exit 0
+          fi
+          open_pr="$(gh pr list --head "$BRANCH" --base "$BASE" --state open --json number --jq '.[0].number')"
+          # The open pull request already proposes exactly this data: no
+          # new commit, no force-push
+          if [ -n "$open_pr" ] && git fetch --depth 1 origin "refs/heads/$BRANCH" \
+              && git diff --quiet FETCH_HEAD -- data; then
+            echo "Pull request #$open_pr already has these styles."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -- data
+          git commit -m "data: refresh site styles from my-internet"
+          git push --force origin "$BRANCH"
+          {
+            echo "Weekly refresh of the site styles bundled from [sameerasw/my-internet](https://github.com/sameerasw/my-internet) (MIT)."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+            echo
+            echo "Checked offline with \`python3 tools/update_styles.py --check data\`."
+          } > "$RUNNER_TEMP/body.md"
+          if [ -n "$open_pr" ]; then
+            gh pr edit "$open_pr" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base "$BASE" --head "$BRANCH" \
+              --title "Refresh site styles from my-internet" \
+              --body-file "$RUNNER_TEMP/body.md"
+          fi

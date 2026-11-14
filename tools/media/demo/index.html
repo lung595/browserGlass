@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiet Interfaces · Glass Notes</title>
+<!-- Demo page for the browserGlass screenshots. Every name and every line of
+     text below is fictional. Served locally by capture.sh; add ?local=1 to
+     play the locally generated clip instead of the video embed. -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f5f2;
+    --fg: #1d1c22;
+    --muted: #5d5b66;
+    --accent: #3a6ff0;
+    --rule: rgba(0, 0, 0, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17161b;
+      --fg: #ecebf2;
+      --muted: #a6a4b2;
+      --accent: #8fb0ff;
+      --rule: rgba(255, 255, 255, .14);
+    }
+  }
+  html, body { background: var(--bg); color: var(--fg); margin: 0; }
+  body { font: 18px/1.65 "Noto Sans", "DejaVu Sans", sans-serif; }
+  header {
+    display: flex; align-items: center; gap: 28px;
+    max-width: 1180px; margin: 0 auto; padding: 18px 32px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .logo { font-weight: 700; font-size: 21px; letter-spacing: .2px; }
+  .logo span { color: var(--accent); }
+  nav { display: flex; gap: 22px; margin-left: auto; color: var(--muted); font-size: 16px; }
+  main {
+    display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px;
+    max-width: 1180px; margin: 0 auto; padding: 28px 32px 80px;
+  }
+  .kicker { color: var(--accent); font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 1.4px; }
+  h1 { font-size: 38px; line-height: 1.15; margin: 6px 0 10px; }
+  .meta { color: var(--muted); font-size: 15px; margin-bottom: 16px; }
+  .lede { font-size: 19px; color: var(--fg); margin: 0; }
+  .video {
+    position: relative; aspect-ratio: 16 / 9; margin: 22px 0 10px;
+    border-radius: 14px; overflow: hidden; background: #000;
+  }
+  .video iframe, .video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .caption { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+  h2 { font-size: 26px; margin: 34px 0 8px; }
+  aside { border-left: 1px solid var(--rule); padding-left: 28px; font-size: 15px; }
+  aside h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 6px 0 12px; }
+  aside ol { padding-left: 18px; margin: 0 0 26px; }
+  aside li { margin-bottom: 12px; }
+  .art { width: 100%; height: auto; border-radius: 12px; display: block; }
+  .tag { display: inline-block; border: 1px solid var(--rule); border-radius: 999px; padding: 2px 12px; margin: 0 6px 8px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Glass<span>Notes</span></div>
+  <nav><span>Essays</span><span>Workshop</span><span>Field guides</span><span>About</span></nav>
+</header>
+<main>
+  <article>
+    <div class="kicker">Field guide · Interfaces</div>
+    <h1>Quiet interfaces: why the best windows let the room show through</h1>
+    <div class="meta">By the Glass Notes desk · 7 min read</div>
+    <p class="lede">A window that hides everything behind it feels heavy. A window that
+      shows everything feels noisy. The sweet spot is a tinted pane: the room stays
+      visible, the words stay sharp.</p>
+    <div class="video" id="video"></div>
+    <div class="caption">Video stays fully opaque while the page around it turns to glass.</div>
+    <h2>Tint, not fog</h2>
+    <p>The town of Lowmere is said to keep its lamp-lit greenhouse panes slightly
+      smoked, so the plants read clearly against the evening sky. Interfaces can borrow
+      the trick: a soft tint behind the text, nothing behind the pictures.</p>
+    <h2>Keep the content solid</h2>
+    <p>Readers forgive a translucent toolbar. They do not forgive washed-out photos or a
+      video that fades into the wallpaper. Every image on this page is painted at full
+      strength, only the empty canvas lets light through.</p>
+  </article>
+  <aside>
+    <h3>Most read</h3>
+    <ol>
+      <li>The lantern makers of Lowmere</li>
+      <li>Designing for the second monitor</li>
+      <li>A short history of frosted panes</li>
+      <li>Colour that follows the weather</li>
+    </ol>
+    <h3>Illustration</h3>
+    <svg class="art" viewBox="0 0 280 180" role="img" aria-label="Abstract illustration">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffb36b"/><stop offset="1" stop-color="#d9487a"/>
+        </linearGradient>
+      </defs>
+      <rect width="280" height="180" fill="url(#sky)"/>
+      <circle cx="205" cy="62" r="30" fill="#fff3c4"/>
+      <path d="M0 140 L70 92 L130 130 L190 84 L280 138 L280 180 L0 180 Z" fill="#3b2a5c"/>
+      <path d="M0 160 L90 124 L170 158 L280 120 L280 180 L0 180 Z" fill="#22173a"/>
+    </svg>
+    <h3 style="margin-top:22px">Topics</h3>
+    <span class="tag">Glass</span><span class="tag">Colour</span><span class="tag">Typography</span><span class="tag">Calm tech</span>
+  </aside>
+</main>
+<script>
+  // Video: the privacy-friendly embed, or the local clip with ?local=1.
+  (function () {
+    var box = document.getElementById("video");
+    if (/[?&]local=1\b/.test(location.search)) {
+      var v = document.createElement("video");
+      v.src = "clip.webm"; v.autoplay = true; v.muted = true; v.loop = true; v.playsInline = true;
+      box.appendChild(v);
+    } else {
+      var f = document.createElement("iframe");
+      f.src = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1";
+      f.allow = "autoplay; encrypted-media; picture-in-picture";
+      f.title = "Video";
+      box.appendChild(f);
+    }
+  })();
+</script>
+</body>
+</html>

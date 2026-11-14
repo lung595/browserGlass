@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "glass": {"active": true, "reason": "active", "opacity": 0.85, "opacity_source": "dms", "surface": "#101418", "mode": "dark", "dms_opacity": 0.85},
+  "niri": {"config": true, "include": true, "rule": true},
+  "restart_needed": true,
+  "browsers": [
+    {
+      "family": "firefox", "variant": "native", "root": "~/.mozilla/firefox", "running": true, "restart_needed": true,
+      "profiles": [
+        {"id": "a1b2c3d4e5f6", "name": "default-release", "path": "~/.mozilla/firefox/fake0001.default-release", "default": true, "running": true, "restart_needed": true, "applied": true},
+        {"id": "0f1e2d3c4b5a", "name": "work", "path": "~/.mozilla/firefox/fake0002.work", "default": false, "running": false, "restart_needed": false, "applied": true}
+      ]
+    },
+    {
+      "family": "firefox", "variant": "snap", "root": "~/snap/firefox/common/.mozilla/firefox", "running": false, "restart_needed": false,
+      "profiles": [
+        {"id": "2468ace13579", "name": "default", "path": "~/snap/firefox/common/.mozilla/firefox/fake0003.default", "default": true, "running": false, "restart_needed": false, "applied": true}
+      ]
+    },
+    {
+      "family": "librewolf", "variant": "flatpak", "root": "~/.var/app/io.gitlab.librewolf-community/.librewolf", "running": false, "restart_needed": false,
+      "profiles": [
+        {"id": "9a8b7c6d5e4f", "name": "default-default", "path": "~/.var/app/io.gitlab.librewolf-community/.librewolf/fake0004.default-default", "default": true, "running": false, "restart_needed": false, "applied": false}
+      ]
+    },
+    {
+      "family": "zen", "variant": "native", "root": "~/.zen", "running": false, "restart_needed": false,
+      "profiles": [
+        {"id": "13579bdf0246", "name": "Default (release)", "path": "~/.zen/fake0005.Default (release)", "default": true, "running": false, "restart_needed": false, "applied": true}
+      ]
+    }
+  ],
+  "warnings": [
+    {"code": "zen_transparency_mod", "message": "Zen transparency mod detected; it may stack with browserGlass.", "family": "zen", "profile": "13579bdf0246"}
+  ]
+}
