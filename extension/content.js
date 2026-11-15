@@ -346,13 +346,14 @@ function alpha(color) {
 // The page's own background: when the root and the body are see-through
 // (the generic style), the lowest layer under a grid of points that paints
 // an opaque background colour (not a dialog's dimming) and covers most of
-// the window (often a fixed
-// full-window container) gets CANVAS: the glass styles make that colour
-// transparent; the cards and panels drawn over it keep theirs. On a
-// darkened page every such large layer does, except fixed ones (dialogs).
-// A layer loses CANVAS once smaller, and all do once the root or the body
-// paints a background again. The colour of the last layer marked is the
-// page's colour (pageColor, for markFills).
+// the window (often a fixed full-window container) gets CANVAS, unless it
+// is fixed, or inside a fixed element, over other content of the page (a
+// dialog, a cookie banner): the glass styles make that colour transparent;
+// the cards and panels drawn over it keep theirs. On a darkened page every
+// such large layer does, except fixed ones (dialogs). A layer loses CANVAS
+// once smaller, and all do once the root or the body paints a background
+// again. The colour of the last layer marked is the page's colour
+// (pageColor, for markFills).
 const GRID = 5;
 const CLEAR = 0.5;
 const SOLID = 0.99;
@@ -376,6 +377,12 @@ function markCanvas() {
     return r.width >= 0.9 * w && r.height >= 0.6 * h;
   };
   const clear = (el) => alpha(getComputedStyle(el).backgroundColor) < CLEAR;
+  const pinned = (el) => {
+    for (let e = el; e && e !== root; e = e.parentElement)
+      if (getComputedStyle(e).position === "fixed")
+        return true;
+    return false;
+  };
   const glass = clear(root) && clear(document.body);
   for (const el of document.querySelectorAll("[" + CANVAS + "]"))
     if (!glass || (!large(el) && el.getAttribute(CANVAS) !== FILL))
@@ -386,14 +393,21 @@ function markCanvas() {
   for (let i = 0; i < GRID; i++) {
     for (let j = 0; j < GRID; j++) {
       const stack = document.elementsFromPoint((i + 0.5) * w / GRID, (j + 0.5) * h / GRID);
+      const below = [];
       for (let n = stack.length - 1; n >= 0; n--) {
         const el = stack[n];
         if (el === root || el === document.body)
           continue;
         if (el.hasAttribute(CANVAS))
           break;
-        if (clear(el))
+        if (clear(el)) {
+          below.push(el);
           continue;
+        }
+        // a fixed layer over the page's own content: a dialog, a cookie
+        // banner, never the page's background
+        if (below.some((b) => !b.contains(el)) && pinned(el))
+          break;
         const color = getComputedStyle(el).backgroundColor;
         if (large(el) && alpha(color) >= SOLID) {
           pageColor = color;
@@ -598,10 +612,83 @@ function contrast(a, b) {
 }
 
 // The luminance behind `el`, null when unknown (a picture, a gradient).
+// An element's face may be drawn by a layer of its own that covers most
+// of it, the element itself see-through: a ::before or ::after, or an
+// absolutely positioned child (and that child's covering children), as
+// buttons often are. The text over it sits on that face, not on what is
+// behind the element. Faces are looked for once per element and pass.
+const FACE = 0.8;
+const FACE_KIDS = 16;
+const FACE_DEPTH = 2;
+const MEDIA = new Set(["img", "picture", "video", "canvas", "iframe", "svg", "embed", "object"]);
+let faces = new Map();
+
+// What a style paints: a luminance, null for a picture, undefined for
+// nothing opaque.
+function paints(style) {
+  if (style.backgroundImage !== "none")
+    return null;
+  if (alpha(style.backgroundColor) >= OWN_BG)
+    return luminance(style.backgroundColor);
+  return undefined;
+}
+
+function covers(r, el) {
+  const c = el.getBoundingClientRect();
+  return c.width * c.height >= FACE * r.width * r.height;
+}
+
+function layerPaints(el, r, depth) {
+  if (MEDIA.has(el.localName))
+    return null;
+  const own = paints(getComputedStyle(el));
+  if (own !== undefined || depth === 0)
+    return own;
+  for (const kid of el.children)
+    if (covers(r, kid)) {
+      const value = layerPaints(kid, r, depth - 1);
+      if (value !== undefined)
+        return value;
+    }
+  return undefined;
+}
+
+function face(p) {
+  if (faces.has(p))
+    return faces.get(p);
+  let value;
+  const r = p.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) {
+    for (const pseudo of ["::before", "::after"]) {
+      const s = getComputedStyle(p, pseudo);
+      if (s.content === "none" || s.display === "none"
+          || parseFloat(s.width) * parseFloat(s.height) < FACE * r.width * r.height)
+        continue;
+      value = paints(s);
+      if (value !== undefined)
+        break;
+    }
+    if (value === undefined && p !== document.body && p.childElementCount <= FACE_KIDS)
+      for (const kid of p.children) {
+        const position = getComputedStyle(kid).position;
+        if ((position === "absolute" || position === "fixed") && covers(r, kid)) {
+          value = layerPaints(kid, r, FACE_DEPTH);
+          if (value !== undefined)
+            break;
+        }
+      }
+  }
+  faces.set(p, value);
+  return value;
+}
+
 function behind(el) {
   const root = document.documentElement;
   for (let p = el; p && p !== root; p = p.parentElement) {
     const style = getComputedStyle(p);
+    const own = face(p);
+    if (own !== undefined)
+      return own;
     if (style.backgroundImage !== "none")
       return null;
     if (alpha(style.backgroundColor) >= OWN_BG)
@@ -633,6 +720,7 @@ function markInk() {
   for (const el of document.querySelectorAll("[" + INK + "]"))
     if (near(el))
       el.removeAttribute(INK);
+  faces = new Map();
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let i = 0, n = walker.nextNode(); n && i < INK_NODES && seen.size < INK_ELEMENTS;

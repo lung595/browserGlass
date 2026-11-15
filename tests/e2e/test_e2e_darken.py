@@ -29,11 +29,18 @@ the list). Checked:
   - a page with its own dark theme behind a class (a "dark" class on
     <html>, its text colour animated) gets it instead of Dark Reader, and
     gives it back under a light theme; a page without one is left with no
-    such mark once darkened.
+    such mark once darkened;
+  - a site style of data/sites/ on a darkened page: Stack Overflow's
+    filled buttons and search field (the real Stacks var() fallback chains,
+    which Dark Reader maps to the page's white) keep a fill of their own
+    under a dark theme, and the site's own colours under a light one.
 """
 
+import json
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,8 +92,49 @@ SPOOF_PAGE = WRAPPED_PAGE.replace(
 MARKED = "return document.getElementById(arguments[0]).hasAttribute(arguments[1]);"
 
 
-def stylesheet(dark_pages):
-    sites = bg.Sites({}, {})
+# A Stacks page as Stack Overflow serves it signed out (no dark theme):
+# filled buttons and a search field painted from the Stacks variables,
+# with their chains of var() fallbacks.
+STACKS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+:root {--white: hsl(0,0%,100%); --blue-400: hsl(210,77%,46%); --black-300: hsl(210,8%,75%);
+  --theme-secondary-400: var(--blue-400)}
+.s-btn {--_bu-filled-bg: var(--theme-button-primary-background-color, var(--theme-secondary-400));
+  display:inline-block; padding:8px; color:#fff; border:1px solid transparent}
+.s-btn.s-btn__filled {background-color:var(--_bu-filled-bg)}
+.s-input {--_in-bg: var(--white); --_in-bc: var(--black-300);
+  background-color:var(--_in-bg); border:1px solid var(--_in-bc); width:300px}
+#wrap {background:rgb(255,255,255); min-height:100vh}
+</style></head><body class="unified-theme"><div id="wrap">""" + TEXT + """
+<a id="ask" class="s-btn s-btn__filled" href="#">Ask Question</a>
+<input id="search" class="s-input" placeholder="Search"></div></body></html>"""
+STACKS = "stackoverflow.com.css"
+STACKS_HOST = "stackoverflow.test"
+
+
+def stacks_sites():
+    """The bundled Stack Overflow style and its site fix, under a .test
+    host."""
+    data = os.path.join(tone.REPO, "data")
+    with open(os.path.join(data, "styles.json"), encoding="utf-8") as f:
+        style = json.load(f)["website"][STACKS]
+    with open(os.path.join(data, bg.SITES_OWN_DIR, STACKS), encoding="utf-8") as f:
+        fix = f.read()
+    tmp = tempfile.mkdtemp()
+    try:
+        name = STACKS_HOST + ".css"
+        with open(os.path.join(tmp, "styles.json"), "w", encoding="utf-8") as f:
+            json.dump({"website": {name: style}}, f)
+        os.mkdir(os.path.join(tmp, bg.SITES_OWN_DIR))
+        with open(os.path.join(tmp, bg.SITES_OWN_DIR, name), "w", encoding="utf-8") as f:
+            f.write(fix)
+        return bg.sites_load(tmp)
+    finally:
+        shutil.rmtree(tmp)
+
+
+def stylesheet(dark_pages, sites=None):
+    sites = sites or bg.Sites({}, {})
     values = bg.settings_from_json("{}")
     values.update(liveControl=True, darkPages=dark_pages)
     problems = []
@@ -117,6 +165,7 @@ class DarkenE2E(unittest.TestCase):
                 self.check_darken(binary)
                 self.check_left_alone(binary)
                 self.check_native(binary)
+                self.check_stacks(binary)
 
     def run_content(self, b, excluded=(), darken=True):
         """content.js with the stored list `excluded` and darken flag
@@ -180,6 +229,31 @@ class DarkenE2E(unittest.TestCase):
                                        mn.WAIT_TIMEOUT, tone.TONE), "still darkened with darken off")
             b.js(MESSAGE, [], True)
             self.assertTrue(b.wait_for(DARKENED), "not darkened with darken back on")
+
+    def check_stacks(self, binary):
+        # Dark Reader maps the filled buttons and the search field to the
+        # page's white, which the bundled style makes transparent; the site
+        # fix gives them a fill back
+        routes = {"/so.html": ("text/html; charset=utf-8", STACKS_PAGE.encode("utf-8"))}
+        prefs = tone.browser_prefs()
+        prefs.update(mn.test_host_prefs(list(tone.HOSTS) + [STACKS_HOST]))
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True, stacks_sites()), prefs=prefs, firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/so.html", STACKS_HOST))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for("return document.documentElement.getAttribute(arguments[0]) === 'dark';",
+                                       mn.WAIT_TIMEOUT, tone.TONE))
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertEqual(self.bg_of(b, "ask"), "rgb(23, 102, 181)")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('ask')).color;"),
+                             "rgb(255, 255, 255)")
+            self.assertEqual(self.bg_of(b, "search"), "rgba(255, 255, 255, 0.08)")
+            # light: the site's own colours
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader');"))
+            self.assertEqual(self.bg_of(b, "ask"), "rgb(27, 117, 208)", "the site's own blue")
 
     def check_native(self, binary):
         routes = {"/n.html": ("text/html; charset=utf-8", NATIVE_PAGE.encode("utf-8"))}

@@ -34,7 +34,11 @@ localStorage). Checked:
   - a recipe cookie the server renders from: exactly one reload, then the
     server's dark page; the next load is not reloaded;
   - a late write (darken turned on while the page is open): Dark Reader on
-    this load, not marked failed, the next load boots dark.
+    this load, not marked failed, the next load boots dark;
+  - a composite cookie read by an inline <head> script (MediaWiki's
+    clientprefs, "a-clientpref-1%2Cskin-theme-clientpref-day"): the day
+    theme is swapped in place and the other prefs kept, an absent cookie is
+    created, and a light theme puts the day theme back.
 """
 
 import json
@@ -56,7 +60,7 @@ import test_e2e_darken as dk  # noqa: E402
 bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
-         "absent.test", "excl.test", "cookie.test", "late.test")
+         "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -75,6 +79,21 @@ FORCE_PAGE = LS_PAGE.replace("</script>", 'localStorage.setItem("theme", "light"
 IGNORE_PAGE = ("""<!doctype html><html><head><meta charset="utf-8"><script>
 window.__boot = localStorage.getItem("theme");
 </script>""" + STYLE + "</head><body>" + TEXT + "</body></html>")
+
+# Reads a list of client prefs from a cookie before the first paint, as
+# MediaWiki does (comma-separated, %2C in the cookie).
+WIKI_PAGE = ("""<!doctype html><html><head><meta charset="utf-8"><script>
+var m = document.cookie.match(/(?:^|; )wikiprefs=([^;]*)/);
+window.__boot = m ? decodeURIComponent(m[1]) : null;
+if (window.__boot && window.__boot.indexOf("skin-theme-clientpref-night") >= 0)
+  document.documentElement.classList.add("night");
+</script>""" + STYLE + "</head><body>" + TEXT + "</body></html>")
+WIKI_RECIPES = [
+    {"store": "cookie", "key": "wikiprefs", "op": "set", "from": [None], "to": "skin-theme-clientpref-night",
+     "verified": "2026-11-15", "note": "test fixture"},
+    {"store": "cookie", "key": "wikiprefs", "op": "swap", "from": ["skin-theme-clientpref-day"],
+     "to": "skin-theme-clientpref-night", "verified": "2026-11-15", "note": "test fixture"},
+]
 
 TEST_FEED = """// test only: a list sent by the page (test-relay.js), applied as one
 // from the helper
@@ -142,7 +161,7 @@ class Server:
                             % ("night" if night else "")) + STYLE + "</head><body>" + TEXT + "</body></html>"
                 else:
                     body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE,
-                            "/ignore.html": IGNORE_PAGE}.get(path)
+                            "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE}.get(path)
                     if body is None:
                         self.send_error(404)
                         return
@@ -376,6 +395,39 @@ class ThemeE2E(unittest.TestCase):
             s = self.settled(b)
             self.assertFalse(s["darkreader"], s)
             self.assertNotIn("failed", s["record"])
+
+            # 10. a composite cookie: swapped in place, created when absent
+            sites = {"wiki.test": WIKI_RECIPES, "wiki2.test": WIKI_RECIPES}
+            prefs_day = "vector-feature-limited-width-clientpref-0%2Cskin-theme-clientpref-day"
+            url = srv.url("wiki.test", "/w.html")
+            self.load(b, url)
+            # the cookie first: sent on an open page with no cookie, the
+            # list would create it at once (a late write)
+            b.js("document.cookie = 'wikiprefs=' + arguments[0] + '; path=/';", prefs_day)
+            self.feed(b, sites=sites)
+            s = self.load(b, url)
+            self.assertEqual(s["boot"], "vector-feature-limited-width-clientpref-0,skin-theme-clientpref-night", s)
+            self.assertTrue(s["night"], s)
+            self.assertEqual(s["record"]["keys"]["cookie:wikiprefs"],
+                             {"swap": True, "prior": "skin-theme-clientpref-day",
+                              "wrote": "skin-theme-clientpref-night", "path": "/"})
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
+            self.assertNotIn("failed", s["record"])
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return document.cookie.includes(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, "wikiprefs=" + prefs_day), self.state(b))
+            tone.set_scheme(b, True)
+            url = srv.url("wiki2.test", "/w.html")
+            self.load(b, url)
+            self.feed(b, sites=sites)
+            s = self.load(b, url)
+            self.assertEqual(s["boot"], "skin-theme-clientpref-night", s)
+            self.assertTrue(s["night"], s)
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.cookie.includes('wikiprefs=');"), self.state(b))
+            tone.set_scheme(b, True)
+            self.feed(b)
 
 
 if __name__ == "__main__":

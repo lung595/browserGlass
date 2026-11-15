@@ -38,6 +38,8 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Frames stay opaque**: with Live control, frames inside a page (a captcha, an embedded video or form) keep their own background; without it they follow the generic rule.
 - **Bars laid in the flow**: a web app's sidebar or header that is neither fixed nor sticky keeps its own colours (no uniform veil), since it cannot be told from a panel of the page.
 - **Text over pictures**: the contrast check leaves text over a background picture alone, and Dark Reader can make such text hard to read (Amazon's banners).
+- **Line drawings under Dark Reader**: Dark Reader leaves pictures as they are, so a drawing of black lines on a transparent background (diagrams, some logos) can read poorly on a darkened page.
+- **Sign-in prompts in frames** (Google's "Sign in with Google" box, for example) keep their own white background on a darkened page, as other frames do.
 - **Shadow trees follow at the next restart**: a live exclusion leaves the parts a site draws in its shadow DOM styled until the browser restarts, since they do not see the page's `data-browserglass-off` mark.
 - **Shadow trees cannot tell a light page from a dark one**: the parts a site draws in its shadow DOM do not see the page's dark-version markers or the companion's tone mark. Under a dark theme the generic style therefore leaves them alone on every page (as in 1.0), and a dedicated site style still applies there on every page, light-only ones included.
 - **Launcher results come after the apps** whose name matches the query, ten lines at most, since the plugin answers in the launcher's *all* mode instead of having a mode of its own.

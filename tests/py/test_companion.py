@@ -275,6 +275,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         # an image behind the text: no guess
         self.assertIn('if (style.backgroundImage !== "none")\n      return null;', behind)
         self.assertIn("getPropertyValue(GLASS)", behind)
+        # a face of its own (a ::before, or a covering absolute child, as
+        # buttons often are) comes before the element's own background
+        self.assertLess(behind.index("face(p)"), behind.index("style.backgroundImage"))
+        faces = js[js.index("const FACE = "):js.index("function behind(el)")]
+        for part in ('for (const pseudo of ["::before", "::after"])',
+                     '(position === "absolute" || position === "fixed") && covers(r, kid)',
+                     "p.childElementCount <= FACE_KIDS", "faces.set(p, value);",
+                     "if (MEDIA.has(el.localName))\n    return null;"):
+            self.assertIn(part, faces)
+        # looked for again on every pass
+        self.assertIn("faces = new Map();", js[js.index("function markInk()"):js.index("function markBlend(")])
         throttle = js[js.index("function ink()"):]
         throttle = throttle[:throttle.index("\n}")]
         self.assertIn("requestAnimationFrame(", throttle)
@@ -421,6 +432,11 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('position !== "fixed"', mark)
         self.assertIn("elementsFromPoint(", mark)
         self.assertIn("new Set([root, document.body])", mark)
+        # a fixed layer over the page's content (a cookie banner) is not the
+        # page's background, a fixed full-window container is
+        self.assertIn("if (below.some((b) => !b.contains(el)) && pinned(el))\n          break;", mark)
+        self.assertIn('for (let e = el; e && e !== root; e = e.parentElement)\n      if (getComputedStyle(e).position === "fixed")', mark)
+        self.assertLess(mark.index("pinned(el)"), mark.index("mark(el, CANVAS)"))
         # decided before the tone attribute is painted (no flash of tint)
         upd = js[js.index("function update()"):js.index("function paint()")]
         self.assertLess(upd.index("darken()"), upd.index("paint()"))

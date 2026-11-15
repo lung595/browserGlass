@@ -130,18 +130,36 @@ LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
         "s.style = 'position:fixed; top:0; bottom:0; right:0; width:200px; background:rgb(30,30,30)';"
         "document.body.append(s);")
 # Dark text on see-through layers (the glass behind it), and on a white card;
-# a black logo blended with multiply on each.
+# a black logo blended with multiply on each. Buttons whose light face is a
+# ::before, or a layer of children under the label, and text over a
+# picture laid under it.
 LOGO = ("<img id=\"%s\" width=\"40\" height=\"20\" style=\"mix-blend-mode:multiply\" src=\"data:image/svg+xml,"
         "%%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%%3E%%3Crect width='40' height='20'/%%3E%%3C/svg%%3E\">")
 INK_PAGE = STYLE + """
 html, body {background:transparent}
-#dim, #oncard {color:rgb(20,20,20)}
+#dim, #oncard, #onpic {color:rgb(20,20,20)}
 #card {background:rgb(255,255,255)}
+.pill {position:relative; isolation:isolate; background:transparent; border:0; padding:8px; color:rgb(30,30,30)}
+.pill.face::before {content:""; position:absolute; inset:0; z-index:-1; border-radius:8px; background:rgb(240,240,240)}
+.under {position:absolute; inset:0; z-index:-1} .under span {position:absolute; inset:0; background:rgb(239,239,239)}
 </style></head><body><p id="dim">Notice</p>""" + LOGO % "logo" + """
-<div id="card"><p id="oncard">Card</p>""" + LOGO % "cardlogo" + """</div></body></html>"""
+<div id="card"><p id="oncard">Card</p>""" + LOGO % "cardlogo" + """</div>
+<button class="pill face"><span id="pill">Upgrade</span></button>
+<button class="pill"><span class="under"><span></span></span><span id="layered">Try</span></button>
+<div style="position:relative"><img style="position:absolute; inset:0; width:100%; height:100%" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"><p id="onpic">Hero</p></div>
+</body></html>"""
 INK = bg.ATTR_INK
 BLEND = bg.ATTR_BLEND
 
+# A cookie banner: a see-through fixed wrapper over the page's text, and in
+# it a large opaque form; a modal fixed itself. Neither is the page's
+# background.
+BANNER_PAGE = STYLE + """
+#wrap {position:fixed; inset:0; background:transparent; z-index:5}
+#consent {position:absolute; inset:5% 2%; background:rgb(40,40,60)}
+#modal {position:fixed; inset:0; background:rgb(50,40,40); z-index:6; display:none}
+</style></head><body><div id="long">""" + dk.TEXT + """</div>
+<div id="wrap"><form id="consent">Cookies</form></div><div id="modal">Modal</div></body></html>"""
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
 
 
@@ -172,7 +190,8 @@ class LayersE2E(unittest.TestCase):
                   "/rows.html": ("text/html; charset=utf-8", ROWS_PAGE.encode("utf-8")),
                   "/split.html": ("text/html; charset=utf-8", SPLIT_PAGE.encode("utf-8")),
                   "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8")),
-                  "/ink.html": ("text/html; charset=utf-8", INK_PAGE.encode("utf-8"))}
+                  "/ink.html": ("text/html; charset=utf-8", INK_PAGE.encode("utf-8")),
+                  "/banner.html": ("text/html; charset=utf-8", BANNER_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -211,6 +230,17 @@ class LayersE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
             tone.set_scheme(b, True)
+
+            # a cookie banner over the text keeps its colour, and a modal
+            b.navigate(srv.url("/banner.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, tone.LIVE))
+            b.js("document.getElementById('modal').style.display = 'block'; window.dispatchEvent(new Event('resize'));")
+            self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']');",
+                                        2.0, CANVAS), "a fixed layer over the text marked as the background")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('consent')).backgroundColor;"),
+                             "rgb(40, 40, 60)")
 
             b.navigate(srv.url("/l.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
@@ -274,6 +304,15 @@ class LayersE2E(unittest.TestCase):
                                   "return [s.mixBlendMode, s.filter];"),
                              ["screen", "invert(1) hue-rotate(180deg)"])
             self.assertFalse(self.marked(b, "cardlogo", BLEND), "logo on its own white card marked")
+            # a button whose light face is its ::before: its dark label keeps
+            # its colour (white on white otherwise)
+            self.assertFalse(self.marked(b, "pill", INK), "text on a light ::before face marked")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('pill')).color;"),
+                             "rgb(30, 30, 30)")
+            # its face a child layer under the label (the button see-through)
+            self.assertFalse(self.marked(b, "layered", INK), "text on a light child face marked")
+            # text over a picture: no guess
+            self.assertFalse(self.marked(b, "onpic", INK), "text over a picture marked")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+/* browserGlass: signed out, Stack Overflow has no dark theme, so Dark
+   Reader darkens it. Dark Reader cannot follow the var() fallbacks of the
+   filled buttons and takes their colour, like the search field's, for the
+   page's white, which this style makes transparent: "Ask Question" and
+   "Sign up" read as bare labels, the search field has no box. They get a
+   fill and a border of their own back. */
+[data-darkreader-scheme="dark"] .s-btn.s-btn__filled {
+  background-color: hsl(210, 77%, 40%) !important;
+  color: #fff !important;
+}
+[data-darkreader-scheme="dark"] .s-btn.s-btn__filled:hover,
+[data-darkreader-scheme="dark"] .s-btn.s-btn__filled:focus-visible {
+  background-color: hsl(210, 77%, 34%) !important;
+}
+[data-darkreader-scheme="dark"] .s-input,
+[data-darkreader-scheme="dark"] .s-textarea {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
