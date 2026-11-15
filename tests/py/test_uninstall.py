@@ -442,6 +442,7 @@ class InlineTextTest(UninstallCase):
         self.addCleanup(lambda: proc.poll() is None and proc.kill())
         proc.stdin.write(SCRIPT.read_text(encoding="utf-8"))
         proc.stdin.close()
+        proc.stdin = None  # communicate() flushes a closed stdin before Python 3.13
         self.fh.write(".config/DankMaterialShell/plugins/browserGlass/plugin.json", "{}")
         out, err = proc.communicate(timeout=60)
         self.assertEqual((proc.returncode, out), (bg.EXIT_KEPT, ""), err)
