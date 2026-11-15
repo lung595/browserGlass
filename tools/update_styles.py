@@ -3,8 +3,9 @@
 and the bundled Public Suffix List from publicsuffix.org.
 
 Maintenance tool, run by .github/workflows/update-styles.yml (or by hand).
-It is the only part of the repository that uses the network: browserglass.py
-never does, it reads the copies kept in data/.
+It and tools/sign_companion.py (a release tool) are the only parts of the
+repository that use the network: browserglass.py never does, it reads the
+copies kept in data/.
 
     update_styles.py [--ref REF | --from-dir DIR] [--out DIR]
     update_styles.py --check DIR

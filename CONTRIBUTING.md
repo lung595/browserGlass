@@ -155,6 +155,7 @@ browserGlass/
 │   ├── check_translations.py    # every visible string has a French entry
 │   ├── check_pr_body.py         # pull request description follows the template
 │   ├── update_styles.py         # refreshes data/ from my-internet (CI and by hand)
+│   ├── sign_companion.py        # has Mozilla sign the companion add-on (releases, by hand)
 │   ├── style-denylist.txt       # sha256 denylist of upstream styles and words
 │   └── media/                   # gen_wallpaper.sh, capture.sh, compose.sh, restore.sh, demo/, demo-settings.json
 ├── .github/                     # workflows (tests, update-styles, pr-template), issue and PR templates
@@ -185,7 +186,7 @@ BG_E2E=1 python3 -B -m unittest discover -s tests/e2e -p 'test_e2e*.py'   # sync
 python3 tests/e2e/marionette.py                                           # the CSS selector spike (SPIKE.md)
 ```
 
-The tests never touch the real home. `tests/py/fakehome.py` builds a throwaway `HOME` with generated profiles and gives every subprocess its own environment. The QML runner works in a temporary copy, and the end-to-end tests start Firefox with an environment built from scratch, a black-hole proxy and a 127.0.0.1 page server. `tests/py/test_leaks.py` fails when any repository file names a user or a home folder, or one of the real profile ids listed in `BG_LEAK_PROFILE_IDS` (comma-separated; the test is skipped without it). `tests/e2e/README.md` describes the end-to-end checks: the glass on Firefox's real pages and the uninstall, the `liveControl` gating (`test_e2e_gate.py`), light pages under a dark theme (`test_e2e_tone.py`) and darkened (`test_e2e_darken.py`), the page layers (`test_e2e_layers.py`), the session file read by `active-site`, live control through the companion add-on and the real native host (`test_e2e_live.py`), and the add-on as sync deposits it (`test_e2e_sideload.py`: LibreWolf with `BG_LIBREWOLF`, Firefox release for `signing_enforced` and `signing_required`). The harness (`marionette.py`) can also start LibreWolf (`BG_LIBREWOLF=/path/to/librewolf`), for tests that need a build that accepts unsigned add-ons; Firefox release removes the unsigned xpi. The native host tests (`tests/py/test_native_host.py`) set their own short `XDG_RUNTIME_DIR`.
+The tests never touch the real home. `tests/py/fakehome.py` builds a throwaway `HOME` with generated profiles and gives every subprocess its own environment. The QML runner works in a temporary copy, and the end-to-end tests start Firefox with an environment built from scratch, a black-hole proxy and a 127.0.0.1 page server. `tests/py/test_leaks.py` fails when any repository file names a user or a home folder, or one of the real profile ids listed in `BG_LEAK_PROFILE_IDS` (comma-separated; the test is skipped without it). `tests/e2e/README.md` describes the end-to-end checks: the glass on Firefox's real pages and the uninstall, the `liveControl` gating (`test_e2e_gate.py`), light pages under a dark theme (`test_e2e_tone.py`) and darkened (`test_e2e_darken.py`), the page layers (`test_e2e_layers.py`), the session file read by `active-site`, live control through the companion add-on and the real native host (`test_e2e_live.py`), and the add-on as sync deposits it (`test_e2e_sideload.py`: LibreWolf with `BG_LIBREWOLF`, Firefox release for `signing_enforced` and `signing_required`). The harness (`marionette.py`) can also start LibreWolf (`BG_LIBREWOLF=/path/to/librewolf`), for tests that need a build that accepts unsigned add-ons; Firefox release removes the unsigned xpi. The native host tests (`tests/py/test_native_host.py`) set their own short `XDG_RUNTIME_DIR`. `tests/py/test_sign_companion.py` runs `tools/sign_companion.py` against a fake AMO server on 127.0.0.1 with made-up keys and a temporary state folder.
 
 Run them all before every commit. A change to a command's output needs its fixture in `tests/fixtures/contract/` and its spec in `schema.json`.
 
@@ -237,20 +238,43 @@ Browser Glass must cost nothing while nothing changes:
 - **Language**: code, comments, identifiers and source strings are in English.
 - **Translations**: each visible string goes through `I18n.trFor("browserGlass", "…")` and has an entry in `translations/fr.json` (`{"term": {"term": "translation"}}`). `tools/check_translations.py` checks that.
 - **QML**: use DMS 2 widgets (`qs.DCommon.Widgets`), not the deprecated `Dank*` ones (`tests/qml/run.sh` rejects them). A new file goes into `components/`. After you change a QML file or `logic.js`, run `dms restart` to see it live.
-- **Privacy**: no telemetry, no network, and no file written outside the paths in [Architecture](#architecture). Tests, fixtures and media use made-up data only.
+- **Privacy**: no telemetry, no network, and no file written outside the paths in [Architecture](#architecture). Only two development tools use the network: `tools/update_styles.py` and `tools/sign_companion.py`. The plugin never runs them. Tests, fixtures and media use made-up data only.
 - **Docs**: user-facing changes go in `docs/GUIDE.md`, and in the README if they change installation or the basics. Every change also gets an entry in `CHANGELOG.md`.
 
 ## Releasing a version
 
-1. Bump `version` in `plugin.json` ([Semantic Versioning](https://semver.org/)), together with `version` in `extension/manifest.json` (`tests/py/test_companion.py` checks the two agree), `VERSION` in `browserglass.py`, `version` in `tests/fixtures/contract/status.json` and the `version:` line of `tests/fixtures/contract/report.txt`. `tests/py/test_contract.py` checks that the last two agree. Nothing checks `plugin.json` against them, so compare it by eye.
-2. Move the `Unreleased` entries of `CHANGELOG.md` under the new version and date, and add its link at the bottom.
-3. Refresh the screenshots if the look changed (see [Screenshots](#screenshots)).
-4. Run every test, commit, then tag and publish:
+1. Freeze `extension/`: the signed add-on is made from it, so any change after signing needs a new version. Bump `version` in `plugin.json` ([Semantic Versioning](https://semver.org/)), together with `version` in `extension/manifest.json` (`tests/py/test_companion.py` checks the two agree), `VERSION` in `browserglass.py`, `version` in `tests/fixtures/contract/status.json` and the `version:` line of `tests/fixtures/contract/report.txt`. `tests/py/test_contract.py` checks that the last two agree. Nothing checks `plugin.json` against them, so compare it by eye.
+2. Have Mozilla sign the companion add-on (see *Signing the companion* below). Commit the signed xpi as `companion/browserglass@companion.xpi`, outside `extension/`.
+3. Move the `Unreleased` entries of `CHANGELOG.md` under the new version and date, and add its link at the bottom.
+4. Refresh the screenshots if the look changed (see [Screenshots](#screenshots)).
+5. Run every test, commit, then tag and publish. Attach the signed xpi to the release:
 
    ```sh
    git tag v1.0.1 && git push origin main v1.0.1
-   gh release create v1.0.1 --title v1.0.1 --notes-file <release notes taken from CHANGELOG.md>
+   gh release create v1.0.1 --title v1.0.1 --notes-file <release notes taken from CHANGELOG.md> companion/browserglass@companion.xpi
    ```
+
+**Signing the companion.** `tools/sign_companion.py` has the add-on signed on [addons.mozilla.org](https://addons.mozilla.org) (AMO) in the unlisted channel, through the AMO API v5. It uses the standard library only (no `web-ext`). It is a development tool, and with `tools/update_styles.py` the only part of the repository that uses the network.
+
+Create the API keys on <https://addons.mozilla.org/developers/addon/api/key/> (a Mozilla account is needed). The tool reads them from `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET` in the environment, or else from `~/.config/browserglass-amo/credentials`, one `NAME=value` line each:
+
+```
+WEB_EXT_API_KEY=user:...
+WEB_EXT_API_SECRET=...
+```
+
+The file must be a regular file of yours with mode 600 (`chmod 600`), or the tool refuses it. `BG_AMO_CREDENTIALS` names another file (the tests use it). Never pass the keys on the command line, and never commit them. Only `sign` and `fetch` read them.
+
+```sh
+python3 -I -B tools/sign_companion.py pack                  # build the xpi as browserglass.py does
+python3 -I -B tools/sign_companion.py sign                  # upload, wait for the signature, download
+python3 -I -B tools/sign_companion.py fetch 1.3.0           # download a version signed later
+python3 -I -B tools/sign_companion.py verify <signed xpi>   # same files as extension/, and signed
+```
+
+`sign` uploads the version in `extension/manifest.json`, waits for Mozilla to sign it (up to 15 minutes), downloads the signed xpi, checks it with `verify` and writes it to `~/.config/browserglass-amo/signed/`. If the wait times out, the tool prints the AMO version id and exits with status 3: run `fetch <version>` later. Each command prints one JSON line on stdout.
+
+AMO keeps each version number forever, even when the upload is rejected. Never upload the same number twice: the tool records every number it uploads in `~/.config/browserglass-amo/amo-versions.json` and refuses a number that is not greater than the largest one there. Test signings use numbers from `x.y.90` up, in a scratch copy of `extension/`, and are never committed. AMO allows 6 uploads a minute and 20 an hour; the tool never retries, and stops on a rate limit. Any change to `extension/` after signing needs a new version and a new signature.
 
 **Site styles.** `.github/workflows/update-styles.yml` runs every week and can also be started by hand. It calls `tools/update_styles.py`, which fetches `styles.json`, `css-mapping.json` and the licence from [sameerasw/my-internet](https://github.com/sameerasw/my-internet). The tool drops the styles listed in `tools/style-denylist.txt` (sha256 digests of style names and words, so the list does not spell them) and then checks the result with `--check data`. When the data changed, the workflow opens or updates a pull request. Squash-merge that pull request yourself. To refresh by hand:
 

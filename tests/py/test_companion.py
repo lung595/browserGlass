@@ -44,6 +44,8 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertEqual(gecko["id"], bg.COMPANION_ID)
         # CSS nesting, which the gated stylesheets need, came with Firefox 117.
         self.assertEqual(gecko["strict_min_version"], "117.0")
+        # AMO asks for it: the add-on talks only to the local native host.
+        self.assertEqual(gecko["data_collection_permissions"], {"required": ["none"]})
         self.assertEqual(self.manifest["manifest_version"], 2)
         self.assertEqual(self.manifest["permissions"],
                          ["nativeMessaging", "tabs", "storage", "*://*/*"])

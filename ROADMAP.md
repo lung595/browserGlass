@@ -5,7 +5,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 ## Planned
 
 - **New screenshots**: a GIF of the launcher, and the *Sites* settings with the new page layers.
-- **A signed companion add-on for Firefox release**: have Mozilla sign the add-on as unlisted (`web-ext sign --channel=unlisted`), so that Live control works on Firefox release and ESR builds too. The manifest will then need `browser_specific_settings.gecko.data_collection_permissions`.
+- **A signed companion add-on for Firefox release**: so that Live control works on Firefox release and ESR builds too. The signing tool exists (`tools/sign_companion.py`, standard library only, no `web-ext`). What remains: have Mozilla sign 1.3.0 as unlisted, and ship the signed xpi.
 - **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
 - **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
 - **Live control in frames** (`all_frames`): today only the main page switches at once; frames follow at the next restart.

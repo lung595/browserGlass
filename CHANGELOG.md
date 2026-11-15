@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Signing tool** (`tools/sign_companion.py`, for releases): has Mozilla sign the companion add-on in the unlisted channel through the AMO API v5, with the standard library only. `pack` builds the xpi exactly as the helper does, `sign` uploads it, waits for the signature and downloads it, `fetch` downloads a version signed later, and `verify` checks that a signed xpi holds the same files as `extension/` plus a Mozilla signature. It never uploads the same version twice and keeps the API keys out of every message. The companion's manifest now declares `data_collection_permissions` (none: the add-on talks only to the local helper).
+
 ## [1.2.0] - 2026-11-15
 
 ### Added
