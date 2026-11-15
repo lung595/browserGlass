@@ -16,6 +16,9 @@
       {"store": "cookie", "key": "frwikimwclientpreferences", "op": "set", "from": [null], "to": "skin-theme-clientpref-night", "verified": "2026-11-15", "note": "signed out, the Appearance menu writes the host-only cookie frwikimwclientpreferences; an inline head script reads it, no reload"},
       {"store": "cookie", "key": "frwikimwclientpreferences", "op": "swap", "from": ["skin-theme-clientpref-day"], "to": "skin-theme-clientpref-night", "verified": "2026-11-15", "note": "the cookie lists several client prefs (%2C); only the day theme is swapped"}
     ],
+    "gemini.google.com": [
+      {"store": "local", "key": "Bard-Color-Theme", "op": "set", "from": ["Bard-Light-Theme"], "to": "Bard-Dark-Theme", "verified": "2026-11-15", "note": "signed out, Settings > Theme writes Bard-Color-Theme; absent, the page follows the system colour scheme"}
+    ],
     "www.npmjs.com": [
       {"store": "local", "key": "npm-color-mode", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-15", "note": "an inline head script reads npm-color-mode, light when absent; the moon toggle writes it"}
     ]

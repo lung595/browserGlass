@@ -17,7 +17,8 @@ the list). Checked:
     see-through, the full-page wrapper marked as canvas and see-through, a
     small card dark but opaque, not marked; the fetch Dark Reader gets
     returns a stylesheet, and refuses another type or a missing file;
-    grey text stays grey (the text colour's tint is muted);
+    grey text stays grey (the text colour's tint is muted); a frame keeps
+    its colour scheme (not Dark Reader's dark one);
   - a light theme gives the page its own colours back (no Dark Reader
     style, tone light), the wrapper, its lowest layer, still glass; a dark
     theme darkens it again; the helper turning darken off live (a message)
@@ -61,7 +62,7 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #card {background:rgb(240,240,240); width:200px; height:100px}
 .meta {color:rgb(130,130,130)}
 </style></head><body><div id="wrap">""" + TEXT + """<p id="grey" class="meta">120 points by someone</p>
-<div id="card">Card</div></div></body></html>"""
+<div id="card">Card</div><iframe id="frame" src="about:blank" width="20" height="20"></iframe></div></body></html>"""
 
 # A light page with its own dark theme, on a "dark" class of <html>; the
 # text colour is animated, as theme switches often are.
@@ -146,6 +147,9 @@ def stylesheet(dark_pages, sites=None):
     return css
 
 
+SCHEME = "return getComputedStyle(document.getElementById(arguments[0])).colorScheme;"
+
+
 def saturation(rgba):
     """The HSL saturation of an (r, g, b, a) colour."""
     hi, lo = max(rgba[:3]) / 255, min(rgba[:3]) / 255
@@ -223,6 +227,13 @@ class DarkenE2E(unittest.TestCase):
             # a saturation of 100%
             grey = tone.rgba(b.js("return getComputedStyle(document.getElementById('grey')).color;"))
             self.assertLessEqual(saturation(grey), 0.15, grey)
+            # a frame keeps its colour scheme (Dark Reader makes every one
+            # dark: a light page from another site gets an opaque backdrop),
+            # one added later too
+            self.assertEqual(b.js(SCHEME, "frame"), "normal")
+            b.js("const f = document.createElement('iframe'); f.id = 'late'; document.body.append(f);")
+            self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('late')).colorScheme"
+                                       " === 'normal';"), "a frame added later turned dark")
             # a light theme: the page's own colours, the wrapper (its lowest
             # layer) still glass, the card white again
             tone.set_scheme(b, False)
@@ -232,6 +243,8 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS))
             self.assertEqual(self.bg_of(b, "wrap"), "rgba(0, 0, 0, 0)")
             self.assertEqual(self.bg_of(b, "card"), "rgb(240, 240, 240)")
+            # the frames' own style given back
+            self.assertIsNone(b.js("return document.getElementById('frame').style.colorScheme || null;"))
             # dark again
             tone.set_scheme(b, True)
             self.assertTrue(b.wait_for(DARKENED), "not darkened again")

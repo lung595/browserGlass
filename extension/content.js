@@ -404,6 +404,7 @@ function darken() {
   if (darkened && !theme) {
     darkened = false;
     DarkReader.disable();
+    frameSchemes();
     for (const el of document.querySelectorAll("[" + CANVAS + "]"))
       el.removeAttribute(CANVAS);
     measure();
@@ -417,8 +418,34 @@ function darken() {
     darkened = true;
     DarkReader.setFetchMethod(fetchStylesheet);
     DarkReader.enable(theme);
+    frameSchemes();
     measure();
   }
+}
+
+// Dark Reader gives every frame a dark colour scheme; a frame from another
+// site is not darkened and its light page then gets an opaque backdrop (a
+// white box, a consent dialog's grey veil over the whole page): frames
+// keep the scheme they had while the page is darkened, on their own style
+// (Dark Reader's rule, in a cascade layer, beats any style sheet of the
+// page), looked at on each pass of the layers; taken off after.
+const frames = document.getElementsByTagName("iframe");
+let schemed = new Map();
+
+function frameSchemes() {
+  if (!darkened) {
+    for (const [el, [value, priority]] of schemed)
+      value ? el.style.setProperty("color-scheme", value, priority) : el.style.removeProperty("color-scheme");
+    schemed = new Map();
+    return;
+  }
+  for (const el of frames)
+    if (el.style.getPropertyPriority("color-scheme") !== "important" || !schemed.has(el)) {
+      const value = el.style.getPropertyValue("color-scheme");
+      if (!schemed.has(el))
+        schemed.set(el, [value, el.style.getPropertyPriority("color-scheme")]);
+      el.style.setProperty("color-scheme", value || "normal", "important");
+    }
 }
 
 // The alpha (0-1) of a computed colour; 1 when unknown.
@@ -713,10 +740,49 @@ const FACE_DEPTH = 2;
 const MEDIA = new Set(["img", "picture", "video", "canvas", "iframe", "svg", "embed", "object"]);
 let faces = new Map();
 
+// Whether a style's background image is a picture: anything but
+// gradients drawn as thin lines (THIN px at most across) that do not
+// repeat across them, as links are underlined with a gradient 2px high.
+const THIN = 4;
+
+function split(value) {
+  const parts = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (c === "(")
+      depth++;
+    else if (c === ")")
+      depth--;
+    else if (c === "," && depth === 0) {
+      parts.push(value.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  parts.push(value.slice(start).trim());
+  return parts;
+}
+
+function picture(style) {
+  if (style.backgroundImage === "none")
+    return false;
+  const sizes = split(style.backgroundSize), repeats = split(style.backgroundRepeat);
+  const thin = (v) => v.endsWith("px") && parseFloat(v) <= THIN;
+  return split(style.backgroundImage).some((image, i) => {
+    if (!/^(repeating-)?(linear|radial|conic)-gradient\(/.test(image))
+      return true;
+    const [w, h = "auto"] = sizes[i % sizes.length].split(/\s+/);
+    const r = repeats[i % repeats.length].split(/\s+/);
+    const [rx, ry] = r[0] === "repeat-x" ? ["repeat", "no-repeat"]
+      : r[0] === "repeat-y" ? ["no-repeat", "repeat"] : [r[0], r[1] || r[0]];
+    return !(thin(h) && ry === "no-repeat" || thin(w) && rx === "no-repeat");
+  });
+}
+
 // What a style paints: a luminance, null for a picture, undefined for
 // nothing opaque.
 function paints(style) {
-  if (style.backgroundImage !== "none")
+  if (picture(style))
     return null;
   if (alpha(style.backgroundColor) >= OWN_BG)
     return luminance(style.backgroundColor);
@@ -729,9 +795,12 @@ function covers(r, el) {
 }
 
 function layerPaints(el, r, depth) {
+  const style = getComputedStyle(el);
+  if (parseFloat(style.opacity) < CLEAR)
+    return undefined;
   if (MEDIA.has(el.localName))
     return null;
-  const own = paints(getComputedStyle(el));
+  const own = paints(style);
   if (own !== undefined || depth === 0)
     return own;
   for (const kid of el.children)
@@ -751,7 +820,7 @@ function face(p) {
   if (r.width > 0 && r.height > 0) {
     for (const pseudo of ["::before", "::after"]) {
       const s = getComputedStyle(p, pseudo);
-      if (s.content === "none" || s.display === "none"
+      if (s.content === "none" || s.display === "none" || parseFloat(s.opacity) < CLEAR
           || parseFloat(s.width) * parseFloat(s.height) < FACE * r.width * r.height)
         continue;
       value = paints(s);
@@ -779,7 +848,7 @@ function behind(el) {
     const own = face(p);
     if (own !== undefined)
       return own;
-    if (style.backgroundImage !== "none")
+    if (picture(style))
       return null;
     if (alpha(style.backgroundColor) >= OWN_BG)
       return luminance(style.backgroundColor);
@@ -808,9 +877,17 @@ function markInk() {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0 && r.bottom > -h && r.top < 2 * h;
   };
+  // a mark taken off would fade the text back to its colour when the page
+  // gives it a transition (the colour read halfway, the mark set and taken
+  // off in turn): it is taken off with transitions held, its style
+  // attribute put back once the marks are set
+  const held = [];
   for (const el of document.querySelectorAll("[" + INK + "]"))
-    if (near(el))
+    if (near(el)) {
+      held.push([el, el.getAttribute("style")]);
+      el.style.setProperty("transition", "none", "important");
       el.removeAttribute(INK);
+    }
   faces = new Map();
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -830,6 +907,10 @@ function markInk() {
     if (bg !== null && contrast(fg, bg) < INK_RATIO)
       el.setAttribute(INK, bg > 0.179 ? "dark" : "light");
   }
+  if (held.length)
+    getComputedStyle(held[0][0]).color;
+  for (const [el, style] of held)
+    style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
   markBlend(near);
 }
 
@@ -888,6 +969,7 @@ function layers() {
   if (!layerFrame)
     layerFrame = requestAnimationFrame(() => {
       layerFrame = 0;
+      frameSchemes();
       markCanvas();
       markBars();
       markFills();

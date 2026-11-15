@@ -272,6 +272,13 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("removeAttribute(INK)", mark)
         self.assertIn("contrast(fg, bg) < INK_RATIO", mark)
         self.assertIn("i < INK_NODES && seen.size < INK_ELEMENTS", mark)
+        # a mark taken off with the page's transitions held, the style
+        # attribute put back after one flush, once the marks are set
+        self.assertIn('el.style.setProperty("transition", "none", "important");', mark)
+        self.assertLess(mark.index('setProperty("transition"'), mark.index("el.removeAttribute(INK);"))
+        self.assertIn("getComputedStyle(held[0][0]).color;", mark)
+        self.assertIn('style === null ? el.removeAttribute("style") : el.setAttribute("style", style);', mark)
+        self.assertLess(mark.index("el.setAttribute(INK,"), mark.index("getComputedStyle(held[0][0])"))
         self.assertIn("const INK_RATIO = 2;", js)
 
     def test_content_marks_blend(self):
@@ -290,18 +297,33 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("bg !== null && bg <= DARK_BG", mark)
         behind = js[js.index("function behind(el)"):js.index("function markInk()")]
         # an image behind the text: no guess
-        self.assertIn('if (style.backgroundImage !== "none")\n      return null;', behind)
+        self.assertIn("if (picture(style))\n      return null;", behind)
         self.assertIn("getPropertyValue(GLASS)", behind)
         # a translucent root over the glass, mixed in sRGB as the browser does
         self.assertIn("linear(a * encoded(own) + (1 - a) * encoded(glass))", behind)
         # a face of its own (a ::before, or a covering absolute child, as
         # buttons often are) comes before the element's own background
-        self.assertLess(behind.index("face(p)"), behind.index("style.backgroundImage"))
+        self.assertLess(behind.index("face(p)"), behind.index("picture(style)"))
+        # a thin gradient that does not repeat across (an underline) is no
+        # picture; anything else in a background image is
+        pic = js[js.index("const THIN = "):js.index("function paints(")]
+        self.assertIn("const THIN = 4;", pic)
+        for part in ('if (style.backgroundImage === "none")\n    return false;',
+                     "/^(repeating-)?(linear|radial|conic)-gradient\\(/.test(image)",
+                     'v.endsWith("px") && parseFloat(v) <= THIN',
+                     'thin(h) && ry === "no-repeat" || thin(w) && rx === "no-repeat"',
+                     'else if (c === "," && depth === 0)'):
+            self.assertIn(part, pic)
+        self.assertIn("if (picture(style))\n    return null;",
+                      js[js.index("function paints("):js.index("function covers(")])
         faces = js[js.index("const FACE = "):js.index("function behind(el)")]
         for part in ('for (const pseudo of ["::before", "::after"])',
                      '(position === "absolute" || position === "fixed") && covers(r, kid)',
                      "p.childElementCount <= FACE_KIDS", "faces.set(p, value);",
-                     "if (MEDIA.has(el.localName))\n    return null;"):
+                     "if (MEDIA.has(el.localName))\n    return null;",
+                     # a layer at opacity 0 (a hover state) is no face
+                     'parseFloat(s.opacity) < CLEAR',
+                     "if (parseFloat(style.opacity) < CLEAR)\n    return undefined;"):
             self.assertIn(part, faces)
         # looked for again on every pass
         self.assertIn("faces = new Map();", js[js.index("function markInk()"):js.index("function markBlend(")])
@@ -421,6 +443,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('!window.matchMedia("(prefers-color-scheme: dark)").matches', theme)
         darken = js[js.index("function darken()"):js.index("const GRID")]
         self.assertIn("darkened && !theme", darken)
+        # frames keep their colour scheme while darkened (Dark Reader's
+        # iframe rule gave a light frame from another site a backdrop)
+        self.assertLess(darken.index("DarkReader.disable();"), darken.index("frameSchemes();"))
+        self.assertLess(darken.index("DarkReader.enable(theme);"), darken.rindex("frameSchemes();"))
+        schemes = js[js.index("function frameSchemes()"):js.index("function alpha(")]
+        self.assertIn('const frames = document.getElementsByTagName("iframe");', js)
+        self.assertIn('el.style.setProperty("color-scheme", value || "normal", "important");', schemes)
+        self.assertIn('value ? el.style.setProperty("color-scheme", value, priority) : el.style.removeProperty("color-scheme");', schemes)
+        self.assertIn("schemed = new Map();", schemes)
+        layers_ = js[js.index("function layers()"):js.index("const layerSizes")]
+        self.assertLess(layers_.index("frameSchemes();"), layers_.index("markCanvas();"))
         # the darkening stopped by the helper takes the page's own dark
         # theme marks back too
         self.assertIn("native && (off !== false || !helperDark ||", darken)

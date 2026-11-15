@@ -33,11 +33,15 @@ test_e2e_darken.py. Checked:
   - black text straight on the root of a dark page under a light theme
     (the dark tint at 88 % over the light glass, mixed in sRGB) is inked;
   - dark text straight on the dark glass gets the light surface colour,
-    the same text on its own white card is left alone.
+    the same text on its own white card is left alone; so is dark text
+    over a light face at opacity 0 (a hover state) or a gradient underline
+    2px high, but not over a full gradient; text with a colour transition
+    keeps its mark from pass to pass, its style attribute put back.
 """
 
 import os
 import sys
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -134,7 +138,10 @@ LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
 # Dark text on see-through layers (the glass behind it), and on a white card;
 # a black logo blended with multiply on each. Buttons whose light face is a
 # ::before, or a layer of children under the label, and text over a
-# picture laid under it.
+# picture laid under it. Dark text the light faces do not hold: a ::before
+# at opacity 0 (a hover state), a gradient 2px high (an underline); text
+# with a colour transition (its mark kept, not taken off and set in turn);
+# text on a full gradient, a picture.
 LOGO = ("<img id=\"%s\" width=\"40\" height=\"20\" style=\"mix-blend-mode:multiply\" src=\"data:image/svg+xml,"
         "%%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%%3E%%3Crect width='40' height='20'/%%3E%%3C/svg%%3E\">")
 INK_PAGE = STYLE + """
@@ -144,11 +151,19 @@ html, body {background:transparent}
 .pill {position:relative; isolation:isolate; background:transparent; border:0; padding:8px; color:rgb(30,30,30)}
 .pill.face::before {content:""; position:absolute; inset:0; z-index:-1; border-radius:8px; background:rgb(240,240,240)}
 .under {position:absolute; inset:0; z-index:-1} .under span {position:absolute; inset:0; background:rgb(239,239,239)}
+.pill.state::before {content:""; position:absolute; inset:0; z-index:-1; background:rgb(240,240,240); opacity:0}
+#cta, #fade, #ongrad {color:rgb(20,20,20)}
+#cta {background-image:linear-gradient(rgb(200,200,255), rgb(200,200,255)); background-size:400% 2px;
+  background-repeat:no-repeat; background-position:0 100%}
+#fade {transition:color 0.2s linear}
+#ongrad {background-image:linear-gradient(rgb(250,250,250), rgb(240,240,240))}
 </style></head><body><p id="dim">Notice</p>""" + LOGO % "logo" + """
 <div id="card"><p id="oncard">Card</p>""" + LOGO % "cardlogo" + """</div>
 <button class="pill face"><span id="pill">Upgrade</span></button>
 <button class="pill"><span class="under"><span></span></span><span id="layered">Try</span></button>
 <div style="position:relative"><img style="position:absolute; inset:0; width:100%; height:100%" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"><p id="onpic">Hero</p></div>
+<button class="pill state"><span id="ghost">New chat</span></button>
+<p><a id="cta" href="#">Download</a></p><p id="fade" style="font-weight:bold">Fading</p><p id="ongrad">Gradient</p>
 </body></html>"""
 INK = bg.ATTR_INK
 BLEND = bg.ATTR_BLEND
@@ -324,6 +339,20 @@ class LayersE2E(unittest.TestCase):
             self.assertFalse(self.marked(b, "layered", INK), "text on a light child face marked")
             # text over a picture: no guess
             self.assertFalse(self.marked(b, "onpic", INK), "text over a picture marked")
+            self.assertFalse(self.marked(b, "ongrad", INK), "text over a full gradient marked")
+            # a light face at opacity 0 holds no text; a thin gradient
+            # underline is no picture
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "ghost", INK), "text over an opacity 0 face not marked")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "cta", INK), "text over a gradient underline not marked")
+            # a colour transition: the mark stays (each pass, from its
+            # transitionend, would take it off and read the colour halfway)
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "fade", INK), "fading text not marked")
+            seen = set()
+            for _ in range(20):
+                seen.add(b.js("return document.getElementById('fade').getAttribute(arguments[0]);", INK))
+                time.sleep(0.1)
+            self.assertEqual(seen, {"light"})
+            self.assertEqual(b.js("return document.getElementById('fade').getAttribute('style');"), "font-weight:bold")
 
             # a dark page under a light theme: the root's translucent tint
             # over the light glass, mixed as the browser mixes it (sRGB)
