@@ -346,6 +346,11 @@ Item {
                         ]
                     }), 0);
                     t.check("no second restart toast, no repeated warning in the same episode", Logic.syncToasts(later, firstCtx).toasts, []);
+                    const reopacity = Logic.parseSync('{"glass":true,"opacity":0.68,"reason":"active","first_run":false,"changed":["a"],"running_changed":["a"],"niri_changed":false,"warnings":[]}', 0);
+                    out = Logic.syncToasts(reopacity, firstCtx);
+                    t.check("a new opacity in the same episode: the restart toast again", [out.toasts.length, Logic.isRestartToast(out.toasts[0]), out.ctx.restartOpacity], [1, true, 0.68]);
+                    t.check("it says to close every window, a source string", [/every window/.test(out.toasts[0].details), out.toasts[0].detailsTr], [true, true]);
+                    t.check("the same opacity again stays silent", Logic.syncToasts(reopacity, out.ctx).toasts, []);
                     out = Logic.syncToasts(later, Logic.newToastContext());
                     t.check("a running browser's files changed: restart toast", out.toasts.map(x => [x.level, /restart/i.test(x.text)]), [["info", true], ["warning", false]]);
                     const notRunning = Logic.parseSync('{"glass":true,"opacity":0.85,"reason":"active","first_run":false,"changed":["a"],"running_changed":[],"niri_changed":true,"warnings":[]}', 0);
@@ -404,7 +409,7 @@ Item {
                     t.ok("the restart episode goes on", d.ctx.restartShown);
                     d = Logic.statusDecision(fine, d.ctx);
                     t.check("restart_needed false: stop polling", [d.poll, d.resync], [false, false]);
-                    t.ok("and the restart episode ends", !d.ctx.restartShown);
+                    t.check("and the restart episode ends", [d.ctx.restartShown, d.ctx.restartOpacity], [false, null]);
                     t.check("a failed status stops polling", Logic.statusDecision(Logic.parseStatus("", 1), d.ctx).poll, false);
                     d = Logic.statusDecision(stale, Logic.newToastContext());
                     t.check("niri_rule_stale: resync, no poll", [d.poll, d.resync], [false, true]);

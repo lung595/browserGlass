@@ -368,6 +368,9 @@
   "Report copied to the clipboard": {
     "Report copied to the clipboard": "Rapport copié dans le presse-papiers"
   },
+  "Close every window of the browser, then open it again: it reads its style files only when it starts": {
+    "Close every window of the browser, then open it again: it reads its style files only when it starts": "Fermez toutes les fenêtres du navigateur, puis rouvrez-le : il ne lit ses fichiers de style qu'au démarrage"
+  },
   "Restart %1 to see the change": {
     "Restart %1 to see the change": "Redémarrez %1 pour voir le changement"
   },

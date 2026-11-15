@@ -618,11 +618,13 @@ function syncFinished(book, now, busy) {
 // ctx (daemon memory, one session):
 //   lastErrorShown   the error text last toasted ("" after a success)
 //   restartShown     the restart toast was shown in this restart episode
+//   restartOpacity   the glass opacity it was shown for: a new opacity
+//                    (the DMS window rule edited) shows it again
 //   warningsShown    ["code/profile", ...] already toasted
 //   staleResync      a sync was run for niri_rule_stale in this episode
 
 function newToastContext() {
-    return {"lastErrorShown": "", "restartShown": false, "warningsShown": [], "staleResync": false};
+    return {"lastErrorShown": "", "restartShown": false, "restartOpacity": null, "warningsShown": [], "staleResync": false};
 }
 
 function _copyCtx(ctx) {
@@ -630,6 +632,7 @@ function _copyCtx(ctx) {
     return {
         "lastErrorShown": c.lastErrorShown || "",
         "restartShown": c.restartShown === true,
+        "restartOpacity": typeof c.restartOpacity === "number" ? c.restartOpacity : null,
         "warningsShown": Array.isArray(c.warningsShown) ? c.warningsShown.slice() : [],
         "staleResync": c.staleResync === true
     };
@@ -658,7 +661,7 @@ function _warningToasts(warnings, c, toasts) {
 //   error         once per distinct error text (busy retries stay silent)
 //   first run     "set up" (glass on: restart the browser; off: why)
 //   restart       a running browser's files changed (running_changed), once
-//                 per restart episode
+//                 per restart episode and glass opacity
 //   warnings      TOAST_WARNINGS, once per code and profile
 function syncToasts(outcome, ctx, retrying) {
     var c = _copyCtx(ctx);
@@ -678,11 +681,19 @@ function syncToasts(outcome, ctx, retrying) {
             toasts.push({"level": "info", "text": "Browser Glass is set up: restart your browser to see the glass", "details": ""});
         else
             toasts.push({"level": "info", "text": "Browser Glass is set up, but glass is off", "details": reasonText(r.reason), "detailsTr": true});
-        if (r.running_changed.length > 0)
+        if (r.running_changed.length > 0) {
             c.restartShown = true;
-    } else if (r.running_changed.length > 0 && !c.restartShown) {
+            c.restartOpacity = r.opacity;
+        }
+    } else if (r.running_changed.length > 0 && (!c.restartShown || r.glass && r.opacity !== c.restartOpacity)) {
         c.restartShown = true;
-        toasts.push({"level": "info", "text": "Restart your browser to apply Browser Glass", "details": ""});
+        c.restartOpacity = r.opacity;
+        // its details: closing one window of several, or opening the browser
+        // again while another of its windows is open, hands the new window
+        // to the same running browser, which keeps its old styles
+        toasts.push({"level": "info", "text": "Restart your browser to apply Browser Glass",
+            "details": "Close every window of the browser, then open it again: it reads its style files only when it starts",
+            "detailsTr": true});
     }
     _warningToasts(r.warnings, c, toasts);
     return {"toasts": toasts, "ctx": c};
@@ -752,8 +763,10 @@ function statusDecision(parsed, ctx) {
     var toasts = [];
     if (!parsed || !parsed.ok)
         return {"poll": false, "resync": false, "toasts": toasts, "ctx": c};
-    if (!parsed.restartNeeded)
+    if (!parsed.restartNeeded) {
         c.restartShown = false;
+        c.restartOpacity = null;
+    }
     var resync = false;
     if (parsed.stale) {
         if (!c.staleResync) {

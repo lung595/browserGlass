@@ -250,7 +250,7 @@ The browser reads its style files and `user.js` only when it starts. Browser Gla
 - If one is, and one of its glass files (the two style files, `userChrome.css`, `userContent.css` or `user.js`) changed after that browser started, the profile needs a restart.
 - Except for exclusions applied live: when the only change is the list of excluded sites and that browser's companion add-on confirmed it applied the new list (see [Live control](#live-control)), no restart is needed.
 
-The widget then shows a dot, its menu says *Restart Firefox to see the change* (with the right browser name), and the status lists it. A toast *Restart your browser to apply Browser Glass* also shows when a write changes a running browser. While any browser needs a restart, the plugin checks again every 10 s, so the dot goes away soon after you restart it. The check stops after three failed reads in a row.
+The widget then shows a dot, its menu says *Restart Firefox to see the change* (with the right browser name), and the status lists it. A toast *Restart your browser to apply Browser Glass* also shows when a write changes a running browser, again when the glass opacity changes before that restart (the DMS window rule edited), and says what a restart is: every window of the browser closed, then the browser opened again. Closing one window of several, or opening the browser again from the launcher while one of its windows is still open, only hands a new window to the browser already running, which keeps the styles it read when it started. While any browser needs a restart, the plugin checks again every 10 s, so the dot goes away soon after you restart it. The check stops after three failed reads in a row.
 
 ## Status and report
 

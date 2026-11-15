@@ -25,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A link underlined with a thin gradient (2px high, as on mozilla.org's buttons) was taken for text over a picture and never recoloured, white on the light glass. A thin gradient line no longer counts as a picture.
 - Text whose colour has a transition (WordPress.com's menus) flickered between its own colour and the readable one: each check read the colour halfway through the transition. The colour is now read without it.
 - Text straight on a page's translucent tint is judged against the colour the browser actually shows there. Black text on the dark tint used to be judged readable and was left black.
+- Editing the DMS window opacity while a browser still waited for a restart showed no toast: the restart toast came once per restart, so the new opacity looked ignored. It now shows again for each new opacity, and says to close every window of the browser and open it again: opening it from the launcher while one of its windows is still open only adds a window to the browser already running, which keeps its old styles.
 
 ## [1.3.3] - 2026-11-15
 

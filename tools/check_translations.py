@@ -11,7 +11,9 @@ Source strings, all as string literals:
   - toast("level", "term" ...): the daemon's toast(level, text, details)
     translates `text` with trFor;
   - in .js files, the literals of a `"text": ...` entry (logic.js toast
-    objects, comparison operands skipped) and the `return "...";` lines of
+    objects, comparison operands skipped), a non-empty literal `"details"`
+    value (a toast's details given as a literal are a source string, its
+    detailsTr set) and the `return "...";` lines of
     the functions in TEXT_FUNCTIONS (logic.js reasonText(), warningText()
     and liveStatusText(), launcher.js launcherText(), whose values the QML
     and the daemon's toasts translate).
@@ -49,6 +51,7 @@ TRFOR_RX = re.compile(r"\btrFor\s*\(\s*(?:[^,()]|\([^()]*\))+?,\s*(" + _STR + r"
 TR_RX = re.compile(r"\bI18n\s*\.\s*tr\s*\(\s*(" + _STR + r")")
 TOAST_RX = re.compile(r"\btoast\s*\(\s*(?:" + _STR + r")\s*,\s*(" + _STR + r")")
 TEXT_KEY_RX = re.compile(r"""["']?\btext["']?\s*:\s*([^\n]*)""")
+DETAILS_RX = re.compile(r"""["']?\bdetails["']?\s*:\s*(""" + _STR + r")")
 COMPARED_RX = re.compile(r"(?:===|!==|==|!=)\s*$")
 # The next property of the same object literal ends a `"text":` value
 NEXT_KEY_RX = re.compile(r",\s*[\"']?[A-Za-z_$][\w$]*[\"']?\s*:")
@@ -148,6 +151,10 @@ def strings_in(text, is_js):
                 if COMPARED_RX.search(rest[:s.start()]):
                     continue
                 found.append((decode_literal(s.group(0)), _line(text, m.start(1))))
+        for m in DETAILS_RX.finditer(text):
+            term = decode_literal(m.group(1))
+            if term:
+                found.append((term, _line(text, m.start(1))))
         starts = [(m.start(), m.group(1)) for m in FUNCTION_RX.finditer(text)]
         for k, (start, name) in enumerate(starts):
             if name not in TEXT_FUNCTIONS:

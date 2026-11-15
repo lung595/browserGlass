@@ -174,6 +174,7 @@ class CheckerTest(unittest.TestCase):
             '        "text": w.code === "some_code" ? "Code text" : "Other text",',
             '        "details": ""',
             '    });',
+            '    toasts.push({"text": "Restart", "details": "Literal details", "detailsTr": true});',
             '}',
             'function reasonText(reason) {',
             '    switch (reason) {',
@@ -190,7 +191,8 @@ class CheckerTest(unittest.TestCase):
         terms = ct.collect(str(self.root))
         self.assertEqual(sorted(terms), sorted([
             "Toast text", "Single 'quoted'", "After a call", "Global term", 'Escé "q"',
-            "Sync failed", "Code text", "Other text", "Reason A", "Reason other",
+            "Sync failed", "Code text", "Other text", "Restart", "Literal details",
+            "Reason A", "Reason other",
         ]))
         self.assertEqual(terms["Toast text"], [("Daemon.qml", 2)])
 
