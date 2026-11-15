@@ -32,6 +32,7 @@ PROFILE = ROOT + "/abcd1234.default-release"
 PLUGIN = ".config/dms/plugins/browserGlassRaceTest"
 DATA = PLUGIN + "/data"
 STATE = ".local/state/dms/browserGlass"
+DMS_SETTINGS = ".config/dms/plugin_settings.json"
 FAST = {"BG_LOCK_TIMEOUT": "5", "BG_POLL_INTERVAL": "0.05", "BG_SWEEP_GRACE": "0",
         "BG_PLUGIN_RECHECK": "0"}
 
@@ -276,6 +277,83 @@ class SweepRaceTest(unittest.TestCase):
         self.assert_refused(json.loads(out.getvalue()))
         self.assertEqual(fh.snapshot("."), racing_lock.before)
         self.assertTrue(fh.exists(lock_rel))
+
+    # Disabling the plugin: DMS writes "enabled": false to
+    # plugin_settings.json, then the daemon's onDestruction runs `uninstall`
+    # (the folder stays). A sync the daemon started just before is not
+    # killed: if it gets the lock after that uninstall, --if-plugin refuses
+    # it, and nothing is written back.
+
+    def set_enabled(self, value, other=None):
+        doc = {"otherPlugin": {"enabled": True}}
+        if value is not None:
+            doc[bg.PLUGIN_ID] = {"enabled": value, "liveControl": True}
+        self.fh.write(DMS_SETTINGS, json.dumps(doc, indent=2) if other is None else other, mode=0o644)
+
+    def test_enabled_plugin_syncs(self):
+        self.set_enabled(True)
+        self.assert_styled(self.sync())
+
+    def test_disabled_while_waiting_for_the_lock(self):
+        self.set_enabled(True)
+        self.sync()
+        self.assertTrue(self.fh.exists(STATE))
+        real_lock = bg.state_lock
+        fh = self.fh
+
+        def racing_lock(folder, env=None, *rest):
+            # The sync passed its first check and is about to lock: the
+            # user disables the plugin and the uninstall runs first.
+            self.set_enabled(False)
+            proc = fh.run_script(["uninstall"], extra_env=FAST)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertTrue(json.loads(proc.stdout)["state_removed"], proc.stdout)
+            racing_lock.after_uninstall = fh.snapshot(".")
+            return real_lock(folder, env, *rest)
+
+        out = io.StringIO()
+        args = self.daemon_args() + ["--plugin-dir", str(test_contract.REPO)]
+        with mock.patch.object(bg, "state_lock", racing_lock), contextlib.redirect_stdout(out):
+            code = bg.main(args, env=fh.env(FAST))
+        self.assertEqual(code, bg.EXIT_ERROR, out.getvalue())
+        doc = json.loads(out.getvalue())
+        self.assertEqual(test_contract.validate(doc, SCHEMA["error"], DEFS), [], doc)
+        self.assert_refused(doc)
+        self.assertEqual(fh.snapshot("."), racing_lock.after_uninstall)
+        self.assertFalse(fh.exists(PROFILE + "/chrome/dms-glass-content.css"))
+        self.assertFalse(fh.exists(PROFILE + "/user.js"))
+        self.assertFalse(fh.exists(STATE))
+        self.assertFalse(fh.exists(".local/state/dms"))
+
+    def test_disabled_plugin_is_refused_before_the_lock(self):
+        self.set_enabled(False)
+        before = self.fh.snapshot(".")
+        self.assert_refused(self.sync(code=1))
+        self.assertEqual(self.fh.snapshot("."), before)
+
+    def test_disabled_plugin_still_syncs_without_if_plugin(self):
+        # A manual run is the user's choice, whatever DMS says.
+        self.set_enabled(False)
+        self.assert_styled(self.manual(self.data()))
+
+    def test_plugin_disabled_predicate(self):
+        env = self.fh.env(FAST)
+        self.assertFalse(bg.plugin_disabled(env))
+        for value, disabled in ((False, True), (True, False), (None, False), (0, False), ("false", False)):
+            self.set_enabled(value)
+            self.assertEqual(bg.plugin_disabled(env), disabled, value)
+        self.set_enabled(None, other="\ufeff" + json.dumps({bg.PLUGIN_ID: {"enabled": False}}))
+        self.assertTrue(bg.plugin_disabled(env))
+        for text in ("{", "[]", json.dumps({bg.PLUGIN_ID: False}), ""):
+            self.set_enabled(None, other=text)
+            self.assertFalse(bg.plugin_disabled(env), text)
+        os.unlink(str(self.fh.resolve(DMS_SETTINGS)))
+        self.assertFalse(bg.plugin_disabled(env))
+        # The path follows $XDG_CONFIG_HOME.
+        other = self.fh.root / "otherconfig"
+        (other / "dms").mkdir(parents=True)
+        (other / "dms" / "plugin_settings.json").write_text(json.dumps({bg.PLUGIN_ID: {"enabled": False}}))
+        self.assertTrue(bg.plugin_disabled(self.fh.env(dict(FAST, XDG_CONFIG_HOME=str(other)))))
 
 
 if __name__ == "__main__":

@@ -146,6 +146,59 @@ class BasicSyncTest(SyncCase):
         self.assertEqual(proc.returncode, 2)
         self.assertIn("error", json.loads(proc.stdout))
 
+    def settings_file(self, content, name="bg-settings.json"):
+        path = self.fh.runtime / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if content is not None:
+            path.write_text(content, encoding="utf-8")
+            os.chmod(str(path), 0o600)
+        return path
+
+    def test_settings_file_is_read_then_deleted(self):
+        # The daemon's input: the excluded sites stay out of the argv
+        self.home()
+        path = self.settings_file(json.dumps(settings(excluded=["example.org"], opacityOverride=True, opacity=0.6)))
+        args = ["sync", "--settings-file", str(path)]
+        proc = self.fh.run_script(args, extra_env=FAST)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        doc = json.loads(proc.stdout)
+        self.assertTrue(doc["glass"])
+        self.assertAlmostEqual(doc["opacity"], 0.6)
+        self.assertFalse(path.exists())
+        # The same result as --settings: nothing left to change
+        out = self.sync(settings_doc=settings(excluded=["example.org"], opacityOverride=True, opacity=0.6))
+        self.assertEqual(out["changed"], [])
+        self.assertFalse(out["niri_changed"])
+
+    def test_bad_settings_file_is_a_usage_error(self):
+        self.home()
+        target = self.settings_file(json.dumps(settings()), "target.json")
+        link = self.fh.runtime / "link.json"
+        os.symlink(str(target), str(link))
+        fifo = self.fh.runtime / "fifo.json"
+        os.mkfifo(str(fifo))
+        big = self.settings_file(" " * (bg.SETTINGS_FILE_MAX + 1), "big.json")
+        bad = self.settings_file("[1, 2]", "bad.json")
+        cases = [(self.fh.runtime / "missing.json", "invalid --settings-file"), (link, "invalid --settings-file"),
+                 (fifo, "invalid --settings-file"), (big, "invalid --settings-file"), (bad, "invalid --settings")]
+        for path, error in cases:
+            with self.subTest(path=path.name):
+                proc = self.fh.run_script(["sync", "--settings-file", str(path)], extra_env=FAST)
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertTrue(json.loads(proc.stdout)["error"].startswith(error), proc.stdout)
+        self.assertFalse(self.fh.exists(PROFILE + "/user.js"))
+        # Regular files go even when refused; a symlink, its target and a fifo stay
+        self.assertEqual([p.exists() or p.is_symlink() for p in (big, bad, link, target, fifo)],
+                         [False, False, True, True, True])
+
+    def test_settings_and_settings_file_are_exclusive(self):
+        self.home()
+        path = self.settings_file(json.dumps(settings()))
+        proc = self.fh.run_script(["sync", "--settings", "{}", "--settings-file", str(path)])
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("error", json.loads(proc.stdout))
+        self.assertFalse(self.fh.exists(PROFILE + "/user.js"))
+
     def test_settings_change_rewrites_only_what_changed(self):
         self.home()
         self.sync()
@@ -299,23 +352,23 @@ class RunningProfileTest(SyncCase):
 class PrefsTest(SyncCase):
 
     def test_site_theme_none_restores_user_pref(self):
-        self.home(prefs={PREF_SCHEME: "2", "browser.startup.page": "3"})
+        self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})
         self.sync()
         userjs = self.fh.read(PROFILE + "/user.js")
-        self.assertIn('user_pref("%s", 0);' % PREF_SCHEME, userjs)
+        self.assertIn('user_pref("%s", 2);' % PREF_SCHEME, userjs)
         # The browser ran: prefs.js now holds our value.
-        self.fh.write(PROFILE + "/prefs.js", prefs_text({PREF_SCHEME: "0", "browser.startup.page": "3"}))
+        self.fh.write(PROFILE + "/prefs.js", prefs_text({PREF_SCHEME: "2", "browser.startup.page": "3"}))
         out = self.sync(settings_doc=settings(siteTheme="none"))
         self.assertEqual(out["changed"], [self.pid()])
         self.assertNotIn(PREF_SCHEME, self.fh.read(PROFILE + "/user.js"))
         self.assertEqual(self.fh.read(PROFILE + "/prefs.js"),
-                         prefs_text({PREF_SCHEME: "2", "browser.startup.page": "3"}))
+                         prefs_text({PREF_SCHEME: "1", "browser.startup.page": "3"}))
         self.assertEqual(self.sync(settings_doc=settings(siteTheme="none"))["changed"], [])
 
     def test_site_theme_none_waits_for_the_browser(self):
         self.home()
         self.sync()
-        ours = prefs_text({PREF_SCHEME: "0", "browser.startup.page": "3"})
+        ours = prefs_text({PREF_SCHEME: "2", "browser.startup.page": "3"})
         self.fh.write(PROFILE + "/prefs.js", ours)
         holder = LockHolder(self.fh, PROFILE + "/.parentlock")
         self.addCleanup(holder.stop)
@@ -339,7 +392,9 @@ class PrefsTest(SyncCase):
         self.sync(settings_doc=settings(siteTheme="dark"))
         state = json.loads(self.fh.read(STATE + "/state.json"))
         self.assertEqual(state["profiles"][self.pid()]["restore_prefs"], [])
-        self.assertEqual(state["profiles"][self.pid()]["owned_prefs"], list(bg.PREFS))
+        # No --plugin-dir: no companion pref in the block.
+        self.assertEqual(state["profiles"][self.pid()]["owned_prefs"],
+                         [p for p in bg.PREFS if p not in bg.COMPANION_PREFS])
 
 
 class FilesTest(SyncCase):

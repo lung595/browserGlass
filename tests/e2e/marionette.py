@@ -23,9 +23,16 @@ Firefox only ever sees a fake HOME: its environment is built from scratch
 real-home paths before launch. Every Firefox started is killed and its
 throwaway directory removed on exit, Ctrl-C, SIGTERM or SIGHUP included.
 
+Start pattern when files must be placed in the fake HOME first (native
+messaging manifests, sideloaded add-ons): create the Browser without `with`,
+write into ``b.home`` / ``b.profile``, then ``b.start()``, and always
+``b.cleanup()`` in a ``finally`` block.
+
 Environment:
-    BG_FIREFOX   path to the Firefox binary (default: auto-detect)
-    TMPDIR       where the throwaway HOME/profile is created
+    BG_FIREFOX    path to the Firefox binary (default: auto-detect)
+    BG_LIBREWOLF  path to a LibreWolf binary, for the sideload tests (no
+                  default: those tests are skipped when it is unset)
+    TMPDIR        where the throwaway HOME/profile is created
 """
 
 import atexit
@@ -215,6 +222,23 @@ def find_firefox():
     return shutil.which("firefox")
 
 
+def find_librewolf():
+    """The LibreWolf binary named by BG_LIBREWOLF (symlinks resolved), or
+    None when unset or not executable."""
+    env = os.environ.get("BG_LIBREWOLF")
+    if not env:
+        return None
+    path = os.path.realpath(env)
+    return path if os.access(path, os.X_OK) else None
+
+
+def test_host_prefs(hosts):
+    """Prefs that resolve each of `hosts` (names under .test) to 127.0.0.1
+    and keep them away from the black-hole proxy."""
+    return {"network.dns.localDomains": ",".join(hosts),
+            "network.proxy.no_proxies_on": ".test"}
+
+
 def free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -371,13 +395,20 @@ class Browser:
     """A throwaway headless Firefox driven over Marionette."""
 
     def __init__(self, chrome_css=None, content_css=None, prefs=None,
-                 firefox=None, base_dir=None, manage_user_js=True):
+                 firefox=None, base_dir=None, manage_user_js=True,
+                 recommended_prefs=True):
         """manage_user_js=False: start() leaves user.js alone (the caller
         writes it, with self.prefs["marionette.port"], before starting); the
-        port is then chosen once and kept across restarts."""
+        port is then chosen once and kept across restarts.
+
+        recommended_prefs=False writes remote.prefs.recommended=false:
+        required by every sideload test, since Marionette otherwise forces
+        extensions.autoDisableScopes=0 and extensions.enabledScopes=5."""
         self.firefox = firefox or find_firefox()
         if not self.firefox:
             raise FileNotFoundError("firefox not found")
+        # LibreWolf refuses WebDriver:NewWindow; windows go through chrome
+        self.librewolf = "librewolf" in os.path.basename(self.firefox).lower()
         self.root = tempfile.mkdtemp(prefix="bg-e2e-", dir=base_dir)
         self.home = os.path.join(self.root, "home")
         self.profile = os.path.join(self.root, "profile")
@@ -389,6 +420,8 @@ class Browser:
             shutil.rmtree(self.root, ignore_errors=True)
             raise MarionetteError("environment names the real home: " + ", ".join(sorted(leaks)))
         self.prefs = dict(BASE_PREFS)
+        if not recommended_prefs:
+            self.prefs["remote.prefs.recommended"] = False
         self.prefs.update(prefs or {})
         self.manage_user_js = manage_user_js
         if not manage_user_js:
@@ -550,10 +583,33 @@ class Browser:
     def new_window(self, private=False):
         """Open a new top-level window, switch to it, return its handle."""
         self.set_context("content")
-        res = self.send("WebDriver:NewWindow", {"type": "window", "private": bool(private)})
-        handle = res["handle"]
-        self.switch_to(handle)
-        return handle
+        if not self.librewolf:
+            try:
+                res = self.send("WebDriver:NewWindow", {"type": "window", "private": bool(private)})
+                self.switch_to(res["handle"])
+                return res["handle"]
+            except MarionetteError:
+                pass
+        return self._chrome_new_window(private)
+
+    def _handles(self):
+        res = self.send("WebDriver:GetWindowHandles")
+        return res.get("value", []) if isinstance(res, dict) else (res or [])
+
+    def _chrome_new_window(self, private, timeout=WAIT_TIMEOUT):
+        """new_window through the chrome window API (LibreWolf)."""
+        before = set(self._handles())
+        self.chrome_js("OpenBrowserWindow({ private: arguments[0] });", bool(private))
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            new = set(self._handles()) - before
+            if new:
+                handle = new.pop()
+                self.switch_to(handle)
+                self.wait_for("return document.readyState === 'complete';", 10)
+                return handle
+            time.sleep(0.2)
+        raise MarionetteError("new window did not open")
 
     def switch_to(self, handle):
         self.set_context("content")
@@ -633,6 +689,10 @@ ARTICLE_HTML = """<!doctype html>
 </body></html>
 """ % "\n".join("<p>%s %s</p>" % (p, p) for p in ARTICLE_PARAGRAPHS)
 
+# The same article, declaring it has a dark version (like GitHub or DuckDuckGo).
+DARK_ARTICLE_HTML = ARTICLE_HTML.replace(
+    '<meta charset="utf-8">', '<meta charset="utf-8"><meta name="color-scheme" content="light dark">')
+
 
 def make_pdf(text="browserGlass test PDF"):
     """A small valid single-page PDF with correct xref offsets."""
@@ -660,13 +720,17 @@ def make_pdf(text="browserGlass test PDF"):
 class TestServer:
     """Local HTTP server on 127.0.0.1 (free port) serving fixed routes."""
 
-    def __init__(self, routes=None):
+    def __init__(self, routes=None, cacheable=False):
+        """cacheable=True drops `Cache-Control: no-store`, so pages can enter
+        the back/forward cache (bfcache tests)."""
         self.routes = {
             "/article.html": ("text/html; charset=utf-8", ARTICLE_HTML.encode("utf-8")),
+            "/dark.html": ("text/html; charset=utf-8", DARK_ARTICLE_HTML.encode("utf-8")),
             "/doc.pdf": ("application/pdf", make_pdf()),
         }
         self.routes.update(routes or {})
         routes_ref = self.routes
+        no_store = not cacheable
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):
@@ -678,7 +742,8 @@ class TestServer:
                 self.send_response(200)
                 self.send_header("Content-Type", ctype)
                 self.send_header("Content-Length", str(len(body)))
-                self.send_header("Cache-Control", "no-store")
+                if no_store:
+                    self.send_header("Cache-Control", "no-store")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -690,8 +755,9 @@ class TestServer:
         self.port = self.httpd.server_address[1]
         self.thread = None
 
-    def url(self, path):
-        return "http://127.0.0.1:%d%s" % (self.port, path)
+    def url(self, path, host="127.0.0.1"):
+        """URL of `path`; `host` may be a .test name (see test_host_prefs)."""
+        return "http://%s:%d%s" % (host, self.port, path)
 
     def start(self):
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
@@ -818,6 +884,8 @@ def measure(b, srv):
 
     b.navigate(art)
     m["article"] = page_info(b)
+    b.navigate(srv.url("/dark.html"))
+    m["dark_article"] = page_info(b)
 
     b.navigate("about:reader?url=" + urllib.parse.quote(art, safe=""))
     m["reader_loaded"] = b.wait_for(

@@ -28,9 +28,12 @@
         "default": {"type": "boolean"},
         "running": {"type": "boolean"},
         "restart_needed": {"type": "boolean", "doc": "files changed since this browser started"},
-        "applied": {"type": "boolean", "doc": "generated files and user.js block match the current state"}
+        "applied": {"type": "boolean", "doc": "generated files and user.js block match the current state"},
+        "companion": {"ref": "companion_state"}
       }
     },
+    "companion_state": {"type": "string", "enum": ["off", "installed", "pending_restart", "outdated", "signing_enforced", "signing_required", "removed_by_user", "unsupported_variant", "no_plugin_dir"],
+                        "doc": "the companion add-on in one profile: off (liveControl false), installed (xpi present and named in extensions.json), pending_restart (deposited, not loaded yet), outdated (the running add-on speaks another protocol: restart again; status only), signing_enforced (Firefox release/esr channel: nothing deposited), signing_required (the browser deleted the xpi: no new deposit until its version changes), removed_by_user (gone from a build that never deletes it, LibreWolf or Firefox nightly/aurora/default, or after a sync saw it registered: removed in the browser, no new deposit until liveControl is turned off and on), unsupported_variant (Flatpak/Snap), no_plugin_dir (sync without --plugin-dir, or never deposited: left as it is)"},
     "browser": {
       "type": "object",
       "fields": {
@@ -53,6 +56,10 @@
       "changed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true},
       "running_changed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "subset of changed whose browser is running"},
       "niri_changed": {"type": "boolean"},
+      "live": {"type": "object", "doc": "the exclusion list pushed to the companion add-on (none with --profile or liveControl off): hosts = browsers whose native host got it, acked = those whose add-on applied it",
+               "fields": {"hosts": {"type": "integer", "min": 0}, "acked": {"type": "integer", "min": 0}}},
+      "companion": {"type": "array", "required": false, "doc": "only with --plugin-dir: the companion add-on state of each synced profile",
+                    "items": {"type": "object", "fields": {"profile": {"ref": "profile_id"}, "state": {"ref": "companion_state"}}}},
       "warnings": {"type": "array", "items": {"ref": "warning"}}
     }
   },
@@ -78,6 +85,15 @@
           "config": {"type": "boolean", "doc": "niri config.kdl exists"},
           "include": {"type": "boolean", "doc": "config.kdl has the include line"},
           "rule": {"type": "boolean", "doc": "dms-browser-glass.kdl exists and is current"}
+        }
+      },
+      "companion": {
+        "type": "object",
+        "fields": {
+          "enabled": {"type": "boolean", "doc": "the liveControl setting of the last full sync"},
+          "state": {"type": "string", "enum": ["connected", "waiting_restart", "removed", "unavailable", "off"], "doc": "off (liveControl false), connected (a native host of the current protocol runs), waiting_restart (deposited in a profile, no such host yet: none, or only outdated ones), removed (deposited nowhere, and removed_by_user in a profile), unavailable (deposited nowhere)"},
+          "hosts": {"type": "integer", "min": 0, "doc": "native host sockets whose process is alive (never connected to)"},
+          "manifest": {"type": "boolean", "doc": "our native messaging manifest is in ~/.mozilla/native-messaging-hosts"}
         }
       },
       "restart_needed": {"type": "boolean"},
@@ -110,7 +126,8 @@
       "disabledStyles": {"type": "array", "items": {"ref": "site_name"}, "required": false, "default": []},
       "newTabGlass": {"type": "boolean", "required": false, "default": true},
       "readerOpaque": {"type": "boolean", "required": false, "default": true},
-      "privateGlass": {"type": "boolean", "required": false, "default": true}
+      "privateGlass": {"type": "boolean", "required": false, "default": true},
+      "liveControl": {"type": "boolean", "required": false, "default": true, "doc": "companion add-on and native host (live exclusions)"}
     }
   },
   "uninstall": {
@@ -123,7 +140,21 @@
       "niri_changed": {"type": "boolean", "doc": "dms-browser-glass.kdl or its include line in config.kdl was removed"},
       "state_removed": {"type": "boolean", "doc": "$XDG_STATE_HOME/dms/browserGlass/ was removed; a pending profile only leaves its pending/<id>.json record there (with the lock file) until its cleanup is done, and that still counts as removed. False when the state is kept for a retry (a profile not fully cleaned: see warnings) or for a kept backup"},
       "v0_cache_removed": {"type": "boolean", "doc": "the v0 cache ~/.cache/dms/browserGlass/ was removed"},
+      "xpi_removed": {"type": "array", "items": {"ref": "profile_id"}, "unique": true, "doc": "profiles whose companion add-on (extensions/browserglass@companion.xpi) was removed"},
+      "native_host_removed": {"type": "boolean", "doc": "the native messaging manifest or the host wrapper was removed"},
+      "runtime_removed": {"type": "boolean", "doc": "$XDG_RUNTIME_DIR/browserGlass/ was removed"},
       "warnings": {"type": "array", "items": {"ref": "warning"}}
+    }
+  },
+  "active_site": {
+    "type": "object",
+    "doc": "the site of the browser window niri shows (active-site, read-only, exit 0): either the four fields host, domain, source and age, or the error field alone (one of the answers below, also exit 0)",
+    "fields": {
+      "host": {"ref": "domain", "required": false, "doc": "host of the page, as normalize_domain() gives it"},
+      "domain": {"ref": "domain", "required": false, "doc": "registrable domain of host (public suffix list); host itself for an IPv4 address or localhost; a leading www. is kept when the rest is a public suffix (www.gov.uk)"},
+      "source": {"type": "string", "enum": ["companion", "session"], "required": false, "doc": "companion: the add-on's live report; session: the browser's session file"},
+      "age": {"type": ["number", "null"], "min": 0, "required": false, "doc": "seconds since the session file was written (its session.lastUpdate), to 0.1 s; null for the companion, and for a session whose lastUpdate is missing or not a finite number"},
+      "error": {"type": "string", "enum": ["no_browser", "private", "not_web", "no_session", "ambiguous", "unsupported", "outdated"], "required": false, "doc": "no_browser: not a browser window, or a --window-id niri no longer lists; private: a private window; not_web: not an http(s) page; no_session: no readable session of a running profile; ambiguous: the current tab cannot be told for sure; unsupported: an IPv6 or unusable host, or a host that is itself a public suffix (github.io, co.uk: excluding it would exclude every site under it); outdated: the add-on and the helper speak different versions (restart the browser once more)"}
     }
   },
   "error": {
@@ -133,13 +164,15 @@
     }
   },
   "commands": {
-    "doc": "what each subcommand prints on stdout: a spec name above, 'report_lines' (plain text, see below) or null (prints nothing at all, exit 0). Any command that fails prints the 'error' line instead and exits 1 (2 for a usage error)",
+    "doc": "what each subcommand prints on stdout: a spec name above, 'report_lines' (plain text, see below) or null (no JSON document: clean-prefs prints nothing at all, exit 0; native-host, run by the browser, writes native messaging frames only, a 4-byte length then JSON, never a JSON line). Any command that fails prints the 'error' line instead and exits 1 (2 for a usage error); the error answers of active_site are part of its spec and exit 0",
     "sync": "sync",
     "status": "status",
     "uninstall": "uninstall",
     "clean-prefs": null,
     "report": "report_lines",
-    "sites": "sites"
+    "sites": "sites",
+    "native-host": null,
+    "active-site": "active_site"
   },
-  "report_lines": ["browserGlass report", "version: ", "python: ", "glass: ", "niri: ", "profiles:", "settings: ", "warnings: "]
+  "report_lines": ["browserGlass report", "version: ", "python: ", "glass: ", "niri: ", "companion: ", "profiles:", "settings: ", "warnings: "]
 }

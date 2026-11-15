@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""update_styles - refresh the bundled site styles from sameerasw/my-internet.
+"""update_styles - refresh the bundled site styles from sameerasw/my-internet
+and the bundled Public Suffix List from publicsuffix.org.
 
 Maintenance tool, run by .github/workflows/update-styles.yml (or by hand).
 It is the only part of the repository that uses the network: browserglass.py
@@ -9,11 +10,15 @@ never does, it reads the copies kept in data/.
     update_styles.py --check DIR
 
 Build (default): fetch styles.json, css-mapping.json and LICENSE from the
-upstream repository (branch or commit REF, default "main"), or read them from
-DIR (a local checkout or cache; LICENSE is optional there), drop the styles
-listed in tools/style-denylist.txt, check the result, then write
-data/styles.json, data/css-mapping.json and data/MY-INTERNET-LICENSE (only
-the files whose bytes change). A JSON file the filter left untouched is kept
+upstream repository (branch or commit REF, default "main") and
+public_suffix_list.dat from publicsuffix.org, or read them from DIR (a local
+checkout or cache; LICENSE and public_suffix_list.dat are optional there),
+drop the styles listed in tools/style-denylist.txt and the lines of the
+suffix list holding a word it lists, check the result, then write
+data/styles.json, data/css-mapping.json, data/MY-INTERNET-LICENSE and
+data/public_suffix_list.dat (only the files whose bytes change; the suffix
+list is otherwise kept byte for byte). data/PSL-LICENSE is maintained by
+hand. A JSON file the filter left untouched is kept
 byte for byte; a filtered one is re-serialised with a two-space indent and no
 trailing newline. That is how upstream writes styles.json
 (JSON.stringify(doc, null, 2)), but not css-mapping.json (hand-formatted, one
@@ -23,8 +28,10 @@ A short summary goes to stdout.
 --check DIR (offline): DIR's files are well formed and consistent: JSON
 shapes, no duplicate key, every CSS passes browserglass.py's validator,
 the mapping only names existing styles and matches styles.json "mapping",
-browserglass.py can load and build them, the licence is there, and the
-denylist is respected (in the raw bytes and in every decoded JSON string).
+browserglass.py can load and build them, the licences are there, the
+suffix list is UTF-8, large enough, has both sections and a "com" rule (and
+browserglass.py loads it), and the denylist is respected (in the raw bytes
+and in every decoded JSON string).
 Problems go to stderr, exit status 1. browserglass.py is the validator;
 the weaker fallback is used only when the default browserglass.py is
 absent (a browserglass.py that exists but fails to load is a failure).
@@ -52,6 +59,7 @@ DEFAULT_DENYLIST = os.path.join(TOOLS_DIR, "style-denylist.txt")
 DEFAULT_SCRIPT = os.path.join(REPO_DIR, "browserglass.py")
 
 UPSTREAM_URL = "https://raw.githubusercontent.com/sameerasw/my-internet/%s/%s"
+PSL_URL = "https://publicsuffix.org/list/public_suffix_list.dat"
 USER_AGENT = "browserglass-update-styles"
 FETCH_LIMIT = 32 * 1024 * 1024
 FETCH_TRIES = 3
@@ -61,6 +69,15 @@ MAPPING = "css-mapping.json"
 LICENSE = "MY-INTERNET-LICENSE"
 # Upstream file name -> file name in data/.
 SOURCES = ((STYLES, STYLES), (MAPPING, MAPPING), ("LICENSE", LICENSE))
+# Mozilla Public Suffix List (same name upstream and in data/), and its
+# licence notice (not fetched).
+PSL = "public_suffix_list.dat"
+PSL_LICENSE = "PSL-LICENSE"
+DATA_FILES = (STYLES, MAPPING, LICENSE, PSL, PSL_LICENSE)
+PSL_MIN_BYTES = 64 * 1024
+PSL_MARKERS = ("// ===BEGIN ICANN DOMAINS===", "// ===END ICANN DOMAINS===",
+               "// ===BEGIN PRIVATE DOMAINS===", "// ===END PRIVATE DOMAINS===")
+MPL_PHRASES = ("Mozilla Public License", "2.0", "https://mozilla.org/MPL/2.0/")
 GENERIC_KEY = "example.com.css"
 # Phrases every MIT licence text holds (compared with whitespace collapsed)
 MIT_PHRASES = (
@@ -140,39 +157,43 @@ def _digest(text):
 # ---------------------------------------------------------------------------
 
 def fetch_upstream(ref):
-    """{upstream file name: bytes} fetched from the upstream repository."""
+    """{upstream file name: bytes} fetched from the upstream repository
+    (and the suffix list from publicsuffix.org)."""
     if not _REF.fullmatch(ref) or ".." in ref:
         raise Failure("invalid --ref %r" % ref)
-    out = {}
-    for name, _ in SOURCES:
-        url = UPSTREAM_URL % (ref, name)
-        for attempt in range(1, FETCH_TRIES + 1):
-            try:
-                request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-                with urllib.request.urlopen(request, timeout=60) as response:
-                    data = response.read(FETCH_LIMIT + 1)
-                break
-            except (urllib.error.URLError, OSError) as exc:
-                if attempt == FETCH_TRIES:
-                    raise Failure("%s: %s" % (url, exc))
-                time.sleep(5 * attempt)
-        if len(data) > FETCH_LIMIT:
-            raise Failure("%s: larger than %d bytes" % (url, FETCH_LIMIT))
-        out[name] = data
-    return out
+    urls = [(name, UPSTREAM_URL % (ref, name)) for name, _ in SOURCES]
+    urls.append((PSL, PSL_URL))
+    return {name: _fetch(url) for name, url in urls}
+
+
+def _fetch(url):
+    for attempt in range(1, FETCH_TRIES + 1):
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(request, timeout=60) as response:
+                data = response.read(FETCH_LIMIT + 1)
+            break
+        except (urllib.error.URLError, OSError) as exc:
+            if attempt == FETCH_TRIES:
+                raise Failure("%s: %s" % (url, exc))
+            time.sleep(5 * attempt)
+    if len(data) > FETCH_LIMIT:
+        raise Failure("%s: larger than %d bytes" % (url, FETCH_LIMIT))
+    return data
 
 
 def read_upstream_dir(folder):
     """{upstream file name: bytes} read from a local copy of upstream (a
     checkout or a cache). styles.json and css-mapping.json are required,
-    LICENSE is optional (missing: data/MY-INTERNET-LICENSE is left alone)."""
+    LICENSE and public_suffix_list.dat are optional (missing: the data/
+    copy is left alone)."""
     out = {}
-    for name, _ in SOURCES:
+    for name in [n for n, _ in SOURCES] + [PSL]:
         path = os.path.join(folder, name)
         try:
             out[name] = _read_bytes(path)
         except FileNotFoundError:
-            if name != "LICENSE":
+            if name not in ("LICENSE", PSL):
                 raise Failure("%s: missing" % path)
         except OSError as exc:
             raise Failure("%s: %s" % (path, exc.strerror or exc))
@@ -182,7 +203,7 @@ def read_upstream_dir(folder):
 def read_data_dir(folder):
     """{data file name: bytes} of the files present in a data/ folder."""
     out = {}
-    for _, name in SOURCES:
+    for name in DATA_FILES:
         path = os.path.join(folder, name)
         try:
             out[name] = _read_bytes(path)
@@ -269,9 +290,22 @@ def _filter_mapping(mapping, dropped, denylist):
     return out, changed
 
 
+def filter_psl(data, denylist):
+    """(bytes, number of lines dropped): the suffix list `data` without the
+    lines holding a denylisted word (rules and comments alike), every other
+    byte kept."""
+    try:
+        lines = data.decode("utf-8").splitlines(True)
+    except UnicodeDecodeError:
+        raise Failure("%s: not UTF-8" % PSL)
+    kept = [line for line in lines if not denylist.denies_text(line)]
+    return "".join(kept).encode("utf-8"), len(lines) - len(kept)
+
+
 def build(upstream, denylist):
-    """({data file name: bytes}, [dropped style keys]) built from the
-    upstream files `upstream` ({upstream file name: bytes})."""
+    """({data file name: bytes}, [dropped style keys], number of suffix
+    list lines dropped) built from the upstream files `upstream` ({upstream
+    file name: bytes})."""
     styles_doc = parse_json(upstream[STYLES], STYLES)
     if not isinstance(styles_doc, dict) or not isinstance(styles_doc.get("website"), dict):
         raise Failure("%s: no \"website\" object" % STYLES)
@@ -303,7 +337,10 @@ def build(upstream, denylist):
     }
     if "LICENSE" in upstream:
         out[LICENSE] = upstream["LICENSE"]
-    return out, dropped
+    psl_dropped = 0
+    if PSL in upstream:
+        out[PSL], psl_dropped = filter_psl(upstream[PSL], denylist)
+    return out, dropped, psl_dropped
 
 
 def write_outputs(folder, files):
@@ -343,7 +380,7 @@ def _style_keys(data):
         return {}
 
 
-def summary(old, new, dropped, written):
+def summary(old, new, dropped, written, psl_dropped=0):
     """Plain-text lines describing the update (used as the PR body)."""
     before = _style_keys(old.get(STYLES, b""))
     after = _style_keys(new[STYLES])
@@ -357,6 +394,8 @@ def summary(old, new, dropped, written):
             if len(keys) > SUMMARY_NAMES:
                 shown += ", and %d more" % (len(keys) - SUMMARY_NAMES)
             lines.append("%s (%d): %s" % (label, len(keys), shown))
+    if PSL in new:
+        lines.append("Public Suffix List: %d lines dropped by the denylist." % psl_dropped)
     for name in sorted(new):
         lines.append("%s: %s" % (name, "updated" if name in written else "unchanged"))
     return lines
@@ -378,7 +417,7 @@ def load_script(path):
         spec.loader.exec_module(module)
     finally:
         sys.dont_write_bytecode = old
-    for name in ("sites_validate", "sites_load", "sites_build_css", "sites_list"):
+    for name in ("sites_validate", "sites_load", "sites_build_css", "sites_list", "psl_load"):
         if not callable(getattr(module, name, None)):
             raise ImportError("%s has no %s()" % (path, name))
     return module
@@ -460,10 +499,25 @@ def _strings_denied(doc, denylist):
     return False
 
 
+def _check_psl(data):
+    """Problems of the suffix list `data` (bytes)."""
+    if len(data) < PSL_MIN_BYTES:
+        return ["%s: smaller than %d bytes" % (PSL, PSL_MIN_BYTES)]
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return ["%s: not UTF-8" % PSL]
+    lines = [line.strip() for line in text.splitlines()]
+    problems = ["%s: no %r line" % (PSL, marker) for marker in PSL_MARKERS if marker not in lines]
+    if "com" not in lines:
+        problems.append("%s: no \"com\" rule" % PSL)
+    return problems
+
+
 def check_files(files, denylist, validate):
     """Problems (strings) of the data files `files` ({data file name: bytes})."""
     problems = []
-    for name in (STYLES, MAPPING, LICENSE):
+    for name in DATA_FILES:
         if name not in files:
             problems.append("%s: missing" % name)
     for name, data in sorted(files.items()):
@@ -518,6 +572,12 @@ def check_files(files, denylist, validate):
         text = " ".join(files[LICENSE].decode("utf-8", "replace").split())
         if not all(phrase in text for phrase in MIT_PHRASES):
             problems.append("%s: not an MIT licence text" % LICENSE)
+    if PSL in files:
+        problems.extend(_check_psl(files[PSL]))
+    if PSL_LICENSE in files:
+        text = " ".join(files[PSL_LICENSE].decode("utf-8", "replace").split())
+        if not all(phrase in text for phrase in MPL_PHRASES):
+            problems.append("%s: not an MPL-2.0 notice" % PSL_LICENSE)
     return problems
 
 
@@ -535,6 +595,10 @@ def check_dir(folder, denylist, script):
             problems.extend("browserglass sites build: %s" % p for p in build_problems)
             if not css or not script.sites_list(sites):
                 problems.append("browserglass: no site style left")
+        except (OSError, ValueError) as exc:
+            problems.append("browserglass cannot load %s: %s" % (folder, exc))
+        try:
+            script.psl_load(folder)
         except (OSError, ValueError) as exc:
             problems.append("browserglass cannot load %s: %s" % (folder, exc))
     return problems
@@ -561,7 +625,8 @@ def _script(path, explicit):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="update_styles.py",
-        description="Refresh data/ from sameerasw/my-internet, or check a data folder offline.")
+        description="Refresh data/ from sameerasw/my-internet and publicsuffix.org, "
+                    "or check a data folder offline.")
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--check", metavar="DIR", help="check DIR's data files offline, write nothing")
     source.add_argument("--from-dir", metavar="DIR", help="read upstream files from DIR (no network)")
@@ -585,7 +650,7 @@ def main(argv=None):
         if not os.path.isdir(args.out):
             raise Failure("%s: not a folder" % args.out)
         upstream = read_upstream_dir(args.from_dir) if args.from_dir else fetch_upstream(args.ref)
-        new, dropped = build(upstream, denylist)
+        new, dropped, psl_dropped = build(upstream, denylist)
         old = read_data_dir(args.out)
         merged = dict(old)
         merged.update(new)
@@ -596,7 +661,7 @@ def main(argv=None):
                 print("update_styles: %s" % problem, file=sys.stderr)
             raise Failure("upstream data rejected, nothing written")
         written = write_outputs(args.out, new)
-        print("\n".join(summary(old, new, dropped, written)))
+        print("\n".join(summary(old, new, dropped, written, psl_dropped)))
         return 0
     except Failure as exc:
         print("update_styles: %s" % exc, file=sys.stderr)

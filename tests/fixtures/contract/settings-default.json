@@ -11,5 +11,6 @@
   "disabledStyles": [],
   "newTabGlass": true,
   "readerOpaque": true,
-  "privateGlass": true
+  "privateGlass": true,
+  "liveControl": true
 }

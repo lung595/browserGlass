@@ -1,0 +1,33 @@
+# Backend tests on every pull request and push to the default branch: the
+# unittest suite (site fixes in data/sites/ included) and the bundled data check.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        # No third-party action: the pull request's merge ref (or the pushed
+        # branch) straight from GitHub, read-only.
+        run: |
+          git init -q repo
+          git -C repo fetch -q --depth 1 "https://github.com/$GITHUB_REPOSITORY.git" "$GITHUB_REF"
+          git -C repo checkout -q FETCH_HEAD
+      - name: Unit tests
+        working-directory: repo
+        run: python3 -B -m unittest discover -s tests/py
+      - name: Bundled data
+        working-directory: repo
+        run: python3 -I -B tools/update_styles.py --check data
+      - name: Translations
+        working-directory: repo
+        run: python3 tools/check_translations.py

@@ -5,9 +5,15 @@ import qs.Common
 // Stand-in for DMS's PluginService, with the real signatures: plugin data
 // goes to SettingsData's store (as in DMS) and raises pluginDataChanged;
 // global variables (what PluginGlobalVar reads) live in globalVars.
-// saves records every savePluginData: [[pluginId, key, value], ...].
+// saves records every savePluginData: [[pluginId, key, value], ...];
+// launcherUpdates every requestLauncherUpdate (a signal in DMS too, which
+// the launcher answers by asking for its items again, except in its plugin
+// view with an empty query): [pluginId, ...].
 QtObject {
+    id: service
+
     signal pluginDataChanged(string pluginId)
+    signal requestLauncherUpdate(string pluginId)
     signal globalVarChanged(string pluginId, string varName)
     signal pluginLoaded(string pluginId)
     signal pluginUnloaded(string pluginId)
@@ -20,6 +26,9 @@ QtObject {
     property var pluginPaths: ({})
     property var pluginStates: ({})
     property var saves: []
+    property var launcherUpdates: []
+
+    onRequestLauncherUpdate: pluginId => service.launcherUpdates = service.launcherUpdates.concat([pluginId])
 
     function savePluginData(pluginId, key, value) {
         SettingsData.setPluginSetting(pluginId, key, value);
@@ -65,5 +74,6 @@ QtObject {
         globalVars = {};
         pluginStates = {};
         saves = [];
+        launcherUpdates = [];
     }
 }

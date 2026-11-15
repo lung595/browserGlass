@@ -1,5 +1,14 @@
 @@@@ cases
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+@@@@ text
+// >>> browserGlass v1 managed block (generated, do not edit)
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("browser.tabs.allow_transparent_browser", true);
+user_pref("layout.css.prefers-color-scheme.content-override", 2);
+// <<< browserGlass v1
+@@@@ end
+@@@@ cases
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
 @@@@ text
@@ -7,15 +16,6 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLig
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.tabs.allow_transparent_browser", true);
 user_pref("layout.css.prefers-color-scheme.content-override", 0);
-// <<< browserGlass v1
-@@@@ end
-@@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-@@@@ text
-// >>> browserGlass v1 managed block (generated, do not edit)
-user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-user_pref("browser.tabs.allow_transparent_browser", true);
-user_pref("layout.css.prefers-color-scheme.content-override", 1);
 // <<< browserGlass v1
 @@@@ end
 @@@@ cases
@@ -29,96 +29,135 @@ user_pref("browser.tabs.allow_transparent_browser", true);
 @@@@ end
 @@@@ cases
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
+blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
+blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
+@@@@ text
+// >>> browserGlass v1 managed block (generated, do not edit)
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("browser.tabs.allow_transparent_browser", false);
+user_pref("layout.css.prefers-color-scheme.content-override", 2);
+// <<< browserGlass v1
+@@@@ end
+@@@@ cases
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=dark isLight=1
-blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=0
 blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=0
 blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLight=1
 @@@@ text
@@ -126,45 +165,6 @@ blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=dark isLigh
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.tabs.allow_transparent_browser", false);
 user_pref("layout.css.prefers-color-scheme.content-override", 0);
-// <<< browserGlass v1
-@@@@ end
-@@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=1 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=1 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=0 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=0 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=1 opacity=0.85 pagesTransparent=0 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=1 siteTheme=follow isLight=1
-blur=0 glassEnabled=0 off=1 opacity=1.0 pagesTransparent=0 siteTheme=follow isLight=1
-@@@@ text
-// >>> browserGlass v1 managed block (generated, do not edit)
-user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-user_pref("browser.tabs.allow_transparent_browser", false);
-user_pref("layout.css.prefers-color-scheme.content-override", 1);
 // <<< browserGlass v1
 @@@@ end
 @@@@ cases

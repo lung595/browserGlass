@@ -9,8 +9,10 @@ Run: python3 -B -m unittest discover -s tests/py -v
 
 import json
 import os
+import signal
 import subprocess
 import sys
+import time
 import unittest
 
 import test_contract
@@ -96,6 +98,20 @@ class NothingInstalledTest(UninstallCase):
         self.assertEqual(self.uninstall(), test_contract.load_json("uninstall-noop.json"))
         self.assertEqual(self.fh.snapshot("."), before)
 
+    def test_unread_sync_settings_file_goes(self):
+        # The daemon wrote the settings of a sync that never ran (disabled
+        # within the debounce): uninstall removes that file, not a symlink.
+        self.home()
+        path = self.fh.runtime / bg.SYNC_SETTINGS_NAME
+        path.write_text('{"excluded": ["example.org"]}', encoding="utf-8")
+        self.assertEqual(self.uninstall(), test_contract.load_json("uninstall-noop.json"))
+        self.assertFalse(os.path.lexists(str(path)))
+        target = self.fh.runtime / "target.json"
+        target.write_text("{}", encoding="utf-8")
+        os.symlink(str(target), str(path))
+        self.uninstall()
+        self.assertTrue(os.path.islink(str(path)) and target.exists())
+
 
 class FullUninstallTest(UninstallCase):
 
@@ -179,6 +195,41 @@ class DeferredCleanupTest(UninstallCase):
         self.assertFalse(self.fh.exists(STATE), "the cleanup removes its pending record")
         self.assertFalse(self.fh.exists(".local/state/dms"), "and the folders made for the state")
 
+    def test_state_tidied_when_pending_not_written(self):
+        # pending/<pid>.json cannot be written (EACCES): the cleaner still
+        # cleans prefs.js once the browser exits. state.json keeps the
+        # profile's record (unfinished) until a later uninstall, which then
+        # removes the state folder and its parents.
+        self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.sync()
+        managed = prefs_text({PREF_SCHEME: "0", PREF_TRANSPARENT: "true", PREF_STYLESHEETS: "true",
+                              "browser.startup.page": "3"})
+        self.fh.write(PROFILE + "/prefs.js", managed)
+        pdir = os.path.join(str(self.fh.home), STATE, bg.PENDING_DIR)
+        os.makedirs(pdir, exist_ok=True)
+        os.chmod(pdir, 0o500)
+        self.addCleanup(lambda: os.path.isdir(pdir) and os.chmod(pdir, 0o700))
+        holder = LockHolder(self.fh, PROFILE + "/.parentlock")
+        self.addCleanup(holder.stop)
+        out = self.uninstall()
+        self.assertEqual(out["pending"], [self.pid()])
+        self.assertFalse(out["state_removed"])
+        self.assertTrue(out["warnings"], "the pending record was not written")
+        state = json.loads(self.fh.read(STATE + "/state.json"))
+        self.assertFalse(state["synced"])
+        self.assertIn(self.pid(), state["profiles"], "kept for a re-enable or a retry")
+        holder.release()
+        expected = prefs_text({PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.assertTrue(wait_until(lambda: self.fh.read(PROFILE + "/prefs.js") == expected),
+                        self.fh.read(PROFILE + "/prefs.js"))
+        holder.stop()
+        self.assertTrue(wait_until(lambda: not fake_home_pids(self.fh)), "cleanup did not exit")
+        self.assertFalse(self.fh.exists(STATE + "/" + bg.PENDING_DIR), "the cleanup tidies pending/")
+        self.assertTrue(self.uninstall()["state_removed"])
+        self.assertEqual(self.fh.read(PROFILE + "/prefs.js"), expected)
+        self.assertFalse(self.fh.exists(STATE), "the retry removes the state folder")
+        self.assertFalse(self.fh.exists(".local/state/dms"), "and the folders made for it")
+
     def test_cleanup_gives_up_after_poll_max(self):
         self.home()
         self.sync()
@@ -188,6 +239,137 @@ class DeferredCleanupTest(UninstallCase):
         self.assertEqual(self.check(proc, "uninstall")["pending"], [self.pid()])
         self.assertTrue(wait_until(lambda: len(fake_home_pids(self.fh)) == 1, timeout=5),
                         "cleanup still polling past BG_POLL_MAX")
+
+    def cleaner_pid(self, holder):
+        """The detached cleaner's pid, once it catches SIGTERM and SIGHUP."""
+        pids = [p for p in fake_home_pids(self.fh) if p != holder.child.pid]
+        self.assertEqual(len(pids), 1, "one detached cleanup")
+        wanted = (1 << (signal.SIGTERM - 1)) | (1 << (signal.SIGHUP - 1))
+
+        def catching():
+            try:
+                with open("/proc/%d/status" % pids[0]) as f:
+                    line = next(l for l in f if l.startswith("SigCgt:"))
+            except (OSError, StopIteration):
+                return False
+            return int(line.split()[1], 16) & wanted == wanted
+        self.assertTrue(wait_until(catching), "the cleanup never caught SIGTERM")
+        return pids[0]
+
+    def running_uninstall(self, **env):
+        """Sync, then uninstall while a lock holder plays the browser."""
+        self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.sync()
+        managed = prefs_text({PREF_SCHEME: "0", PREF_TRANSPARENT: "true", PREF_STYLESHEETS: "true",
+                              "browser.startup.page": "3"})
+        self.fh.write(PROFILE + "/prefs.js", managed)
+        holder = LockHolder(self.fh, PROFILE + "/.parentlock")
+        self.addCleanup(holder.stop)
+        proc = self.fh.run_script(["uninstall"], extra_env=dict(FAST, **env))
+        self.assertEqual(self.check(proc, "uninstall")["pending"], [self.pid()])
+        return holder, managed
+
+    def test_sigterm_cleans_once_the_browser_exits(self):
+        # Logout: the cleaner gets SIGTERM with the browser, which then
+        # releases its lock. The 60 s probe interval would miss it; after
+        # the signal the cleaner polls fast and cleans within its grace.
+        holder, _ = self.running_uninstall(BG_POLL_INTERVAL="60", BG_TERM_GRACE="20")
+        cleaner = self.cleaner_pid(holder)
+        os.kill(cleaner, signal.SIGTERM)
+        os.kill(cleaner, signal.SIGHUP)  # logind sends both
+        wait_until(lambda: False, timeout=0.3)
+        self.assertIn(cleaner, fake_home_pids(self.fh), "SIGTERM killed the cleanup")
+        holder.release()
+        expected = prefs_text({PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.assertTrue(wait_until(lambda: self.fh.read(PROFILE + "/prefs.js") == expected, timeout=5),
+                        self.fh.read(PROFILE + "/prefs.js"))
+        holder.stop()
+        self.assertTrue(wait_until(lambda: not fake_home_pids(self.fh), timeout=5), "cleanup did not exit")
+        self.assertFalse(self.fh.exists(STATE), "the cleanup removes its pending record")
+        self.assertFalse(self.fh.exists(".local/state/dms"), "and the folders made for the state")
+
+    def test_sigterm_gives_up_after_grace(self):
+        # The browser never lets go: the cleaner exits after its grace time
+        # and keeps the pending file for a later sync or uninstall.
+        holder, managed = self.running_uninstall(BG_POLL_INTERVAL="60", BG_TERM_GRACE="0.5")
+        cleaner = self.cleaner_pid(holder)
+        os.kill(cleaner, signal.SIGTERM)
+        self.assertTrue(wait_until(lambda: cleaner not in fake_home_pids(self.fh), timeout=5),
+                        "cleanup still polling past BG_TERM_GRACE")
+        self.assertEqual(self.fh.read(PROFILE + "/prefs.js"), managed)
+        self.assertTrue(self.fh.exists("%s/%s/%s.json" % (STATE, bg.PENDING_DIR, self.pid())),
+                        "the pending file stays for a retry")
+
+    def test_sigterm_default_grace_ends_before_the_shell_stop_timeout(self):
+        # A shell restart (dms.service, TimeoutStopSec=10) stops the cleaner
+        # while the browser stays open: it exits well before SIGKILL.
+        holder, managed = self.running_uninstall(BG_POLL_INTERVAL="60")
+        cleaner = self.cleaner_pid(holder)
+        start = time.monotonic()
+        os.kill(cleaner, signal.SIGTERM)
+        self.assertTrue(wait_until(lambda: cleaner not in fake_home_pids(self.fh), timeout=10),
+                        "cleanup still polling")
+        self.assertLess(time.monotonic() - start, bg.DEFAULT_TERM_GRACE + 2)
+        self.assertEqual(self.fh.read(PROFILE + "/prefs.js"), managed)
+
+    def test_unrecorded_job_dropped_by_reenable(self):
+        # pending/<pid>.json cannot be written, then the plugin is enabled
+        # again before the browser exits: the sync records the profile, so
+        # the cleaner must not rewrite prefs.js behind it.
+        self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.sync()
+        managed = prefs_text({PREF_SCHEME: "0", PREF_TRANSPARENT: "true", PREF_STYLESHEETS: "true",
+                              "browser.startup.page": "3"})
+        self.fh.write(PROFILE + "/prefs.js", managed)
+        pdir = os.path.join(str(self.fh.home), STATE, bg.PENDING_DIR)
+        os.makedirs(pdir, exist_ok=True)
+        os.chmod(pdir, 0o500)
+        self.addCleanup(lambda: os.path.isdir(pdir) and os.chmod(pdir, 0o700))
+        holder = LockHolder(self.fh, PROFILE + "/.parentlock")
+        self.addCleanup(holder.stop)
+        out = self.uninstall()
+        self.assertEqual(out["pending"], [self.pid()])
+        self.assertTrue(out["warnings"], "the pending record was not written")
+        os.chmod(pdir, 0o700)
+        self.sync()
+        state = json.loads(self.fh.read(STATE + "/state.json"))
+        originals = state["profiles"][self.pid()]["prefs_original"]
+        self.assertEqual(originals[PREF_SCHEME], {"value": "1"}, "the user's original, not ours")
+        self.assertEqual(originals[PREF_TRANSPARENT], {"absent": True})
+        self.assertEqual(originals[PREF_STYLESHEETS], {"absent": True})
+        holder.release()
+        holder.stop()
+        self.assertTrue(wait_until(lambda: not fake_home_pids(self.fh)), "cleanup did not exit")
+        self.assertEqual(self.fh.read(PROFILE + "/prefs.js"), managed, "the cleaner was not cancelled")
+        state = json.loads(self.fh.read(STATE + "/state.json"))
+        self.assertIn(self.pid(), state["profiles"], "the sync's record stays")
+        self.uninstall()
+        self.assertEqual(self.fh.read(PROFILE + "/prefs.js"),
+                         prefs_text({PREF_SCHEME: "1", "browser.startup.page": "3"}))
+
+    def test_unrecorded_job_runs_over_a_stale_state(self):
+        # The state folder cannot be written at all: the uninstall can
+        # neither record the job nor clear state.json, whose last sync still
+        # lists the profile. That stale record must not cancel the cleaner.
+        self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.sync()
+        managed = prefs_text({PREF_SCHEME: "0", PREF_TRANSPARENT: "true", PREF_STYLESHEETS: "true",
+                              "browser.startup.page": "3"})
+        self.fh.write(PROFILE + "/prefs.js", managed)
+        sdir = os.path.join(str(self.fh.home), STATE)
+        os.chmod(sdir, 0o500)
+        self.addCleanup(lambda: os.path.isdir(sdir) and os.chmod(sdir, 0o700))
+        holder = LockHolder(self.fh, PROFILE + "/.parentlock")
+        self.addCleanup(holder.stop)
+        out = self.uninstall()
+        self.assertEqual(out["pending"], [self.pid()])
+        self.assertTrue(json.loads(self.fh.read(STATE + "/state.json"))["synced"], "stale state")
+        holder.release()
+        expected = prefs_text({PREF_SCHEME: "1", "browser.startup.page": "3"})
+        self.assertTrue(wait_until(lambda: self.fh.read(PROFILE + "/prefs.js") == expected),
+                        self.fh.read(PROFILE + "/prefs.js"))
+        holder.stop()
+        self.assertTrue(wait_until(lambda: not fake_home_pids(self.fh)), "cleanup did not exit")
 
 
 class InlineTextTest(UninstallCase):

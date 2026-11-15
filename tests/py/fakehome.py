@@ -174,6 +174,8 @@ class FakeHome:
             "XDG_DATA_HOME": str(self.data),
             "XDG_RUNTIME_DIR": str(self.runtime),
             "TMPDIR": str(self.tmp),
+            # No real Firefox build decides a never-run profile's channel.
+            "BG_FIREFOX_BUILDS": str(self.root / "usr" / "lib64" / "firefox"),
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
             "PYTHONDONTWRITEBYTECODE": "1",

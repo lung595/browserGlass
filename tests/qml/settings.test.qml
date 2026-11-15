@@ -183,6 +183,24 @@ Item {
                 t.check("site theme default", control("siteTheme").value, "follow");
                 t.ok("slider hidden while the override is off", !control("opacity").visible);
                 t.check("DMS opacity read-only line", control("dmsOpacity").text, "DMS window opacity: 85% (the first global window rule)");
+                t.check("the live control toggle, on by default", [control("liveControl").label, control("liveControl").value], ["Live control", true]);
+                t.ok("it says what it changes", control("liveControl").description.indexOf("xpinstall.signatures.required") >= 0);
+                t.ok("files written lists the native manifest", control("filesWritten").text.indexOf("native-messaging-hosts/browserglass.json") >= 0);
+                t.check("a live control line only with a status that has it", control("statusLive").visible, json("contract/status.json").companion !== undefined);
+                PluginService.saves = [];
+                control("liveControl").value = false;
+                t.check("the toggle saves liveControl", lastSave(), [root.pid, "liveControl", false]);
+                t.check("which reaches the sync settings", synced().liveControl, false);
+                const status = json("contract/status.json");
+                status.companion = {
+                    "enabled": true,
+                    "state": "waiting_restart",
+                    "hosts": 0,
+                    "manifest": true
+                };
+                PluginService.setGlobalVar(root.pid, "status", status);
+                t.check("the live control status line", [control("statusLive").visible, control("statusLive").text], [true, "Live control: waiting for a browser restart"]);
+                control("liveControl").value = true;
                 PluginService.saves = [];
             }
         },
@@ -370,6 +388,10 @@ Item {
                     }];
                 PluginService.setGlobalVar(root.pid, "status", JSON.parse(JSON.stringify(noZen)));
                 t.ok("the Zen warning alone shows it", control("zenWarning").visible);
+                t.ok("Sync with portal on: no portal hint", !control("portalHint").visible);
+                SettingsData.syncModeWithPortal = false;
+                t.ok("Sync with portal off: the portal hint shows", control("portalHint").visible);
+                SettingsData.syncModeWithPortal = true;
                 setGlass({
                     "active": false,
                     "reason": "toggled_off"

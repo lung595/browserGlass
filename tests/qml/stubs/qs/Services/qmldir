@@ -2,3 +2,4 @@ module qs.Services
 singleton ToastService 1.0 ToastService.qml
 singleton PluginService 1.0 PluginService.qml
 singleton PopoutService 1.0 PopoutService.qml
+singleton NiriService 1.0 NiriService.qml

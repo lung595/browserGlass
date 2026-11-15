@@ -29,6 +29,8 @@
 // also reachable with `dms ipc call browserGlass ...`):
 //   requestSync(reason)  refreshStatus()  loadSites()  toggleGlass()
 //   excludeClipboard()   copyReport()
+//   lookupSite()  siteFor()  glassCommand(cmd)  launcherAction(a)
+//   (the launcher's, components/launcher.js)
 //
 // ---------------------------------------------------------------------------
 // pluginData keys (what the settings page stores) -> sync --settings JSON
@@ -42,6 +44,7 @@
 //   excludedSites    [{domain}] (v0 key, ListSettingWithInput) -> excluded[]
 //   disabledStyles   [name] (or [{name}]) -> disabledStyles[]
 //   newTabGlass, readerOpaque, privateGlass   bool, defaults true
+//   liveControl      bool, default true (companion add-on, live exclusions)
 //   blur <- SettingsData.blurEnabled, isLight <- SessionData.isLightMode
 
 var PLUGIN_ID = "browserGlass";
@@ -56,6 +59,8 @@ var STDIN_BOOTSTRAP = "import sys; exec(compile(sys.stdin.read(), 'browserglass'
 var EXIT_KEPT = 3;
 
 var SYNC_DEBOUNCE_MS = 800;
+// syncToasts()'s restart toast text (isRestartToast())
+var RESTART_TEXT = "Restart your browser to apply Browser Glass";
 var POLL_INTERVAL_MS = 10000;
 var BUSY_RETRY_MS = 2000;
 var MAX_BUSY_RETRIES = 3;
@@ -81,11 +86,12 @@ var DEFAULTS = {
     "genericStyle": true,
     "newTabGlass": true,
     "readerOpaque": true,
-    "privateGlass": true
+    "privateGlass": true,
+    "liveControl": true
 };
 var SITE_THEMES = ["follow", "dark", "none"];
 var BOOL_KEYS = ["glassEnabled", "opacityOverride", "pagesTransparent", "genericStyle",
-    "newTabGlass", "readerOpaque", "privateGlass"];
+    "newTabGlass", "readerOpaque", "privateGlass", "liveControl"];
 
 // ---------------------------------------------------------------------------
 // Settings and command lines
@@ -154,7 +160,7 @@ function buildSettings(pluginData, blurEnabled, isLightMode) {
     var ordered = {};
     var order = ["blur", "isLight", "glassEnabled", "opacityOverride", "opacity", "siteTheme",
         "pagesTransparent", "genericStyle", "excluded", "disabledStyles", "newTabGlass",
-        "readerOpaque", "privateGlass"];
+        "readerOpaque", "privateGlass", "liveControl"];
     for (var j = 0; j < order.length; j++)
         ordered[order[j]] = s[order[j]];
     return ordered;
@@ -177,12 +183,40 @@ function manifestPath(pluginDir) {
     return _dir(pluginDir) + "/plugin.json";
 }
 
-// --if-plugin: the script refuses ("plugin_gone:") when plugin.json is gone,
-// so a sync started just before the folder was deleted writes nothing back
-// after the uninstall sweep.
-function syncArgv(pluginDir, settingsText) {
-    return ["python3", "-I", scriptPath(pluginDir), "sync", "--data", dataDir(pluginDir),
-        "--settings", settingsText, "--if-plugin", manifestPath(pluginDir)];
+// Where the daemon writes the --settings JSON for the next sync, which
+// reads it and deletes it (`sync --settings-file`): the excluded sites never
+// go in an argv, which every local user can read in /proc/PID/cmdline.
+// $XDG_RUNTIME_DIR is the user's own folder (mode 700). "" without an
+// absolute runtime folder: the JSON goes in the argv then (--settings).
+// Same name as browserglass.py SYNC_SETTINGS_NAME: uninstall removes a file
+// no sync read.
+var SETTINGS_FILE_NAME = "browserGlass-sync-settings.json";
+function settingsFilePath(runtimeDir) {
+    var dir = String(runtimeDir || "").replace(/\/+$/, "");
+    return dir.charAt(0) === "/" ? dir + "/" + SETTINGS_FILE_NAME : "";
+}
+
+// --settings-file FILE (settingsFilePath()), or --settings with the JSON
+// when there is no file. --if-plugin: the script refuses ("plugin_gone:")
+// when plugin.json is gone or plugin_settings.json has the plugin disabled,
+// so a sync started just before the folder was deleted, or the plugin
+// disabled, writes nothing back after the uninstall. --plugin-dir: where
+// the companion add-on and the native host wrapper come from (live control).
+function syncArgv(pluginDir, settingsText, settingsFile) {
+    var input = settingsFile ? ["--settings-file", settingsFile] : ["--settings", settingsText];
+    return ["python3", "-I", scriptPath(pluginDir), "sync", "--data", dataDir(pluginDir)].concat(input,
+        ["--if-plugin", manifestPath(pluginDir), "--plugin-dir", _dir(pluginDir)]);
+}
+// The site a niri window shows (w: {id, pid, app_id}). The title never goes
+// in the argv (every local user can read it in /proc/PID/cmdline): the
+// script asks niri for the title of window --window-id. The "--opt=value"
+// form keeps an app-id that starts with "-" a value.
+function activeSiteArgv(pluginDir, w) {
+    var win = w || {};
+    var id = parseInt(win.id, 10);
+    return ["python3", "-I", scriptPath(pluginDir), "active-site", "--json",
+        "--pid=" + (parseInt(win.pid, 10) || 0), "--app-id=" + String(win.app_id || ""),
+        "--window-id=" + (isNaN(id) ? -1 : id), "--data", dataDir(pluginDir)];
 }
 function statusArgv(pluginDir) {
     return ["python3", "-I", scriptPath(pluginDir), "status", "--json"];
@@ -255,7 +289,8 @@ function isBusyError(message) {
 }
 
 // sync --if-plugin refused: the plugin folder is gone or being removed (the
-// sweep handles it), so this is not an error worth a toast
+// sweep handles it), or the plugin is disabled (its uninstall runs), so this
+// is not an error worth a toast
 function isPluginGoneError(message) {
     return /^plugin_gone:/.test(String(message || ""));
 }
@@ -267,6 +302,7 @@ function parseSync(stdout, exitCode) {
     var doc = parseJsonLine(stdout);
     if (!_isObject(doc) || typeof doc.glass !== "boolean")
         return {"ok": false, "result": null, "error": "unreadable sync output"};
+    var live = _isObject(doc.live) ? doc.live : {};
     var r = {
         "glass": doc.glass,
         "opacity": typeof doc.opacity === "number" ? doc.opacity : 0,
@@ -275,9 +311,38 @@ function parseSync(stdout, exitCode) {
         "changed": Array.isArray(doc.changed) ? doc.changed : [],
         "running_changed": Array.isArray(doc.running_changed) ? doc.running_changed : [],
         "niri_changed": doc.niri_changed === true,
-        "warnings": Array.isArray(doc.warnings) ? doc.warnings.filter(_isObject) : []
+        "warnings": Array.isArray(doc.warnings) ? doc.warnings.filter(_isObject) : [],
+        "live": {"hosts": _count(live.hosts), "acked": _count(live.acked)},
+        "companion": Array.isArray(doc.companion) ? doc.companion.filter(_isObject) : []
     };
     return {"ok": true, "result": r, "error": ""};
+}
+
+function _count(v) {
+    return typeof v === "number" && v > 0 ? Math.floor(v) : 0;
+}
+
+// The active-site answers (contract spec "active_site")
+var SITE_ERRORS = ["no_browser", "private", "not_web", "no_session", "ambiguous", "unsupported", "outdated"];
+
+// {host, domain, source, age} or {error}: one of SITE_ERRORS, or "failed"
+// (the command failed or answered something else)
+function parseActiveSite(stdout, exitCode) {
+    if (exitCode !== 0)
+        return {"error": "failed"};
+    var doc = parseJsonLine(stdout);
+    if (!_isObject(doc))
+        return {"error": "failed"};
+    if (typeof doc.error === "string")
+        return {"error": SITE_ERRORS.indexOf(doc.error) >= 0 ? doc.error : "failed"};
+    if (typeof doc.host !== "string" || !doc.host || typeof doc.domain !== "string" || !doc.domain)
+        return {"error": "failed"};
+    return {
+        "host": doc.host,
+        "domain": doc.domain,
+        "source": doc.source === "companion" ? "companion" : "session",
+        "age": typeof doc.age === "number" ? doc.age : null
+    };
 }
 
 function _hasWarning(status, code) {
@@ -445,9 +510,11 @@ function familyNames(browsers) {
 //   dirty  a request came while the sync may be running
 //   reasons  what asked for the pending sync
 //   busyRetries  consecutive "state lock held" failures
+//   urgent  the pending (dirty) sync must run without debounce (a launcher
+//           command, syncRequestNow())
 
 function newSyncBook() {
-    return {"phase": "idle", "scheduledAt": 0, "dirty": false, "reasons": [], "busyRetries": 0};
+    return {"phase": "idle", "scheduledAt": 0, "dirty": false, "reasons": [], "busyRetries": 0, "urgent": false};
 }
 
 function _copyBook(book) {
@@ -457,7 +524,8 @@ function _copyBook(book) {
         "scheduledAt": b.scheduledAt || 0,
         "dirty": b.dirty === true,
         "reasons": Array.isArray(b.reasons) ? b.reasons.slice() : [],
-        "busyRetries": b.busyRetries || 0
+        "busyRetries": b.busyRetries || 0,
+        "urgent": b.urgent === true
     };
 }
 
@@ -484,10 +552,34 @@ function syncRequest(book, reason, now, debounceMs) {
     return {"book": b, "schedule": true};
 }
 
+// A sync is asked for at once (a launcher command: no debounce). {book,
+// schedule}: schedule true means call Proc.runCommand now with no wait
+// (nothing launched yet: a pending debounced request is restarted); else the
+// sync may be running and an urgent one follows it.
+function syncRequestNow(book, reason, now) {
+    var b = _copyBook(book);
+    if (reason && b.reasons.indexOf(reason) < 0)
+        b.reasons.push(reason);
+    b.busyRetries = 0;
+    var since = now - b.scheduledAt;
+    if (since < 0)
+        since = SYNC_DEBOUNCE_MS;
+    if (b.phase === "scheduled" && since >= SYNC_DEBOUNCE_MS * DEBOUNCE_SAFETY) {
+        b.dirty = true;
+        b.urgent = true;
+        return {"book": b, "schedule": false};
+    }
+    b.phase = "scheduled";
+    // It launches at once: a later request must count it as running
+    b.scheduledAt = now - SYNC_DEBOUNCE_MS;
+    return {"book": b, "schedule": true};
+}
+
 // The sync callback came back. busy: it failed on the state lock.
-// {book, schedule, retry}: schedule true means run another sync now (a
-// request came meanwhile, or a lock retry); retry true when it is a lock
-// retry (the daemon uses BUSY_RETRY_MS as its debounce).
+// {book, schedule, retry, urgent}: schedule true means run another sync now
+// (a request came meanwhile, or a lock retry); retry true when it is a lock
+// retry (the daemon uses BUSY_RETRY_MS as its debounce); urgent true when
+// the request that came is a launcher command's (no debounce).
 function syncFinished(book, now, busy) {
     var b = _copyBook(book);
     b.phase = "idle";
@@ -500,13 +592,16 @@ function syncFinished(book, now, busy) {
     }
     if (b.dirty || retry) {
         var wasDirty = b.dirty;
+        var urgent = wasDirty && b.urgent;
         b.dirty = false;
+        b.urgent = false;
         b.phase = "scheduled";
-        b.scheduledAt = now;
-        return {"book": b, "schedule": true, "retry": retry && !wasDirty};
+        b.scheduledAt = urgent ? now - SYNC_DEBOUNCE_MS : now;
+        return {"book": b, "schedule": true, "retry": retry && !wasDirty, "urgent": urgent};
     }
     b.reasons = [];
-    return {"book": b, "schedule": false, "retry": false};
+    b.urgent = false;
+    return {"book": b, "schedule": false, "retry": false, "urgent": false};
 }
 
 // ---------------------------------------------------------------------------
@@ -587,6 +682,58 @@ function syncToasts(outcome, ctx, retrying) {
     }
     _warningToasts(r.warnings, c, toasts);
     return {"toasts": toasts, "ctx": c};
+}
+
+// True for syncToasts()'s restart toast (a launcher command's own toast
+// replaces it)
+function isRestartToast(toast) {
+    return _isObject(toast) && toast.text === RESTART_TEXT;
+}
+
+// The status line of live control (status.companion.state)
+function liveStatusText(state) {
+    switch (state) {
+    case "connected":
+        return "Live control: connected";
+    case "waiting_restart":
+        return "Live control: waiting for a browser restart";
+    case "outdated":
+        return "Live control: restart the browser once more";
+    case "unavailable":
+        return "Live control: not available for these browsers; changes apply at the next restart";
+    case "removed":
+        return "Live control: the add-on was removed in the browser; turn Live control off and on to add it back";
+    default:
+        return "Live control: off";
+    }
+}
+
+// True when a profile the last sync (parseSync()'s result) left
+// pending_restart is installed in `status` (parseStatus()'s status): the
+// browser loaded the add-on since, and one sync records it, so a removal in
+// about:addons that follows is not read as the browser's signing refusal.
+// That sync says installed: it does not repeat.
+function companionLoaded(lastSync, status) {
+    if (!_isObject(lastSync) || !Array.isArray(lastSync.companion) || !_isObject(status) || !Array.isArray(status.browsers))
+        return false;
+    var pending = {};
+    lastSync.companion.forEach(function (c) {
+        if (_isObject(c) && c.state === "pending_restart" && typeof c.profile === "string")
+            pending[c.profile] = true;
+    });
+    return status.browsers.some(function (b) {
+        return _isObject(b) && Array.isArray(b.profiles) && b.profiles.some(function (p) {
+            return _isObject(p) && p.companion === "installed" && pending[p.id] === true;
+        });
+    });
+}
+
+// True when the --settings texts `before` and `after` (settingsJson())
+// differ in liveControl; false when either cannot be read
+function liveControlChanged(before, after) {
+    var a = parseJson(before);
+    var b = parseJson(after);
+    return _isObject(a) && _isObject(b) && a.liveControl !== b.liveControl;
 }
 
 // What to do with a status (parseStatus()'s value). {poll, resync, toasts, ctx}

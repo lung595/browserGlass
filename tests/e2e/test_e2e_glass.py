@@ -34,6 +34,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +52,9 @@ OPACITY = 0.8
 SURFACE = (16, 32, 48)  # fake dms-colors.json surface #102030
 TINT = "rgba(%d, %d, %d, 0.8)" % SURFACE
 TINT_OPAQUE = "rgb(%d, %d, %d)" % SURFACE
-ORIGINAL_SCHEME = 2  # content-override already set by the "user" before sync
+LIGHT_TINT = "rgba(240, 242, 248, 0.8)"  # light surface #f0f2f8
+ORIGINAL_SCHEME = 3  # content-override set by the "user" before sync: a value browserGlass never writes
+PREF_DARK = "ui.systemUsesDarkTheme"  # stands for the system portal colour scheme
 
 PREF_STYLESHEETS = "toolkit.legacyUserProfileCustomizations.stylesheets"
 PREF_TRANSPARENT = "browser.tabs.allow_transparent_browser"
@@ -145,6 +148,7 @@ class GlassE2E(unittest.TestCase):
         # The harness prefs (marionette.port included) are the "user's own"
         # user.js; the prefs browserGlass manages are left to its block.
         b.prefs = {k: v for k, v in b.prefs.items() if k not in MANAGED_PREFS}
+        b.prefs[PREF_DARK] = 1  # dark system theme (DMS dark, synced to the portal)
         self.env = dict(b.env, PYTHONDONTWRITEBYTECODE="1")
         self._seed(b.prefs)
 
@@ -221,6 +225,16 @@ class GlassE2E(unittest.TestCase):
                 "  out[sel] = el ? getComputedStyle(el).backgroundColor : null; }"
                 "return out;", list(CHROME_SELECTORS))
             m["prefs"] = {n: b.get_pref(n) for n in MANAGED_PREFS}
+            # Live light/dark switch, no restart: the tint and the pages follow.
+            b.navigate(self.server.url("/article.html"))
+            body = "return getComputedStyle(document.body).backgroundColor;"
+            b.chrome_js("Services.prefs.setIntPref(arguments[0], 0);", PREF_DARK)
+            time.sleep(1.0)  # the style recalc, then the site styles' 0.5s transition
+            live = {"body": b.chrome_js(body), "page": b.js(body)}
+            b.chrome_js("Services.prefs.setIntPref(arguments[0], 1);", PREF_DARK)
+            time.sleep(1.0)
+            live["back"] = b.chrome_js(body)
+            m["live_light"] = live
             return m
         except Exception as exc:
             raise AssertionError("%s\n--- firefox log ---\n%s" % (exc, b.log_tail()))
@@ -236,11 +250,13 @@ class GlassE2E(unittest.TestCase):
     def check_common(self, cfg, m):
         t, a = mn.transparent, mn.alpha
         self.check(cfg + ": prefs from the user.js block",
-                   m["prefs"] == {PREF_STYLESHEETS: True, PREF_TRANSPARENT: True, PREF_SCHEME: 0},
+                   m["prefs"] == {PREF_STYLESHEETS: True, PREF_TRANSPARENT: True, PREF_SCHEME: 2},
                    m["prefs"])
-        self.check(cfg + ": web page html+body transparent",
-                   t(m["article"]["root"]) and t(m["article"]["body"]),
-                   (mn.bg(m, "article", "root"), mn.bg(m, "article", "body")))
+        self.check(cfg + ": dark-capable web page html+body transparent",
+                   t(m["dark_article"]["root"]) and t(m["dark_article"]["body"]),
+                   (mn.bg(m, "dark_article", "root"), mn.bg(m, "dark_article", "body")))
+        self.check(cfg + ": light-only web page keeps its white under a dark theme",
+                   mn.bg(m, "article", "body") == "rgb(255, 255, 255)", m.get("article"))
         for page in ("about:newtab", "about:home"):
             pm = m.get(page) or {}
             self.check(cfg + ": %s html+body transparent" % page,
@@ -252,6 +268,10 @@ class GlassE2E(unittest.TestCase):
                    t(pp.get("root")) and t(pp.get("body")), pp)
         chrome = m["chrome"]
         self.check(cfg + ": chrome window body = DMS tint", chrome.get("body") == TINT, chrome)
+        live = m.get("live_light") or {}
+        self.check(cfg + ": light theme live: light tint, light page transparent, then dark again",
+                   live.get("body") == LIGHT_TINT and mn.alpha(live.get("page")) == 0.0
+                   and live.get("back") == TINT, live)
         for sel in CHROME_SELECTORS:
             self.check(cfg + ": chrome %s transparent" % sel, a(chrome.get(sel)) == 0.0, chrome)
         nw = window(m, "chrome_with_private", False)

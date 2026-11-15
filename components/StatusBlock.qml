@@ -122,6 +122,14 @@ Column {
         return warning.family ? Logic.familyName(warning.family) + ": " + text : text;
     }
 
+    // Live control (status.companion), "" before a status that has it
+    function liveLine() {
+        const companion = block.status && block.status.companion && typeof block.status.companion === "object" ? block.status.companion : null;
+        if (!companion)
+            return "";
+        return I18n.trFor("browserGlass", Logic.liveStatusText(String(companion.state || "")));
+    }
+
     function profileCountText() {
         const n = block.profileCount();
         return n === 1 ? I18n.trFor("browserGlass", "1 browser profile") : I18n.trFor("browserGlass", "%1 browser profiles").arg(n);
@@ -207,6 +215,15 @@ Column {
         visible: text !== ""
         width: parent.width
         text: block.niriLine()
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.surfaceVariantText
+    }
+
+    StyledText {
+        objectName: "statusLive"
+        visible: text !== ""
+        width: parent.width
+        text: block.liveLine()
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
     }

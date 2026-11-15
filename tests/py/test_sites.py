@@ -31,6 +31,10 @@ Documented differences with v0 (normalised away by v0_normalize()):
      the project's denylist (see test_leaks.py); v0 runs on the same
      filtered data, so nothing is normalised here. tools/update_styles.py
      (P8) must apply the same filter.
+  7. Every style (generic and dedicated) is gated on the colour scheme: as
+     is under a light theme, only on pages declaring a dark version under a
+     dark one (bg._scheme_gated), so light-only pages stay legible.
+  8. browserGlass's own site css (data/sites/) ends its style's blocks.
 
 Exclusions keep "www." as entered, like v0: "www.x" refuses www.x and its
 subdomains, not x (the parity golden uses such an exclusion).
@@ -41,7 +45,9 @@ import gzip
 import json
 import os
 import re
+import pathlib
 import shutil
+import tempfile
 import unittest
 
 from fakehome import FIXTURES, GOLDEN, REGEN_GOLDEN, REPO, FakeHome, check_golden, load_script
@@ -112,7 +118,37 @@ def v0_normalize(css):
     css = css.replace("/* bestbuy.com .css */", "/* bestbuy.com.css */")
     css = css.replace("bestbuy\\\\.com\\\\ ", "bestbuy\\\\.com")
     css = css.replace("|-cifraclub\\\\.com\\\\.br", "").replace("-cifraclub\\\\.com\\\\.br|", "")
-    return sort_alternatives(css)
+    # v1 ends a style's blocks with its data/sites/ file.
+    for key, fix in bg._sites_own(str(DATA)):
+        parts = css.split("/* %s" % key)
+        for i in range(1, len(parts)):
+            block = parts[i].split("\n\n/* ", 1)[0].rstrip("\n")
+            end = block.rindex("\n}")
+            parts[i] = parts[i][:end] + "\n" + fix + parts[i][end:]
+        css = ("/* %s" % key).join(parts)
+    # v1 gates every style on the colour scheme (bg._scheme_gated).
+    pieces = []
+    for piece in css.split("\n\n/* "):
+        if pieces and not BLOCK.match("/* " + piece):
+            pieces[-1] += "\n\n/* " + piece  # a comment inside a style
+        else:
+            pieces.append(piece)
+    for i in range(1, len(pieces)):
+        start = BLOCK.match("/* " + pieces[i]).end() - 3
+        body = pieces[i][start:]
+        trail = body[len(body.rstrip("\n")):]
+        body = body.rstrip("\n")
+        assert body.endswith("\n}"), body[-50:]
+        shadow = not ("/* " + pieces[i]).startswith(bg.SITES_GENERIC_COMMENT)
+        pieces[i] = pieces[i][:start] + bg._scheme_gated(body[:-2], None, shadow) + "\n}" + trail
+    return sort_alternatives("\n\n/* ".join(pieces))
+
+
+def own_new_keys():
+    """data/sites/ keys that are new styles (no my-internet style of that name)."""
+    upstream = bg.sites_load(str(DATA)).styles
+    return {key for key, _ in bg._sites_own(str(DATA))
+            if list(upstream[key]) == [bg.SITES_OWN_FEATURE]}
 
 
 def v0_golden():
@@ -198,8 +234,13 @@ class BuildTest(unittest.TestCase):
         return bg.sites_build_css(fixture_sites(), problems=problems, **kwargs)
 
     def test_golden(self):
-        check_golden(self, "sites-build.txt", collections.OrderedDict(
-            (name, self.build(**kwargs)) for name, kwargs in self.CASES.items()))
+        # "<case> gated": the same build gated for liveControl (the plain
+        # cases are the v1.0 output).
+        results = collections.OrderedDict(
+            (name, self.build(**kwargs)) for name, kwargs in self.CASES.items())
+        results.update(("%s gated" % name, self.build(gate=bg.GATE_NORMAL_ROOT, **kwargs))
+                       for name, kwargs in self.CASES.items())
+        check_golden(self, "sites-build.txt", results)
 
     def test_matching(self):
         css = self.build()
@@ -435,7 +476,13 @@ class V0ParityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.v0 = v0_golden()
-        cls.sites = bg.sites_load(str(DATA))
+        # A data/sites/ file with no my-internet style of its name is a new
+        # style that v0 never had: leave those out (OwnNewStyleTest).
+        sites = bg.sites_load(str(DATA))
+        new = own_new_keys()
+        cls.sites = bg.Sites(
+            collections.OrderedDict((k, v) for k, v in sites.styles.items() if k not in new),
+            sites.mapping)
 
     def test_with_exclusions(self):
         v1 = bg.sites_build_css(self.sites, V0_EXCLUSIONS.split(","))
@@ -475,3 +522,55 @@ class V0ParityTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class OwnNewStyleTest(unittest.TestCase):
+    """A data/sites/ file with no my-internet style becomes a style of its own."""
+
+    def test_new_styles_get_a_block_and_leave_the_generic(self):
+        sites = bg.sites_load(str(DATA))
+        css = bg.sites_build_css(sites)
+        generic = css.partition(bg.SITES_GENERIC_COMMENT)[2]
+        self.assertTrue(generic)
+        for key in sorted(own_new_keys()):
+            name = key[:-4]
+            self.assertIn("/* %s */\n@-moz-document" % key, css)
+            # The generic style skips the site: its name is in the lookahead.
+            self.assertIn(name.replace(".", "\\\\."), generic, key)
+
+class OwnSitesTest(unittest.TestCase):
+
+    def own_dir(self, files):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+        (pathlib.Path(tmp) / "styles.json").write_text(json.dumps({"website": {
+            "youtube.com.css": {"transparency": "ytd-app { background: none !important; }"}}}))
+        (pathlib.Path(tmp) / "sites").mkdir()
+        for name, text in files.items():
+            (pathlib.Path(tmp) / "sites" / name).write_text(text)
+        return tmp
+
+    def test_extends_the_style_as_its_last_feature(self):
+        sites = bg.sites_load(self.own_dir({"youtube.com.css": "#bar { color: red; }\n"}))
+        css = bg.sites_build_css(sites)
+        self.assertIn("ytd-app { background: none !important; }\n#bar { color: red; }\n}", css)
+        self.assertNotIn("#bar", bg.sites_build_css(sites, disabled=["youtube.com"]))
+
+    def test_new_site_gets_its_own_style(self):
+        sites = bg.sites_load(self.own_dir({"example.org.css": "#x { color: red; }",
+                                            "README.md": "x", "Bad Name.css": "#y {}"}))
+        self.assertIn("/* example.org.css */", bg.sites_build_css(sites))
+        self.assertIn({"name": "example.org", "domains": ["example.org", "*.example.org"]},
+                      bg.sites_list(sites))
+        self.assertNotIn("#y", bg.sites_build_css(sites))
+
+    def test_bundled_files_are_valid(self):
+        folder = DATA / bg.SITES_OWN_DIR
+        names = sorted(p.name for p in folder.glob("*.css"))
+        self.assertEqual(names, [key for key, _ in bg._sites_own(str(DATA))])
+        for key, css in bg._sites_own(str(DATA)):
+            self.assertEqual(bg.sites_validate(css), [], key)
+            # No network and no nested document rule (the block is one already).
+            self.assertNotRegex(css, r"(?i)url\(|@-moz-document", key)
+            self.assertTrue(css.startswith("/*"), "%s: begin with a comment" % key)

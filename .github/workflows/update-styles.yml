@@ -1,5 +1,6 @@
 # Weekly refresh of data/styles.json, data/css-mapping.json and
-# data/MY-INTERNET-LICENSE from sameerasw/my-internet. When the bundled data
+# data/MY-INTERNET-LICENSE from sameerasw/my-internet, and of
+# data/public_suffix_list.dat from publicsuffix.org. When the bundled data
 # changes, a pull request is opened (or the open one is updated).
 #
 # No third-party action: git, python3 and gh come with the runner image.
@@ -76,10 +77,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git add -- data
-          git commit -m "data: refresh site styles from my-internet"
+          git commit -m "data: refresh site styles and public suffix list"
           git push --force origin "$BRANCH"
           {
-            echo "Weekly refresh of the site styles bundled from [sameerasw/my-internet](https://github.com/sameerasw/my-internet) (MIT)."
+            echo "Weekly refresh of the site styles bundled from [sameerasw/my-internet](https://github.com/sameerasw/my-internet) (MIT)"
+            echo "and of the [public suffix list](https://publicsuffix.org/) (MPL-2.0, see data/PSL-LICENSE)."
             echo
             echo '```'
             cat "$RUNNER_TEMP/summary.txt"
@@ -91,6 +93,6 @@ jobs:
             gh pr edit "$open_pr" --body-file "$RUNNER_TEMP/body.md"
           else
             gh pr create --base "$BASE" --head "$BRANCH" \
-              --title "Refresh site styles from my-internet" \
+              --title "Refresh site styles and public suffix list" \
               --body-file "$RUNNER_TEMP/body.md"
           fi

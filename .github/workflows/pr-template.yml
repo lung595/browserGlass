@@ -1,0 +1,29 @@
+# Checks that a pull request description follows the template: its sections are
+# there and "Screenshots" holds at least one image of the render. It runs again
+# when the description is edited.
+name: PR template
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  description:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch the checker from the base branch
+        # The checker comes from the target branch, not from the pull request,
+        # so a pull request cannot loosen its own check. No third-party action.
+        run: |
+          git init -q repo
+          git -C repo fetch -q --depth 1 "https://github.com/$GITHUB_REPOSITORY.git" "$GITHUB_BASE_REF"
+          git -C repo checkout -q FETCH_HEAD
+      - name: Check the description
+        # The description goes through the environment, never into the script.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 -I repo/tools/check_pr_body.py

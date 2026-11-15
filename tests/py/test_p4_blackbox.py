@@ -217,7 +217,7 @@ class BlackBoxCase(unittest.TestCase):
         start = lines.index("profiles:") + 1
         out = {}
         for line in lines[start:]:
-            if line.startswith(REPORT_LINES[6]):
+            if line.startswith("settings: "):
                 break
             if line.strip() in ("none", "(none)"):
                 continue

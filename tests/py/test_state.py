@@ -230,6 +230,9 @@ class PrefsTest(unittest.TestCase):
             PREF_SCHEME: {"absent": True},          # the value our block sets
             PREF_TRANSPARENT: {"value": "false"},
             PREF_STYLESHEETS: {"absent": True},
+            bg.PREF_SIGNATURES: {"absent": True},
+            bg.PREF_AUTODISABLE: {"absent": True},
+            bg.PREF_STARTUP_SCAN: {"absent": True},
         })
         self.assertEqual(bg.prefs_originals(prefs, "")[PREF_SCHEME], {"value": "0"})
 
@@ -240,7 +243,7 @@ class PrefsTest(unittest.TestCase):
         userjs = V0_BLOCK.replace('", 1);', '", 0);')
         prefs = ('user_pref("%s", 1);\nuser_pref("%s", true);\nuser_pref("%s", true);\n'
                  % (PREF_SCHEME, PREF_TRANSPARENT, PREF_STYLESHEETS))
-        absent = {p: {"absent": True} for p in (PREF_SCHEME, PREF_TRANSPARENT, PREF_STYLESHEETS)}
+        absent = {p: {"absent": True} for p in bg.PREFS}
         self.assertTrue(bg.has_v0_block(userjs))
         self.assertEqual(bg.prefs_originals(prefs, userjs), absent)
         self.assertEqual(bg.prefs_originals(prefs, userjs), bg.prefs_originals_v0(prefs))

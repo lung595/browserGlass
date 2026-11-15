@@ -10,6 +10,8 @@ This guide explains what Browser Glass does to your browsers and to niri, how to
   - [When Browser Glass acts](#when-browser-glass-acts)
 - [What is written where](#what-is-written-where)
 - [Sites](#sites)
+  - [Light pages under a dark theme](#light-pages-under-a-dark-theme)
+- [Live control](#live-control)
 - [Restart detection](#restart-detection)
 - [Status and report](#status-and-report)
 - [Warnings](#warnings)
@@ -49,13 +51,16 @@ With **Glass web pages** off, the content file is neutral too: only the interfac
 
 ### The preferences
 
-Browser Glass keeps a marked block in each profile's `user.js`:
+Browser Glass keeps a marked block in each profile's `user.js`. With the default settings (**Follow DMS**, **Live control** on) and a profile that still has the browser's default add-on preferences, it reads:
 
 ```js
 // >>> browserGlass v1 managed block (generated, do not edit)
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.tabs.allow_transparent_browser", true);
-user_pref("layout.css.prefers-color-scheme.content-override", 0);
+user_pref("layout.css.prefers-color-scheme.content-override", 2);
+user_pref("xpinstall.signatures.required", false);
+user_pref("extensions.autoDisableScopes", 14);
+user_pref("extensions.startupScanScopes", 1);
 // <<< browserGlass v1
 ```
 
@@ -63,7 +68,10 @@ user_pref("layout.css.prefers-color-scheme.content-override", 0);
 | --- | --- |
 | `toolkit.legacyUserProfileCustomizations.stylesheets` | Always `true`: the browser must load `userChrome.css` and `userContent.css` |
 | `browser.tabs.allow_transparent_browser` | `true` only while the glass is on with **Glass web pages**, `false` otherwise |
-| `layout.css.prefers-color-scheme.content-override` | The scheme websites are asked for. **Follow DMS**: `1` in light mode, `0` in dark mode. **Always dark**: `0`. **Leave as is**: not written, and your own value comes back |
+| `layout.css.prefers-color-scheme.content-override` | The scheme websites are asked for. **Follow DMS**: `2` (automatic: websites get the browser's light or dark theme, which follows the system scheme live). **Always dark**: `0`. **Leave as is**: not written, and your own value comes back |
+| `xpinstall.signatures.required` | `false`, only with **Live control** on, where the browser can load the companion add-on (see [Live control](#live-control)) |
+| `extensions.autoDisableScopes` | With **Live control**: your value with the profile bit (`1`) cleared, so the add-on placed in the profile loads without a prompt |
+| `extensions.startupScanScopes` | With **Live control**: your value with the profile bit (`1`) set, so a profile that already exists picks the add-on up at its next start |
 
 The browser copies `user.js` values into `prefs.js` when it runs, so Browser Glass records each preference's original value the first time it meets a profile, and puts it back in `prefs.js` when the preference is no longer needed. `prefs.js` belongs to the browser while it runs, so that clean-up waits until the browser is closed (see [Uninstalling](#uninstalling)). A `user.js` created by Browser Glass is readable by you only (mode 600); an existing one keeps its permissions.
 
@@ -123,7 +131,7 @@ Browser Glass writes again (after waiting 0.8 s for things to settle) when:
 - the DMS window rules file changes;
 - the DMS colours change (a new wallpaper, say).
 
-It also writes once when DMS starts. At rest there is no timer and no process: the only polling is a status check every 10 s **while a browser needs a restart**, which stops as soon as none does.
+It also writes once when DMS starts, and at once, without the wait, for a launcher command. At rest there is no timer and no process: the only polling is a status check every 10 s **while a browser needs a restart**, which stops as soon as none does. With **Live control**, each running browser has its helper, which waits without doing anything until a sync talks to it (see [Live control](#live-control)).
 
 Each write only touches files whose content actually changes, so a write with nothing new costs nothing and does not ask for a restart.
 
@@ -137,7 +145,12 @@ Each write only touches files whose content actually changes, so a write with no
 | Each profile, `prefs.js` | The preferences of the block, put back to their original values | Restored once the browser is closed |
 | `~/.config/niri/dms-browser-glass.kdl` | The niri rule | Yes |
 | `~/.config/niri/config.kdl` | One `include` line at the end | Yes |
-| `~/.local/state/dms/browserGlass/` (`$XDG_STATE_HOME/dms/browserGlass/`) | `state.json`, `state.lock`, `backup/<profile>/` and, during a deferred clean-up, `pending/` | Yes |
+| `~/.local/state/dms/browserGlass/` (`$XDG_STATE_HOME/dms/browserGlass/`) | `state.json`, `state.lock`, `backup/<profile>/`, `state-dirs.json` (the folders made for the state folder, kept so they survive a lost or corrupt `state.json`, with or without **Live control**), `native-dirs.json` (with **Live control**: the folders made for the native manifest) and, during a deferred clean-up, `pending/` | Yes |
+| Each profile, `extensions/browserglass@companion.xpi` | With **Live control**: the companion add-on | Yes (the browser forgets it at its next start) |
+| `~/.mozilla/native-messaging-hosts/browserglass.json` | With **Live control**: the manifest that lets the companion, and only it, start the helper. Firefox and LibreWolf both read this one. Folders it had to create are recorded | Yes, with the folders it created |
+| `~/.local/state/dms/browserGlass/native-host` | With **Live control**: a two-line script the browser runs to start the helper | Yes |
+| `$XDG_RUNTIME_DIR/browserGlass/` | While a browser runs with the companion: `host-<pid>.sock` (the helper's socket), `active-<pid>.json` (the active tab's host and title hash) and `ack-<pid>.json` (the last list applied). Memory only, readable by you only, removed when the browser closes | Yes |
+| `$XDG_RUNTIME_DIR/browserGlass-sync-settings.json` | Before each sync: the settings it applies (excluded sites included), so they stay out of the process list. The sync reads it and deletes it | Yes |
 
 Profiles are found in the standard places of each browser, for example `~/.mozilla/firefox`, `~/.config/mozilla/firefox`, `~/.librewolf`, `~/.config/librewolf/librewolf`, `~/.zen`, `~/.floorp`, `~/.waterfox`, their Flatpak versions under `~/.var/app/`, and the Snap Firefox under `~/snap/firefox/common/`. Every profile listed in `profiles.ini` is styled, and so are profiles of Firefox's profile groups found next to them.
 
@@ -155,9 +168,65 @@ A dedicated style for `example.org` covers `example.org` and its subdomains, exc
 
 **Excluded sites** get none of the three: they keep their normal background. An exclusion covers the domain as entered and its subdomains: excluding `example.org` also excludes `docs.example.org`, while excluding `www.example.org` leaves `example.org` alone. **Exclude copied URL** takes the host of the address in your clipboard and drops a leading `www.`, so it excludes the whole site. It answers with a toast: *Site excluded from glass*, *Site already excluded*, or *The clipboard holds no web address*.
 
+**From the launcher** (`gs blist`, see the [README](../README.md#launcher)), the exclusion is the *registrable domain* of the open page: the name you could register, found with the bundled [Public Suffix List](https://publicsuffix.org). `account.example.org` gives `example.org` and `a.b.co.uk` gives `b.co.uk`. A site under a shared hosting suffix such as `user.github.io` is excluded as it is, never every site under `github.io`. A host that is itself a public suffix (`github.io`) is refused with *Address not supported*, since excluding it would exclude every site under it. Addresses such as `localhost` and IPv4 addresses are taken as they are; IPv6 addresses are not supported either. The toast names what was excluded. `gs unblist` removes every exclusion that covers the open page, so it removes `example.org` as well as `account.example.org`; its line and toast name the exclusions it removes (`account.example.org` for one made with **Exclude copied URL**). **Exclude copied URL** keeps the host you copied, as before: you chose it yourself.
+
 **Switching a dedicated style off** in **Dedicated site styles** removes that site's tailored style; the site still counts as having one, so the generic style does not take its place. It keeps the plain page rule of step 1.
 
 **Reader view, PDF, new tab, private windows.** With **Opaque reader view and PDF** on (default), reader view and the PDF viewer stay solid for reading; off, reader view and the PDF viewer turn glass too. **Glass new tab** covers the new tab, home and private browsing pages.
+
+### Light pages under a dark theme
+
+Many sites have a light version only: dark text on a white page. On the dark tint that text would be unreadable. So under a dark theme, the page rule, the generic style **and every dedicated site style** (my-internet's and Browser Glass's own fixes) apply only to pages that declare a dark version: a `color-scheme` meta naming `dark`, or a dark-mode marker such as `data-theme="dark"` or `class="dark"` on `<html>`. A light-only page keeps its own background and stays readable. Under a light theme nothing changes: every page is glass.
+
+**With Live control**, the companion add-on does better: it measures the page's text colour (dark text means a light page) and marks the page as light or dark. The site styles then apply whatever the theme, and the tint follows the page: a light page under a dark theme gets a **light** glass (the DMS light surface at 72 %), a dark page under a light theme a dark one (the dark surface at 72 %). The add-on measures again when the page has loaded, when the page switches its own theme on `<html>` (a class or a `data-theme` attribute, for instance) and when the system switches between light and dark. Nothing is sent anywhere: the measure stays in the page. Only the main page is measured: frames inside it keep the rule above. The measure is that of the text as shown: a site style that makes the text white counts as a dark page, and keeps the dark glass behind it. Parts of a page drawn in a shadow DOM cannot see these marks (see [Known limits](../ROADMAP.md#known-limits)). Without the add-on (a private window, a Firefox release build), the page keeps its own background as above.
+
+You no longer need a site fix just because a site is light only.
+
+## Live control
+
+The browser reads its style files only when it starts, so an exclusion would normally wait for a restart. **Live control** (**Settings → Plugins → Browser Glass → Advanced & help**, on by default) removes that wait for exclusions, with a small companion add-on in each profile.
+
+**How it works.**
+
+1. At each sync, Browser Glass writes the style file with every rule ready to be switched off, plus the rules that bring the glass back to a site that was excluded when the browser started.
+2. It places the add-on `browserglass@companion.xpi` in each profile's `extensions/` folder, and the manifest `~/.mozilla/native-messaging-hosts/browserglass.json`. The browser loads the add-on at its next start.
+3. The add-on starts the Browser Glass helper (`browserglass.py native-host`, through the script `~/.local/state/dms/browserGlass/native-host`). The helper lives as long as the browser and waits, doing nothing, on a socket in `$XDG_RUNTIME_DIR/browserGlass/`.
+4. When you exclude a site or put it back, the sync sends the new list of excluded domains (a few bytes, never the CSS) to every running helper. The add-on marks the pages of the excluded sites, and the style file already loaded does the rest: the page changes at once. The add-on answers when it is done, so Browser Glass knows the change is live and does not ask for a restart.
+5. The add-on also tells the helper the host of the active tab of the window in focus, which is how the launcher knows the current site.
+
+Only the main page is concerned: frames inside a page follow at the next restart. Private windows do not run the add-on (it does not ask for them), so they behave as without Live control.
+
+**What it changes in the browser.** Three preferences go into the marked `user.js` block (see [The preferences](#the-preferences)): `xpinstall.signatures.required` set to `false` so an unsigned add-on can load, and the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes` so the add-on placed in the profile loads without a prompt. Their original values are recorded and put back like the others.
+
+**States.** The *Live control* line in **Status** comes from `companion.state` in `status --json`:
+
+| `state` | Status line | Meaning |
+| --- | --- | --- |
+| `connected` | *Live control: connected* | A browser runs the add-on of this version and its helper is listening |
+| `waiting_restart` | *Live control: waiting for a browser restart* | The add-on is in place; the browser loads it at its next start. After a plugin update, also while the browser still runs the older add-on |
+| `removed` | *Live control: the add-on was removed in the browser; turn Live control off and on to add it back* | No profile has the add-on, and it was removed in the browser (`about:addons`) in at least one profile. Browser Glass leaves it out until Live control is turned off and on again |
+| `unavailable` | *Live control: not available for these browsers; changes apply at the next restart* | No profile has the add-on: Firefox release, ESR or Beta builds, Flatpak or Snap browsers (see below). Changes apply at the next restart |
+| `off` | *Live control: off* | Live control is turned off |
+
+`companion` also has `enabled` (the setting at the last sync), `hosts` (how many helpers are running) and `manifest` (the native messaging manifest is in place). Each profile in `browsers[].profiles[]` has its own `companion` state:
+
+| Profile state | Meaning |
+| --- | --- |
+| `installed` | The add-on is in the profile, and the browser lists it |
+| `pending_restart` | The add-on is in the profile; the browser has not loaded it yet |
+| `outdated` | The browser runs an add-on from an older version: restart it once more |
+| `signing_enforced` | A Firefox release, ESR or Beta build: they only load add-ons signed by Mozilla, so nothing is written for the companion |
+| `signing_required` | The browser deleted the add-on at start-up (it wants signed add-ons). Browser Glass takes the add-on's preferences back and stops trying until the browser is updated |
+| `removed_by_user` | The add-on was removed in `about:addons`: LibreWolf, Firefox Nightly and Developer Edition never delete it themselves; on other browsers Browser Glass saw it loaded first (otherwise the removal reads as `signing_required`). Browser Glass takes the add-on's preferences back and does not place it again, even after a browser update, until Live control is turned off and on again (or the plugin is disabled and enabled again) |
+| `unsupported_variant` | A Flatpak or Snap browser: the helper would have to run inside their sandbox |
+| `no_plugin_dir` | A `sync` run by hand without `--plugin-dir`, or a profile the add-on has not been placed in yet: the add-on is left as it is, and the next sync from the plugin places it |
+| `off` | Live control is turned off |
+
+A Firefox profile that has never been started follows the channel of the installed Firefox: `signing_enforced` when that build enforces signing. Any other profile whose channel cannot be read gets the add-on; if Firefox then drops it at start-up, the profile turns `signing_required`.
+
+**Turning it off.** At the next sync the add-on, its three preferences, the manifest and the helper script are removed, and the style file goes back to the same rules as without Live control. A helper still running goes away with its browser.
+
+**Uninstalling** also removes all of it: the add-on of each profile, the manifest (and the folders created for it), the helper script, `$XDG_RUNTIME_DIR/browserGlass/`, and the three preferences come back to their original values. Once the browser is closed, the clean-up also removes the add-on's own leftovers in the profile: its storage folder, its entry in `extensions.webextensions.uuids` (only that entry; the other add-ons keep theirs) and its storage-migration preference. The browser removes the add-on from its own list, `extensions.json`, at its next start.
 
 ## Restart detection
 
@@ -165,6 +234,7 @@ The browser reads its style files and `user.js` only when it starts. Browser Gla
 
 - For each profile, it checks whether a browser is running on it, from the profile's lock (the `.parentlock` file, or the `lock` link as a fallback). This also works for Flatpak and Snap browsers.
 - If one is, and one of its glass files (the two style files, `userChrome.css`, `userContent.css` or `user.js`) changed after that browser started, the profile needs a restart.
+- Except for exclusions applied live: when the only change is the list of excluded sites and that browser's companion add-on confirmed it applied the new list (see [Live control](#live-control)), no restart is needed.
 
 The widget then shows a dot, its menu says *Restart Firefox to see the change* (with the right browser name), and the status lists it. A toast *Restart your browser to apply Browser Glass* also shows when a write changes a running browser. While any browser needs a restart, the plugin checks again every 10 s, so the dot goes away soon after you restart it. The check stops after three failed reads in a row.
 
@@ -178,15 +248,17 @@ python3 -I ~/.config/dms/plugins/browserGlass/browserglass.py status --json
 ```
 
 ```json
-{"version": "1.0.0",
+{"version": "1.1.0",
  "glass": {"active": true, "reason": "active", "opacity": 0.85, "opacity_source": "dms",
            "surface": "#101418", "mode": "dark", "dms_opacity": 0.85},
  "niri": {"config": true, "include": true, "rule": true},
+ "companion": {"enabled": true, "state": "connected", "hosts": 1, "manifest": true},
  "restart_needed": false,
  "browsers": [{"family": "firefox", "variant": "native", "root": "~/.mozilla/firefox",
                "running": false, "restart_needed": false,
                "profiles": [{"id": "...", "name": "default-release", "default": true,
-                             "running": false, "restart_needed": false, "applied": true, ...}]}],
+                             "running": false, "restart_needed": false, "applied": true,
+                             "companion": "installed", ...}]}],
  "warnings": []}
 ```
 
@@ -200,21 +272,22 @@ python3 -I ~/.config/dms/plugins/browserGlass/browserglass.py report
 
 ```text
 browserGlass report
-version: 1.0.0
+version: 1.1.0
 python: 3.12.4
 dms: 2.0.0
 browsers: firefox native 128.0
 glass: active (reason active, opacity 0.85, source dms, mode dark)
 niri: config yes, include yes, rule yes
+companion: connected (hosts 1, manifest yes, profiles installed 1)
 restart needed: no
 applied: 1 of 1 profiles
 profiles:
   firefox native: 1 (0 running, 0 restart needed)
-settings: glassEnabled=true opacityOverride=false siteTheme=follow pagesTransparent=true genericStyle=true excluded=0 disabledStyles=0 newTabGlass=true readerOpaque=true privateGlass=true
+settings: glassEnabled=true opacityOverride=false siteTheme=follow pagesTransparent=true genericStyle=true excluded=0 disabledStyles=0 newTabGlass=true readerOpaque=true privateGlass=true liveControl=true
 warnings: none
 ```
 
-It holds versions, counts, your settings (lists as counts only) and warning codes: no path, no profile name, no site, no address. It is never sent anywhere; you paste it yourself.
+It holds versions, counts, your settings (lists as counts only), the Live control state with its profile states counted, and warning codes: no path, no profile name, no site, no address. It is never sent anywhere; you paste it yourself.
 
 ## Warnings
 
@@ -241,7 +314,7 @@ Warnings show in the status. The ones you can act on also show once as a toast.
 
 ## Backups
 
-The first time Browser Glass changes a profile, it saves the originals of `userChrome.css`, `userContent.css` and `user.js` (or notes that they did not exist), with the original values of its three preferences, in `~/.local/state/dms/browserGlass/backup/<profile>/`. The folder name is a short hash of the profile path, not the profile name. It never takes a second backup over the first one.
+The first time Browser Glass changes a profile, it saves the originals of `userChrome.css`, `userContent.css` and `user.js` (or notes that they did not exist), with the original values of its preferences, in `~/.local/state/dms/browserGlass/backup/<profile>/`. The folder name is a short hash of the profile path, not the profile name. It never takes a second backup over the first one.
 
 At uninstall:
 
@@ -262,13 +335,13 @@ If you used the earlier script version of Browser Glass (v0), v1 takes over with
 
 | You do | Result |
 | --- | --- |
-| Switch **Glass** off (widget, settings, `dms ipc call browserGlass toggle`) | The style files turn neutral and the browsers follow the DMS window opacity again after a restart. Everything stays installed, ready to turn back on |
+| Switch **Glass** off (widget, settings, `gs off` in the launcher, `dms ipc call browserGlass toggle`) | The style files turn neutral and the browsers follow the DMS window opacity again after a restart. Everything stays installed, ready to turn back on |
 | Disable the plugin in **Settings → Plugins** | Full uninstall: everything restored (toast *Browser Glass disabled: restoring the browsers*) |
 | Delete the plugin folder while DMS runs | The same full uninstall, started on its own |
 
 ## Uninstalling
 
-**Disable the plugin** in **Settings → Plugins**. That is all: Browser Glass shows *Browser Glass disabled: restoring the browsers* and runs its uninstall. The browsers can stay open. Then delete `~/.config/dms/plugins/browserGlass` if you want.
+**Disable the plugin** in **Settings → Plugins**. That is all: Browser Glass shows *Browser Glass disabled: restoring the browsers* and runs its uninstall. The browsers can stay open. A sync that was already starting when you disabled the plugin sees it is disabled and writes nothing. Then delete `~/.config/dms/plugins/browserGlass` if you want.
 
 The uninstall:
 
@@ -276,10 +349,11 @@ The uninstall:
 2. removes the marked block from `user.js`, or the whole file if it created it;
 3. restores the files you did not edit from their [backups](#backups), byte for byte;
 4. removes the niri file and the `include` line;
-5. puts the original preference values back in `prefs.js` (see below);
-6. removes its state folder and the old v0 cache.
+5. removes the companion add-on of each profile, the native messaging manifest, the helper script and `$XDG_RUNTIME_DIR/browserGlass/` (see [Live control](#live-control));
+6. puts the original preference values back in `prefs.js` (see below);
+7. removes its state folder and the old v0 cache.
 
-**`prefs.js` and running browsers.** A running browser rewrites `prefs.js` when it closes, so Browser Glass cannot fix it while the browser is open. For each running profile, it starts a small background clean-up that checks every 5 s whether the browser has closed, and then restores the original preference values. The job is written down in `~/.local/state/dms/browserGlass/pending/` first, so it survives a crash or a logout. If the browser stays open for more than **7 days**, the clean-up gives up and leaves its note in `pending/`: run the uninstall command below once the browser is closed, and it finishes the job.
+**`prefs.js` and running browsers.** A running browser rewrites `prefs.js` when it closes, so Browser Glass cannot fix it while the browser is open. For each running profile, it starts a small background clean-up that checks every 5 s whether the browser has closed, and then restores the original preference values. At a logout or shutdown, the browser and the clean-up are stopped together: the clean-up then checks five times a second for a few seconds, so it usually finishes as the browser closes. For the same reason, a shell restart while a clean-up is waiting can take a few seconds longer. The job is written down in `~/.local/state/dms/browserGlass/pending/` first, so the note survives a crash or a logout that stops the clean-up too early, and the next sync or uninstall picks it up. If the browser stays open for more than **7 days**, the clean-up gives up and leaves its note in `pending/` the same way. While the plugin stays disabled, nothing runs the job again: run the uninstall command below once the browser is closed (or enable the plugin again), and it finishes the job.
 
 **Deleting the plugin folder** while DMS runs also cleans up: when DMS sees the plugin gone, it runs the uninstall from a copy of the script kept in memory, after a 4 s grace period. If the folder comes back within that time (an update that replaces the folder), nothing is done. Otherwise a toast says *Browser Glass removed: browsers restored*, and the plugin's settings entry is removed from DMS.
 
@@ -299,8 +373,30 @@ Running the uninstall twice is harmless.
 
 ## FAQ
 
-**Why does every change need a browser restart?**
+**Why does almost every change need a browser restart?**
 Firefox reads `userChrome.css`, `userContent.css` and `user.js` only at start-up. Browser Glass writes the change at once and tells you which browser to restart.
+Two changes need no restart. Switching DMS between light and dark: the style files hold both tints, and the browser follows the system light/dark scheme live. DMS writes its mode to the system scheme only with **Settings → Theme → Portal & terminals → Sync with portal** on; the settings page says so when it is off. And, with [Live control](#live-control), excluding a site or putting it back.
+
+**Why does `gs off` still ask for a restart?**
+Turning the glass on or off changes the browser's own bars, which the browser reads only at start-up, so it is not live. The window follows at once (niri's rule changes), and the browser's bars and pages follow at its next restart, as with the widget's switch.
+
+**Why does a light website stay white in dark mode?**
+Without the companion add-on, under a dark theme, only pages that declare a dark version become see-through, dedicated site styles included; a light-only page keeps its own background, since its dark text would be unreadable on the dark tint. With **Live control**, such a page gets a light glass instead. See [Light pages under a dark theme](#light-pages-under-a-dark-theme). A site that stays hard to read can be excluded (see [Sites](#sites)).
+
+**Why does Firefox say Live control is not available?**
+Firefox release, ESR and Beta builds only load add-ons signed by Mozilla, and they ignore `xpinstall.signatures.required`. The companion is not signed yet (it is on the [roadmap](../ROADMAP.md#planned)), so on those builds Browser Glass does not install it, and the launcher's changes apply at the next restart. Firefox Developer Edition and Nightly accept it.
+
+**Does Live control work with LibreWolf?**
+Yes: LibreWolf loads unsigned add-ons. Its add-ons page shows the companion as *could not be verified*, as it does for every unsigned add-on; this is normal and does not stop it.
+
+**What about private windows?**
+The companion does not run in private windows, and the browser does not record them in its session either. Browser Glass tells a private window by its title. So `gs blist` refuses there (*Private window: site not detected*), and a private window shows a change of the excluded sites only after a restart. Glass itself works there as usual.
+
+**And frames inside a page?**
+Only the main page is switched live. A frame from another site follows at the next restart.
+
+**Why is the current site sometimes late without the companion?**
+Without the add-on, Browser Glass reads the browser's saved session (`sessionstore-backups/recovery.jsonlz4` in the profile). The browser saves it about every 15 s, and only once an hour after the computer has been idle for 3 minutes. Right after you open a page, the launcher may still see the previous one; the toast says how old the session is when it is more than 10 s old. With the companion the site is always current.
 
 **Why are video and pictures not see-through?**
 On purpose: only backgrounds are made transparent, and the niri rule keeps the window itself at full opacity. What you read and watch stays sharp.
@@ -327,8 +423,8 @@ Restart the browser: the new tint is already written.
 In DMS's plugin settings, with the other plugins. Its own state and backups are in `~/.local/state/dms/browserGlass/`.
 
 **Does it send anything anywhere?**
-No. It makes no network request at all; the site styles ship with it.
+No. It makes no network request at all; the site styles ship with it. The companion add-on talks only to the local helper, which keeps the active tab's host in `$XDG_RUNTIME_DIR/browserGlass/` until the browser closes.
 
 ## For developers
 
-After changing a QML file or `components/logic.js`, run `dms restart`: `dms ipc call plugins reload browserGlass` reloads the plugin but keeps its components cached, and a new root QML file is only picked up by a restart. Architecture, tests and the release process are in [CONTRIBUTING.md](../CONTRIBUTING.md).
+After changing a QML file or `components/logic.js`, run `dms restart`: `dms ipc call plugins reload browserGlass` reloads the plugin but keeps its components cached, and a new root QML file (such as `BrowserGlassLauncher.qml`) is only picked up by a restart. Architecture, tests and the release process are in [CONTRIBUTING.md](../CONTRIBUTING.md).

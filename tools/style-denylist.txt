@@ -4,6 +4,9 @@
 #   name <digest>           a style file name (a key of styles.json "website")
 #   word <length> <digest>  a word the bundled data must not contain
 #                           (matched case-insensitively inside letter runs)
+#
+# The word entries also filter data/public_suffix_list.dat: a line of the
+# upstream suffix list holding a listed word is dropped (tools/update_styles.py).
 name 937039a366271684e2240abddefc70accb4edb19aaee6d02d66c734b3eba0472
 name a4183e4766ad1e65473ccb2b7081c0ee50635e2bd4b0e118866bf264ed11f025
 word 6 c857d09db23e6822e3600bc06ad8d58f92ed62bc8efd81c753f77048662cb97d

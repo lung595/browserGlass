@@ -1,0 +1,16 @@
+public_suffix_list.dat: Mozilla Public Suffix List
+https://publicsuffix.org/list/public_suffix_list.dat
+Source repository: https://github.com/publicsuffix/list
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+The copy in this folder is the upstream file with some whole lines
+removed and nothing else changed: tools/update_styles.py drops every line
+holding a word listed (as a sha256 digest) in tools/style-denylist.txt.
+The removed lines are a provider's comment block and its suffix rules; the
+unmodified list is available at the URL above, under the same licence.
+
+The rest of browserGlass is under the MIT licence (LICENSE at the root of
+the repository); this licence covers public_suffix_list.dat only.

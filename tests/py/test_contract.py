@@ -28,19 +28,31 @@ SCRIPT = REPO / "browserglass.py"
 FIXTURES = {
     "sync.json": "sync",
     "sync-noop.json": "sync",
+    "sync-companion.json": "sync",
     "status.json": "status",
     "sites.json": "sites",
     "settings-default.json": "settings",
     "uninstall.json": "uninstall",
     "uninstall-noop.json": "uninstall",
     "error.json": "error",
+    # one per answer of active-site
+    "active-site-companion.json": "active_site",
+    "active-site-session.json": "active_site",
+    "active-site-no_browser.json": "active_site",
+    "active-site-private.json": "active_site",
+    "active-site-not_web.json": "active_site",
+    "active-site-no_session.json": "active_site",
+    "active-site-ambiguous.json": "active_site",
+    "active-site-unsupported.json": "active_site",
+    "active-site-outdated.json": "active_site",
 }
 
 # top-level schema entries that are not specs
 NON_SPECS = ("defs", "commands", "report_lines")
 
 SECTIONS = ("consts", "fsio", "discover", "lockprobe", "inputs", "settings",
-            "render", "sites", "edits", "state", "cmd_* / main")
+            "render", "sites", "psl", "session", "edits", "companion", "native", "state",
+            "cmd_* / main")
 
 # sha256 over b"\0".join(UTF-8 of these consts, in this order). Verified
 # against the v0 scripts in P0; keeps guarding the bytes after P5 deletes them.
@@ -197,6 +209,10 @@ class ValidatorSelfTest(unittest.TestCase):
             {k: v for k, v in good.items() if k != "warnings"},
             dict(good, niri_changed=1),
             dict(good, opacity=True),
+            {k: v for k, v in good.items() if k != "live"},
+            dict(good, live={"hosts": -1, "acked": 0}),
+            dict(good, live={"hosts": 1}),
+            dict(good, live={"hosts": 1, "acked": True}),
         ]
         for bad in bad_cases:
             self.assertNotEqual(validate(bad, spec, DEFS), [], bad)
@@ -227,11 +243,20 @@ class FixturesTest(unittest.TestCase):
         self.assertEqual(noop["running_changed"], [])
         self.assertFalse(noop["niri_changed"])
         self.assertFalse(noop["first_run"])
+        self.assertEqual(noop["live"], {"hosts": 0, "acked": 0})
 
     def test_running_changed_subset_of_changed(self):
-        for name in ("sync.json", "sync-noop.json"):
+        for name in ("sync.json", "sync-noop.json", "sync-companion.json"):
             data = load_json(name)
             self.assertTrue(set(data["running_changed"]) <= set(data["changed"]), name)
+
+    def test_sync_companion_states(self):
+        # Only sync's own states: "outdated" is told by status alone.
+        items = load_json("sync-companion.json")["companion"]
+        states = [item["state"] for item in items]
+        self.assertEqual(len(set(item["profile"] for item in items)), len(items))
+        self.assertGreater(len(set(states)), 1)
+        self.assertNotIn("outdated", states)
 
     def test_status_consistency(self):
         status = load_json("status.json")
@@ -254,6 +279,26 @@ class FixturesTest(unittest.TestCase):
             self.assertTrue(set(data["pending"]) <= set(data["removed"]) | set(data["restored"]), name)
         noop = load_json("uninstall-noop.json")
         self.assertEqual([k for k, v in noop.items() if v not in ([], False)], [])
+
+    def test_active_site_answers(self):
+        """An answer is the four site fields, or the error field alone; every
+        error of the spec has its fixture, and so has each source."""
+        spec = SCHEMA["active_site"]["fields"]
+        site = {"host", "domain", "source", "age"}
+        errors, sources = set(), set()
+        for name, spec_name in FIXTURES.items():
+            if spec_name != "active_site":
+                continue
+            doc = load_json(name)
+            if "error" in doc:
+                self.assertEqual(set(doc), {"error"}, name)
+                errors.add(doc["error"])
+            else:
+                self.assertEqual(set(doc), site, name)
+                sources.add(doc["source"])
+        self.assertEqual(errors, set(spec["error"]["enum"]))
+        self.assertEqual(sources, set(spec["source"]["enum"]))
+        self.assertEqual(set(spec), site | {"error"})
 
     def test_sites_domains(self):
         for site in load_json("sites.json"):
@@ -353,16 +398,45 @@ class ScriptTest(unittest.TestCase):
         commands = {k for k in SCHEMA["commands"] if k != "doc"}
         self.assertEqual(set(sub.choices), commands)
 
+    def test_daemon_argv_flags_match_parser(self):
+        # The flags components/logic.js passes in each *Argv() must be
+        # options of that command (the QML tests only run a fake Proc)
+        logic = (REPO / "components" / "logic.js").read_text(encoding="utf-8")
+        sub = next(a for a in self.mod.build_parser()._actions if a.dest == "command")
+        seen = set()
+        for body in re.findall(r"\nfunction \w+Argv\([^)]*\) \{\n(.*?)\n\}", logic, re.S):
+            words = re.findall(r'"(-[^"=]*)=?[^"]*"', body)
+            cmd = next((w for w in re.findall(r'"([a-z][a-z-]*)"', body)
+                        if w in sub.choices), None)
+            if cmd is None:
+                continue
+            known = {o for a in sub.choices[cmd]._actions for o in a.option_strings}
+            for flag in words:
+                if flag.startswith("--"):
+                    self.assertIn(flag, known, cmd)
+                    seen.add((cmd, flag))
+        self.assertIn(("sync", "--plugin-dir"), seen)
+        self.assertIn(("active-site", "--window-id"), seen)
+        self.assertNotIn(("active-site", "--title"), seen)  # an argv is public
+
     def test_prefs(self):
         m = self.mod
         self.assertEqual(m.PREFS, (
             "toolkit.legacyUserProfileCustomizations.stylesheets",
             "browser.tabs.allow_transparent_browser",
             "layout.css.prefers-color-scheme.content-override",
+            "xpinstall.signatures.required",
+            "extensions.autoDisableScopes",
+            "extensions.startupScanScopes",
         ))
+        self.assertEqual(m.COMPANION_PREFS, m.PREFS[3:])
         self.assertEqual(set(m.V0_PREF_VALUES), set(m.PREFS))
         for pref in m.PREFS:
-            self.assertIn('user_pref("%s", ' % pref, m.V0_USERJS_BLOCK_TEMPLATE)
+            if pref in m.COMPANION_PREFS:
+                self.assertEqual(m.V0_PREF_VALUES[pref], ())
+                self.assertNotIn(pref, m.V0_USERJS_BLOCK_TEMPLATE)
+            else:
+                self.assertIn('user_pref("%s", ' % pref, m.V0_USERJS_BLOCK_TEMPLATE)
 
     def test_roots(self):
         m = self.mod

@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import "components/logic.js" as Logic
 import "components/keeper.js" as Keeper
+import "components/launcher.js" as Launcher
 
 // BrowserGlassDaemon.qml: what it runs (Proc records the argv instead of
 // running it, and answers with the contract fixtures), when, and what it
@@ -24,11 +25,14 @@ Item {
     readonly property string scriptPath: dir + "/browserglass.py"
     readonly property string rulesPath: "/tmp/fakehome/.config/niri/dms/windowrules.kdl"
     readonly property string colorsPath: "/tmp/fakehome/.cache/dms/dms-colors.json"
+    readonly property string runDir: "/tmp/fakehome/run"
+    readonly property string runFile: runDir + "/browserGlass-sync-settings.json"
     readonly property string syncId: "browserGlass.sync"
     readonly property string statusId: "browserGlass.status"
     readonly property string sitesId: "browserGlass.sites"
     readonly property string reportId: "browserGlass.report"
     readonly property string pasteId: "browserGlass.paste"
+    readonly property string siteId: "browserGlass.site"
     readonly property string busyText: "another browserGlass command holds the state lock; try again"
 
     property string script: ""
@@ -45,6 +49,18 @@ Item {
         }
     }
 
+    // The launcher as DMS loads it and DMS's launcher controller (call stacks)
+    Component {
+        id: launcherComponent
+        BrowserGlassLauncher {
+            pluginService: PluginService
+        }
+    }
+    Component {
+        id: controllerComponent
+        Controller {}
+    }
+
     // A clean shell, then a daemon. manual: nothing launches until
     // Proc.flush() (otherwise Proc's debounce timers run, as in DMS)
     function fresh(manual) {
@@ -53,7 +69,14 @@ Item {
         ProcessLog.reset();
         ToastService.reset();
         Quickshell.reset();
+        Quickshell.environment = {
+            "HOME": "/tmp/fakehome",
+            "USER": "alice",
+            "XDG_RUNTIME_DIR": root.runDir
+        };
         PluginService.reset();
+        PopoutService.reset();
+        NiriService.reset();
         SettingsData.reset();
         SessionData.isLightMode = false;
         SettingsData.pluginSettings = {
@@ -76,8 +99,14 @@ Item {
         return root.d;
     }
 
+    // The settings a launched sync read: its --settings-file as it was at
+    // launch (or the --settings argument when there is no runtime dir)
     function settingsOf(command) {
-        return JSON.parse(command[command.indexOf("--settings") + 1]);
+        const at = command.indexOf("--settings");
+        if (at >= 0)
+            return JSON.parse(command[at + 1]);
+        const l = Proc.launched.filter(x => x.command === command)[0];
+        return l && typeof l.settingsFile === "string" ? JSON.parse(l.settingsFile) : null;
     }
     function syncs() {
         return Proc.commandsFor(root.syncId);
@@ -117,6 +146,29 @@ Item {
     function save(key, value) {
         PluginService.savePluginData("browserGlass", key, value);
     }
+    // The sync fixture without its first run, with these live counts and
+    // running_changed (what makes the restart toast)
+    function syncWith(acked, runningChanged) {
+        const s = JSON.parse(root.fx.noop);
+        s.live = {
+            "hosts": 1,
+            "acked": acked
+        };
+        s.running_changed = runningChanged;
+        return JSON.stringify(s);
+    }
+    function toasts() {
+        return ToastService.log.map(x => [x.level, x.message]);
+    }
+    function browserWindow(title) {
+        return [{
+                "id": 3,
+                "app_id": "firefox",
+                "title": title,
+                "pid": 4242,
+                "is_focused": true
+            }];
+    }
 
     Component.onCompleted: {
         root.script = t.readFile("browserglass.py");
@@ -126,6 +178,7 @@ Item {
             "status": t.readFile("contract/status.json"),
             "sites": t.readFile("contract/sites.json"),
             "error": t.readFile("contract/error.json"),
+            "companion": t.readFile("contract/sync-companion.json"),
             "settings": t.readFile("contract/settings-default.json")
         };
         t.steps([
@@ -168,7 +221,8 @@ Item {
                         "isLight": true,
                         "opacity": 0.7
                     }));
-                    t.check("argv", root.syncs()[0], Logic.syncArgv(root.dir, JSON.stringify(s)));
+                    t.check("argv", root.syncs()[0], Logic.syncArgv(root.dir, JSON.stringify(s), root.runFile));
+                    t.check("the settings file is read at launch, then gone", [Proc.launched.filter(l => l.id === root.syncId)[0].settingsFile, FileViewLog.has(root.runFile)], [JSON.stringify(s), false]);
                     t.check("then one status", Proc.commandsFor(root.statusId), [Logic.statusArgv(root.dir)]);
                     t.check("and the sites list once", Proc.commandsFor(root.sitesId), [Logic.sitesArgv(root.dir)]);
                     t.check("sites are shared", root.gv("sites"), JSON.parse(root.fx.sites).map(x => ({
@@ -446,7 +500,7 @@ Item {
                     t.check("sync answers OK", IpcRegistry.call("browserGlass", "sync"), "OK");
                     Proc.flush();
                     t.check("and runs one sync", root.syncs().length, root.mark + 1);
-                    t.check("with the sync argv", Proc.lastCommand(root.syncId), Logic.syncArgv(root.dir, Logic.settingsJson({}, true, false)));
+                    t.check("with the sync argv", Proc.lastCommand(root.syncId), Logic.syncArgv(root.dir, Logic.settingsJson({}, true, false), root.runFile));
                     Proc.flush();
 
                     t.check("toggle turns glass off", IpcRegistry.call("browserGlass", "toggle"), "glass off");
@@ -520,6 +574,390 @@ Item {
                     root.d.destroy();
                 }
             },
+            // --- Launcher: noTrigger -------------------------------------------------
+            {
+                "run": () => {
+                    root.fresh(true);
+                    t.check("noTrigger saved at start", PluginService.saves.filter(x => x[1] === "noTrigger"), [["browserGlass", "noTrigger", true]]);
+                    t.check("and one start sync only", root.syncCalls().length, 1);
+                    Proc.flush();
+                    Proc.flush();
+                    t.check("noTrigger is no sync input: still one sync", root.syncs().length, 1);
+                    t.ok("noTrigger stays out of --settings", !("noTrigger" in root.settingsOf(root.syncs()[0])));
+                    root.d.destroy();
+                }
+            },
+            {
+                "run": () => {
+                    // A shell reload keeps the saved value (and a user's own)
+                    PluginService.saves = [];
+                    SettingsData.setPluginSetting("browserGlass", "noTrigger", false);
+                    root.d = daemonComponent.createObject(root);
+                    t.check("saved only once", PluginService.saves.filter(x => x[1] === "noTrigger"), []);
+                    t.check("the user's value kept", SettingsData.getPluginSetting("browserGlass", "noTrigger", null), false);
+                    root.d.destroy();
+                }
+            },
+            // --- Sync: settings file, argv fallback, a failing result ---------------
+            {
+                "run": () => {
+                    Quickshell.environment = {
+                        "HOME": "/tmp/fakehome",
+                        "USER": "alice"
+                    };
+                    Proc.reset();
+                    Proc.autoRun = false;
+                    FileViewLog.reset();
+                    FileViewLog.put(root.manifest, "{\"id\": \"browserGlass\"}\n");
+                    FileViewLog.put(root.scriptPath, root.script);
+                    Proc.setResult(root.syncId, root.fx.sync, 0);
+                    root.d = daemonComponent.createObject(root);
+                    Proc.flush();
+                    const argv = root.syncs()[0];
+                    t.check("no runtime dir: the settings in argv", [argv.indexOf("--settings-file"), argv[argv.indexOf("--settings") + 1]], [-1, root.d.lastSettingsText]);
+                    t.check("and no file written", FileViewLog.writes.filter(w => w[0].indexOf("sync-settings") >= 0), []);
+                    root.d.destroy();
+                }
+            },
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    // Same settings again (a colours change, an IPC sync): the
+                    // file the last sync deleted is written again
+                    root.mark = Proc.launched.length;
+                    root.d.requestSync("colors");
+                    Proc.flush();
+                    const again = Proc.launched.slice(root.mark).filter(l => l.id === root.syncId);
+                    t.check("the same settings twice: the second sync reads its file", [again.length, again.length ? again[0].settingsFile : null], [1, root.d.lastSettingsText]);
+                    // A failed write: this launch passes the settings in argv
+                    FileViewLog.failing = [root.runFile];
+                    root.d.requestSync("colors");
+                    Proc.flush();
+                    const argv = Proc.lastCommand(root.syncId);
+                    t.check("the file cannot be written: the settings in argv", [argv.indexOf("--settings-file"), argv[argv.indexOf("--settings") + 1]], [-1, root.d.lastSettingsText]);
+                    FileViewLog.failing = [];
+                    root.d.requestSync("colors");
+                    Proc.flush();
+                    t.check("and the file again once it can be", Proc.lastCommand(root.syncId).indexOf("--settings-file") >= 0, true);
+                    root.d.destroy();
+                }
+            },
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    // syncDone throws (a broken pending list): no warning, idle
+                    root.d.pendingToasts = {
+                        get length() {
+                            throw new Error("boom");
+                        }
+                    };
+                    root.d.requestSync("test");
+                    Proc.flush();
+                    t.check("a throwing result handler leaves the sync idle", [root.d.book, root.gv("syncing")], [Logic.newSyncBook(), false]);
+                    root.d.pendingToasts = [];
+                    root.mark = root.syncs().length;
+                    root.d.requestSync("test");
+                    Proc.flush();
+                    t.check("and the next request syncs", root.syncs().length, root.mark + 1);
+                    root.d.destroy();
+                }
+            },
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    ToastService.reset();
+                    // A failed sync shows its error once
+                    Proc.setResult(root.syncId, root.fx.error, 2);
+                    root.d.requestSync("test");
+                    Proc.flush();
+                    t.check("a failed sync: its error toast", root.toasts(), [["error", "Browser Glass sync failed"]]);
+                    // A launcher action whose sync fails the same way: saved,
+                    // not applied, and said so once
+                    ToastService.reset();
+                    root.d.launcherAction({
+                        "kind": "blist",
+                        "host": "mail.proton.me",
+                        "domain": "proton.me",
+                        "source": "companion"
+                    });
+                    t.check("the action is saved", root.d.pluginData.excludedSites, [{
+                            "domain": "proton.me"
+                        }]);
+                    Proc.flush();
+                    t.check("the same error again after a launcher action: one error toast", ToastService.log.map(x => [x.level, x.message, x.details]), [["error", "Browser Glass sync failed", "invalid --settings: expected a JSON object"]]);
+                    t.check("and nothing waits", root.d.pendingToasts, []);
+                    // A new error: syncToasts() shows it, no second toast
+                    ToastService.reset();
+                    Proc.setResult(root.syncId, JSON.stringify({
+                        "error": "another error"
+                    }), 1);
+                    root.d.launcherAction({
+                        "kind": "off"
+                    });
+                    Proc.flush();
+                    t.check("a new error after a launcher action: still one error toast", ToastService.log.map(x => [x.level, x.details]), [["error", "another error"]]);
+                    root.d.destroy();
+                }
+            },
+            // --- Live control and the companion add-on ------------------------------
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    // Live control off then on, quicker than the debounce: two
+                    // syncs, the first with it off
+                    root.mark = root.syncCalls().length;
+                    root.save("liveControl", false);
+                    root.save("liveControl", true);
+                    t.check("liveControl changes sync without the debounce", root.syncCalls().slice(root.mark).map(c => c.debounceMs), [0]);
+                    root.mark = root.syncs().length;
+                    Proc.flush();
+                    Proc.flush();
+                    Proc.flush();
+                    t.check("one sync with it off, then one with it on", root.syncs().slice(root.mark).map(c => root.settingsOf(c).liveControl), [false, true]);
+                    // Another setting keeps the debounce
+                    root.mark = root.syncCalls().length;
+                    root.save("opacity", 60);
+                    t.check("other settings keep the debounce", root.syncCalls().slice(root.mark).map(c => c.debounceMs), [800]);
+                    root.d.destroy();
+                }
+            },
+            {
+                "run": () => {
+                    root.fresh(true);
+                    // The sync left a profile pending_restart; the status finds
+                    // it installed (the browser loaded it): one sync records it
+                    Proc.setResult(root.syncId, root.fx.companion, 0);
+                    Proc.flush();
+                    t.check("the sync's companion states are shared", root.gv("lastSync").companion, JSON.parse(root.fx.companion).companion);
+                    Proc.flush();
+                    t.check("a pending add-on found loaded: a sync is asked for", Proc.isPending(root.syncId), true);
+                    Proc.flush();
+                    Proc.flush();
+                    t.check("once: the same outcome asks for no more", [root.syncs().length, Proc.pendingIds()], [2, []]);
+                    root.d.destroy();
+                }
+            },
+            // --- Launcher: actions, sync at once, toast after it ----------------------
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    ToastService.reset();
+                    // The restart toast is shown once per episode: start one
+                    root.d.toastCtx = Logic.newToastContext();
+                    NiriService.windows = root.browserWindow("Proton Mail");
+                    Proc.setResult(root.siteId, t.readFile("contract/active-site-companion.json"), 0);
+                    t.check("the site is unknown first", root.d.siteFor(), null);
+                    t.check("an active-site lookup starts", Proc.isPending(root.siteId), true);
+                    t.check("asked once while it runs", [root.d.siteFor(), Proc.calls.filter(c => c.id === root.siteId).length], [null, 1]);
+                    Proc.flush();
+                    t.check("for the focused window", Proc.lastCommand(root.siteId), Logic.activeSiteArgv(root.dir, NiriService.windows[0]));
+                    t.check("by its window id, never its title", [Proc.lastCommand(root.siteId).indexOf("--window-id=3") >= 0, Proc.lastCommand(root.siteId).join(" ").indexOf("Proton Mail")], [true, -1]);
+                    t.check("the launcher is asked to update", PluginService.launcherUpdates, ["browserGlass"]);
+                    t.check("then the site is known", root.d.siteFor().domain, "proton.me");
+                    t.check("and reused: no new lookup", Proc.isPending(root.siteId), false);
+
+                    // blist, applied live
+                    Proc.setResult(root.syncId, root.syncWith(1, ["0f1e2d3c4b5a"]), 0);
+                    root.mark = root.syncs().length;
+                    t.check("blist runs", root.d.glassCommand("blist"), true);
+                    t.check("the domain is saved", root.d.pluginData.excludedSites, [{
+                            "domain": "proton.me"
+                        }]);
+                    t.check("the sync is asked for with no debounce", root.syncCalls().slice(-1)[0].debounceMs, 0);
+                    t.check("no toast before the sync", ToastService.log.length, 0);
+                    Proc.flush();
+                    t.check("one sync, with the new list", [root.syncs().length, root.settingsOf(Proc.lastCommand(root.syncId)).excluded], [root.mark + 1, ["proton.me"]]);
+                    // Other local users can read every argv (/proc/PID/cmdline)
+                    t.check("no excluded domain in any argv", Proc.calls.filter(c => /proton\.me|example\.com/.test(c.command.join("\n"))).length, 0);
+                    // Applied live, but another change of the same sync (an
+                    // opacity edit) still needs a restart: both toasts
+                    t.check("live: its toast, and the restart toast another change needs", root.toasts(), [["info", Logic.RESTART_TEXT], ["info", "proton.me excluded"]]);
+                    Proc.flush();
+
+                    // Already covered: no save, no sync
+                    ToastService.reset();
+                    PluginService.saves = [];
+                    root.mark = root.syncCalls().length;
+                    root.d.glassCommand("fix");
+                    root.d.launcherAction({
+                        "kind": "blist",
+                        "host": "mail.proton.me",
+                        "domain": "proton.me",
+                        "source": "companion"
+                    });
+                    t.check("already excluded: a toast each, no save", [root.toasts(), PluginService.saves.length], [[["info", "proton.me is already excluded"], ["info", "proton.me is already excluded"]], 0]);
+                    t.check("and no sync", root.syncCalls().length, root.mark);
+
+                    // unblist, not live (no add-on acknowledged)
+                    ToastService.reset();
+                    root.d.toastCtx = Logic.newToastContext();
+                    Proc.setResult(root.syncId, root.syncWith(0, ["0f1e2d3c4b5a"]), 0);
+                    t.check("unblist runs", IpcRegistry.call("browserGlass", "includeCurrent"), "OK");
+                    t.check("the entry is dropped", root.d.pluginData.excludedSites, []);
+                    Proc.flush();
+                    t.check("not live: after a restart, no generic restart toast", root.toasts(), [["info", "proton.me back under glass — applies after a restart"]]);
+                    Proc.flush();
+                    t.check("unblist of a site not excluded", [root.d.glassCommand("unblist"), root.toasts().slice(-1)[0]], [true, ["info", "proton.me is not excluded"]]);
+
+                    // A site from the session file, older than 10 s
+                    ToastService.reset();
+                    NiriService.windows = root.browserWindow("GitHub");
+                    Proc.setResult(root.siteId, JSON.stringify({
+                        "host": "user.github.io",
+                        "domain": "user.github.io",
+                        "source": "session",
+                        "age": 42
+                    }), 0);
+                    Proc.setResult(root.syncId, root.syncWith(1, []), 0);
+                    t.check("excludeCurrent waits for the site", [IpcRegistry.call("browserGlass", "excludeCurrent"), Proc.isPending(root.siteId), root.d.siteWaiters.length], ["OK", true, 1]);
+                    Proc.flush();
+                    t.check("then saves it", root.d.pluginData.excludedSites, [{
+                            "domain": "user.github.io"
+                        }]);
+                    Proc.flush();
+                    t.check("session: never live, its age mentioned", ToastService.log.map(x => [x.message, x.details]), [["user.github.io excluded — applies after a restart", "from the session saved 42 s ago"]]);
+                    Proc.flush();
+
+                    // list-remove: live (the list names the domain), then the list again
+                    ToastService.reset();
+                    root.d.launcherAction({
+                        "kind": "list-remove",
+                        "domain": "user.github.io",
+                        "source": "list"
+                    });
+                    t.check("list-remove drops the entry", root.d.pluginData.excludedSites, []);
+                    Proc.flush();
+                    t.check("and toasts once synced", root.toasts(), [["info", "user.github.io back under glass"]]);
+                    Proc.flush();
+                }
+            },
+            {
+                "run": () => {
+                    t.check("the launcher reopens on the list", PopoutService.launcherQueries, ["glass list"]);
+
+                    // Glass on and off by IPC: the toast after the sync
+                    ToastService.reset();
+                    Proc.setResult(root.syncId, root.syncWith(0, []), 0);
+                    t.check("glass off", IpcRegistry.call("browserGlass", "glass", "off"), "OK");
+                    t.check("saved", PluginService.saves.slice(-1)[0], ["browserGlass", "glassEnabled", false]);
+                    Proc.flush();
+                    t.check("Glass off toast", root.toasts(), [["info", "Glass off"]]);
+                    Proc.flush();
+                    t.check("an unknown command", IpcRegistry.call("browserGlass", "glass", "nope"), "unknown command: nope");
+                    t.check("glass list by IPC", IpcRegistry.call("browserGlass", "glass", "list"), "OK");
+
+                    // A request while a sync may run: an urgent one follows it
+                    root.d.requestSync("windowrules");
+                    root.d.book = Object.assign({}, root.d.book, {
+                        "scheduledAt": Date.now() - 5000
+                    });
+                    root.d.launcherAction({
+                        "kind": "on"
+                    });
+                    t.check("no restart of a sync that may run", root.syncCalls().slice(-1)[0].debounceMs, 800);
+                    Proc.flush();
+                    t.check("the follow-up has no debounce", root.syncCalls().slice(-1)[0].debounceMs, 0);
+                    t.check("no toast before the sync that saw the change", ToastService.log.filter(x => x.message === "Glass on").length, 0);
+                    Proc.flush();
+                    t.check("then Glass on", root.toasts().slice(-1)[0], ["info", "Glass on"]);
+                    Proc.flush();
+
+                    // Refusals: warnings
+                    ToastService.reset();
+                    NiriService.windows = [];
+                    root.d.glassCommand("blist");
+                    t.check("no window: a warning", root.toasts(), [["warning", "No browser in the foreground"]]);
+                    NiriService.windows = [{
+                            "id": 8,
+                            "app_id": "firefox",
+                            "title": "Private Browsing",
+                            "pid": 4243,
+                            "is_focused": false
+                        }];
+                    NiriService.lastFocusedWindowId = 8;
+                    Proc.setResult(root.siteId, t.readFile("contract/active-site-private.json"), 0);
+                    root.d.glassCommand("blist");
+                    Proc.flush();
+                    t.check("the last focused window is asked", Proc.lastCommand(root.siteId).indexOf("--pid=4243") >= 0, true);
+                    t.check("private: a warning", root.toasts().slice(-1)[0], ["warning", "Private window: site not detected"]);
+                    t.check("nothing saved", root.d.pluginData.excludedSites, []);
+                    // No answer within 2 s
+                    ToastService.reset();
+                    NiriService.windows = root.browserWindow("Slow");
+                    root.d.glassCommand("blist");
+                    t.ok("the wait is armed", root.d.siteWaiters.length === 1);
+                }
+            },
+            {
+                "wait": 2200,
+                "run": () => {
+                    t.check("no answer: a warning with a hint", ToastService.log.map(x => [x.level, x.message, x.details]), [["warning", "Current site not found", "try again in a few seconds"]]);
+                    t.check("the wait is over", root.d.siteWaiters.length, 0);
+                    Proc.flush();
+                    t.check("a late answer acts on nothing", ToastService.log.length, 1);
+                    root.d.destroy();
+                }
+            },
+            // --- Launcher: the Browse view of Browser Glass (empty query) ---------
+            // DMS keeps the first items of this view: it ignores
+            // requestLauncherUpdate there (Controller.qml onRequestLauncherUpdate
+            // returns on an empty query when no trigger matched)
+            {
+                "run": () => {
+                    root.fresh(true);
+                    Proc.flush();
+                    Proc.flush();
+                    const instances = {};
+                    instances["browserGlass"] = root.d;
+                    PluginService.pluginDaemonInstances = instances;
+                    const launcher = launcherComponent.createObject(root);
+                    const c = controllerComponent.createObject(root);
+                    const blist = () => c.performSearch(launcher, "").filter(i => i.bgCmd === "blist")[0];
+                    NiriService.windows = root.browserWindow("Proton Mail");
+                    Proc.setResult(root.siteId, t.readFile("contract/active-site-companion.json"), 0);
+                    t.check("first Browse view, nothing known: no site yet", [blist().comment, blist().bgSite], ["Finding the current site…", null]);
+                    t.check("a lookup runs", Proc.isPending(root.siteId), true);
+                    Proc.flush();
+                    t.check("its answer asks for an update", PluginService.launcherUpdates, ["browserGlass"]);
+                    t.check("the Browse view entered again names the site", [blist().comment, blist().bgSite.domain], ["proton.me — with its subdomains", "proton.me"]);
+
+                    // Older than SITE_CACHE_MS: shown while a new lookup runs
+                    root.d.siteInfo = Object.assign({}, root.d.siteInfo, {
+                        "at": Date.now() - Launcher.SITE_CACHE_MS - 1000
+                    });
+                    const old = blist();
+                    t.check("an older answer for the same window: its domain, provisional", [old.comment, old.bgSite], ["proton.me — with its subdomains", null]);
+                    t.check("and a new lookup runs", Proc.isPending(root.siteId), true);
+                    t.check("an action never takes it", root.d.siteFor(), null);
+                    // Enter on it: by name, so the action waits for the new answer
+                    Proc.setResult(root.syncId, root.syncWith(1, []), 0);
+                    launcher.executeItem(old);
+                    t.check("the action waits for the new answer", [root.d.siteWaiters.length, (root.d.pluginData.excludedSites || []).length], [1, 0]);
+                    Proc.flush();
+                    t.check("then acts on it", root.d.pluginData.excludedSites, [{
+                            "domain": "proton.me"
+                        }]);
+                    Proc.flush();
+                    Proc.flush();
+                    NiriService.windows = root.browserWindow("Another tab");
+                    t.check("another title: no older answer shown", blist().comment, "Finding the current site…");
+                    Proc.flush();
+                    PluginService.pluginDaemonInstances = {};
+                    c.destroy();
+                    launcher.destroy();
+                    root.d.destroy();
+                }
+            },
             // --- Teardown ------------------------------------------------------------
             {
                 "run": () => {
@@ -535,7 +973,7 @@ Item {
             },
             {
                 "run": () => {
-                    t.check("every command id is released", Proc.released.slice().sort(), [root.pasteId, root.reportId, root.sitesId, root.statusId, root.syncId].sort());
+                    t.check("every command id is released", Proc.released.slice().sort(), [root.pasteId, root.reportId, root.siteId, root.sitesId, root.statusId, root.syncId].sort());
                     t.check("a pending sync never runs after unload", [Proc.flush(), Proc.isPending(root.syncId)], [0, false]);
                     t.check("reload/quit: no uninstall", Quickshell.detached, []);
                     t.check("no sweep either", ProcessLog.runs.length, 0);

@@ -57,8 +57,17 @@ class RepoCatalogTest(unittest.TestCase):
             "Browser Glass sync failed",
             "Browser Glass warning",
             "DMS blur is off",
+            # logic.js liveStatusText() and launcher.js launcherText()
+            "Live control: connected",
+            "Live control: off",
+            "Exclude the current site",
+            "%1 excluded — applies after a restart",
+            "Private window: site not detected",
+            "Current site not found",
         ):
             self.assertIn(term, terms)
+        # launcher.js toast objects carry their text in a variable
+        self.assertNotIn("text", terms)
         # A toast object's other keys and compared values are not texts
         self.assertNotIn("details", terms)
         self.assertNotIn("zen_transparency_mod", terms)

@@ -1,6 +1,7 @@
 """tools/update_styles.py: the offline parts (--check, --from-dir build and
-the denylist filter). Nothing here uses the network: the upstream copies
-are built in a FakeHome from the bundled data/.
+the denylist filter, of the styles and of the Public Suffix List). Nothing
+here uses the network: the upstream copies are built in a FakeHome from the
+bundled data/.
 
 Run: python3 -B -m unittest discover -s tests/py -v
 """
@@ -21,7 +22,8 @@ from fakehome import REPO, FakeHome
 TOOL = REPO / "tools" / "update_styles.py"
 DENYLIST = REPO / "tools" / "style-denylist.txt"
 DATA = REPO / "data"
-DATA_FILES = ("styles.json", "css-mapping.json", "MY-INTERNET-LICENSE")
+PSL = "public_suffix_list.dat"
+DATA_FILES = ("styles.json", "css-mapping.json", "MY-INTERNET-LICENSE", PSL, "PSL-LICENSE")
 
 # Synthetic names only: the real denylisted ones never appear in the repo.
 BLOCKED_NAME = "zz-blocked-style.example.css"
@@ -107,7 +109,19 @@ class UpdateStylesTest(unittest.TestCase):
             shutil.copyfile(str(DATA / "styles.json"), str(folder / "styles.json"))
         shutil.copyfile(str(DATA / "css-mapping.json"), str(folder / "css-mapping.json"))
         shutil.copyfile(str(DATA / "MY-INTERNET-LICENSE"), str(folder / "LICENSE"))
+        shutil.copyfile(str(DATA / PSL), str(folder / PSL))
         return folder
+
+    def psl_with_blocked_block(self):
+        """data/'s suffix list with a provider block naming BLOCKED_WORD
+        inserted inside the PRIVATE section, as upstream would carry it."""
+        text = read_bytes(DATA / PSL).decode("utf-8")
+        block = ("// Zorblaxian Inc : https://zorblaxian.example/\n"
+                 "// Submitted by Someone <ops@ZORBLAXIAN.example>\n"
+                 "pages.zorblaxian.example\n")
+        marker = "// ===BEGIN PRIVATE DOMAINS===\n"
+        self.assertIn(marker, text)
+        return text.replace(marker, marker + block, 1).encode("utf-8")
 
     def assert_same_as_data(self, folder):
         for file in DATA_FILES:
@@ -344,8 +358,9 @@ class UpdateStylesTest(unittest.TestCase):
             "mapping": mapping,
         }
         upstream = {"styles.json": dump(styles), "css-mapping.json": dump(mapping)}
-        out, dropped = tool.build(upstream, denylist)
+        out, dropped, psl_dropped = tool.build(upstream, denylist)
         self.assertEqual(dropped, [BLOCKED_NAME])
+        self.assertEqual(psl_dropped, 0)
         doc = json.loads(out["styles.json"].decode("utf-8"))
         self.assertEqual(list(doc["website"]), ["kept.example.css"])
         self.assertEqual(doc["mapping"], {"kept.example.css": ["b.example"]})
@@ -363,11 +378,138 @@ class UpdateStylesTest(unittest.TestCase):
             "kept.example.css": {"transparency": "html { color: red }"},
             "other.example.css": {"glass": "#zorblaxian { color: red }"},
         }}
-        out, dropped = tool.build(
+        out, dropped, _ = tool.build(
             {"styles.json": dump(styles), "css-mapping.json": dump(mapping)}, denylist)
         self.assertEqual(dropped, ["other.example.css"])
         self.assertEqual(json.loads(out["css-mapping.json"].decode("utf-8")),
                          {"kept.example.css": ["b.example"]})
+
+    # -- public suffix list ---------------------------------------------------
+
+    def test_check_psl_missing(self):
+        for name in (PSL, "PSL-LICENSE"):
+            with self.subTest(name=name):
+                folder = self.copy_data("missing-" + name)
+                os.unlink(str(folder / name))
+                self.check_fails(folder, name + ": missing")
+
+    def test_check_psl_license_must_be_mpl(self):
+        folder = self.copy_data()
+        write_bytes(folder / "PSL-LICENSE", b"MIT License\nCopyright (c) someone\n")
+        self.check_fails(folder, "not an MPL-2.0 notice")
+
+    def test_check_psl_corrupt(self):
+        data = read_bytes(DATA / PSL)
+        cases = (
+            (data[:4096], "smaller than"),
+            (data + b"\xff\xfe\n", "not UTF-8"),
+            (data.replace(b"\ncom\n", b"\ncom-gone\n"), '"com" rule'),
+            (data.replace(b"// ===BEGIN PRIVATE DOMAINS===", b"// begin private"),
+             "BEGIN PRIVATE DOMAINS"),
+        )
+        for i, (bad, needle) in enumerate(cases):
+            with self.subTest(needle=needle):
+                self.assertNotEqual(bad, data)
+                folder = self.copy_data("corrupt-%d" % i)
+                write_bytes(folder / PSL, bad)
+                self.check_fails(folder, needle)
+
+    def test_check_psl_rejected_by_browserglass(self):
+        # Passes the byte checks (size, markers, "com"), but browserglass.py
+        # finds too few rules in it
+        folder = self.copy_data()
+        lines = ["// ===BEGIN ICANN DOMAINS===", "com", "// ===END ICANN DOMAINS===",
+                 "// ===BEGIN PRIVATE DOMAINS===", "// ===END PRIVATE DOMAINS==="]
+        lines += ["// padding comment line %d" % i for i in range(4000)]
+        write_bytes(folder / PSL, ("\n".join(lines) + "\n").encode("utf-8"))
+        self.check_fails(folder, "browserglass cannot load")
+
+    def test_check_psl_denylisted_word(self):
+        folder = self.copy_data()
+        write_bytes(folder / PSL, self.psl_with_blocked_block())
+        proc = self.run_tool("--check", folder)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.check_fails(folder, PSL + ": contains a denylisted word",
+                         "--denylist", self.denylist(words=[BLOCKED_WORD]))
+
+    def test_filter_psl(self):
+        tool = load_tool()
+        denylist = tool.Denylist(words={len(BLOCKED_WORD): {sha(BLOCKED_WORD)}})
+        data = "// a\r\nkeep.example\n// Zorblaxian\nx.zorblaxian.example\nlast".encode("utf-8")
+        out, count = tool.filter_psl(data, denylist)
+        self.assertEqual(out, b"// a\r\nkeep.example\nlast")
+        self.assertEqual(count, 2)
+        self.assertEqual(tool.filter_psl(data, tool.Denylist()), (data, 0))
+        with self.assertRaises(tool.Failure):
+            tool.filter_psl(b"\xff\n", denylist)
+
+    def test_shipped_psl_is_filtered(self):
+        # The shipped denylist drops nothing more from the shipped list
+        tool = load_tool()
+        data = read_bytes(DATA / PSL)
+        self.assertEqual(tool.filter_psl(data, tool.Denylist.load(str(DENYLIST))), (data, 0))
+
+    def test_build_filters_psl(self):
+        upstream = self.upstream_from_data()
+        write_bytes(upstream / PSL, self.psl_with_blocked_block())
+        out = self.copy_data("out")
+        write_bytes(out / PSL, b"stale")
+        denylist = self.denylist(words=[BLOCKED_WORD])
+        # The provider block goes, every other byte is upstream's
+        proc = self.run_tool("--from-dir", upstream, "--out", out, "--denylist", denylist)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assert_same_as_data(out)
+        self.assertIn("Public Suffix List: 3 lines dropped", proc.stdout)
+        self.assertIn(PSL + ": updated", proc.stdout)
+        self.assertNotIn(BLOCKED_WORD, read_bytes(out / PSL).decode("utf-8").lower())
+        proc = self.run_tool("--check", out, "--denylist", denylist)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_build_rejects_broken_psl(self):
+        upstream = self.upstream_from_data()
+        write_bytes(upstream / PSL, read_bytes(DATA / PSL)[:1000])
+        out = self.copy_data("out")
+        proc = self.run_tool("--from-dir", upstream, "--out", out)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("nothing written", proc.stderr)
+        self.assert_same_as_data(out)
+
+    def test_build_without_psl_keeps_it(self):
+        upstream = self.upstream_from_data()
+        os.unlink(str(upstream / PSL))
+        out = self.copy_data("out")
+        proc = self.run_tool("--from-dir", upstream, "--out", out)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assert_same_as_data(out)
+        self.assertNotIn("Public Suffix List", proc.stdout)
+
+    def test_fetch_upstream_includes_psl(self):
+        tool = load_tool()
+        seen = []
+
+        class Response(object):
+            def __init__(self, url):
+                self.url = url
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self, limit):
+                return ("data of %s" % self.url).encode("utf-8")
+
+        def urlopen(request, timeout):
+            seen.append(request.full_url)
+            return Response(request.full_url)
+
+        with mock.patch.object(urllib.request, "urlopen", side_effect=urlopen):
+            files = tool.fetch_upstream("main")
+        self.assertIn(tool.PSL_URL, seen)
+        self.assertEqual(tool.PSL_URL, "https://publicsuffix.org/list/public_suffix_list.dat")
+        self.assertEqual(files[PSL], ("data of %s" % tool.PSL_URL).encode("utf-8"))
+        self.assertEqual(sorted(files), sorted(["styles.json", "css-mapping.json", "LICENSE", PSL]))
 
     def test_fallback_validator(self):
         tool = load_tool()

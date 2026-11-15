@@ -6,8 +6,12 @@
 # STATE_FILE holds KEY=VALUE lines written before any change (see
 # capture.sh save-state): WALLPAPER, WALLPAPER_OUTPUTS, WALLPAPER_<output>,
 # THEME_MODE, BLUR_ENABLED, DND, IDLE_INHIBIT, COLORS_MODE, COLORS_SURFACE,
-# WINDOWRULES_COPY, SETTINGS_COPY, FOCUS_WORKSPACES (output:idx ...),
-# FOCUS_OUTPUT, FOCUS_WINDOW, OUTPUT_SCALES (output:scale ...), MEDIA_DIR
+# WINDOWRULES_COPY, SETTINGS_COPY, PLUGIN_SETTINGS (DMS's
+# plugin_settings.json; DMS_PLUGIN_SETTINGS overrides it) and
+# PLUGIN_SETTINGS_COPY (its browserGlass entry, plugin_settings.py save),
+# FOCUS_WORKSPACES (output:idx ...),
+# RESTART_NEEDED (browserGlass status at save time), FOCUS_OUTPUT,
+# FOCUS_WINDOW, OUTPUT_SCALES (output:scale ...), MEDIA_DIR
 # (the throwaway folder: its wallpapers leave DMS's colour seed cache,
 # matugen-seeds.json, whose entries are keyed by image path). Missing
 # keys are skipped. Nothing in this script names a real path: every value
@@ -111,6 +115,56 @@ if [ -n "$settings_copy" ] && [ -r "$settings_copy" ]; then
             tries=$((tries + 1))
         done
     fi
+fi
+
+# 4b. The browserGlass entry of plugin_settings.json (the launcher GIF
+#     changes it through the real daemon): put back JSON-equal when it
+#     differs, every other key untouched, never printed; then a sync, so
+#     the daemon writes the real profiles' files from it again and the
+#     running browsers get the saved exclusion list. Unlike settings.json,
+#     DMS reads plugin_settings.json only when the shell starts, and it
+#     writes its own copy back on the next savePluginData of any plugin:
+#     when the entry had to be written, the shell is restarted (dms
+#     restart) so that it loads the file, and the write is tried again
+#     once if the old shell saved over it on its way out. The usual run
+#     (blist then unblist) leaves the entry as it was (an excludedSites: []
+#     it adds where the saved entry had none counts as equal): nothing
+#     restarts.
+HELPER="$(cd "$(dirname "$0")" && pwd)/plugin_settings.py"
+plugin_settings=${DMS_PLUGIN_SETTINGS:-$(get PLUGIN_SETTINGS)}
+plugin_copy=$(get PLUGIN_SETTINGS_COPY)
+plugin_missing=0
+# The daemon answers its IPC again (at most 30 s after a restart)
+wait_daemon() {
+    n=0
+    until dms ipc call browserGlass status >/dev/null 2>&1; do
+        n=$((n + 1))
+        [ "$n" -lt 30 ] || { echo "warning: the browserGlass daemon does not answer" >&2; return 0; }
+        sleep 1
+    done
+}
+if [ -n "$plugin_settings" ] && [ -n "$plugin_copy" ] && [ ! -r "$plugin_copy" ]; then
+    echo "FAIL the saved browserGlass entry is missing: $plugin_copy" >&2
+    plugin_missing=1
+elif [ -n "$plugin_settings" ] && [ -n "$plugin_copy" ]; then
+    if [ "$DRY" = 1 ]; then
+        python3 -I -B "$HELPER" restore --dry-run "$plugin_settings" "$plugin_copy"
+    else
+        tries=0
+        while [ "$tries" -lt 2 ]; do
+            done_text=$(python3 -I -B "$HELPER" restore "$plugin_settings" "$plugin_copy") \
+                || { echo "warning: failed: restore the browserGlass entry of $plugin_settings" >&2; break; }
+            case "$done_text" in
+                restored*) ;;
+                *) break ;;
+            esac
+            run dms restart
+            sleep 3
+            wait_daemon
+            tries=$((tries + 1))
+        done
+    fi
+    run dms ipc call browserGlass sync
 fi
 
 # 5. Output scales (changed for a while to fit a tall window), then the
@@ -227,6 +281,46 @@ if [ -n "$settings_copy" ]; then
     else
         echo "FAIL settings.json differs from the saved copy"
         status=1
+    fi
+fi
+[ "$plugin_missing" = 1 ] && status=1
+if [ "$plugin_missing" = 0 ] && [ -n "$plugin_settings" ] && [ -n "$plugin_copy" ]; then
+    python3 -I -B "$HELPER" check "$plugin_settings" "$plugin_copy" || status=1
+    # The sync above leaves no running browser waiting for a restart
+    # (status asks for a fresh status and answers with the last one).
+    restart_now() {
+        dms ipc call browserGlass status 2>/dev/null | python3 -I -c 'import json, sys
+try:
+    print(str(json.load(sys.stdin).get("restart_needed")).lower())
+except (ValueError, AttributeError):
+    print("unknown")'
+    }
+    now=$(restart_now)
+    tries=0
+    while [ "$DRY" = 0 ] && [ "$now" != false ] && [ $tries -lt 10 ]; do
+        sleep 1
+        now=$(restart_now)
+        tries=$((tries + 1))
+    done
+    if [ "$(get RESTART_NEEDED)" = true ]; then
+        # Already true at save-state (a real browser the run did not touch)
+        echo "skip browserGlass restart_needed: already true at save-state"
+    else
+        check "browserGlass restart_needed" "$now" false
+    fi
+fi
+# The throwaway LibreWolf of the launcher GIF: stopped, its profile gone
+# (alive, its host would keep a socket in the real runtime dir and get the
+# real exclusion list on every sync).
+if [ -n "$media_dir" ]; then
+    lw_pids=$(MEDIA_DIR="$media_dir" MEDIA_BROWSER=librewolf sh "$(dirname "$0")/capture.sh" pids 2>/dev/null)
+    check "throwaway LibreWolf processes" "$(echo $lw_pids)" ""
+    fake_home="$media_dir/home"
+    if [ -e "$fake_home/.librewolf" ]; then
+        echo "FAIL the throwaway LibreWolf profile is still there"
+        status=1
+    else
+        echo "ok   throwaway LibreWolf profile: removed"
     fi
 fi
 if [ -n "$media_dir" ] && [ "$DRY" = 0 ]; then

@@ -10,9 +10,60 @@
 #              widget-restart (popout with the restart badge, optional)
 #   WALLPAPER  the generated demo wallpaper (gen_wallpaper.sh) for registry.png
 #   OUT_DIR    the screenshots/ folder
+#
+#        compose.sh gif FRAMES_DIR OUT.gif [WIDTH]
+#   One GIF from the timed frames of capture.sh frames (NNNNN.png and
+#   times.txt): each frame lasts until the next one was taken, the last
+#   one $MEDIA_GIF_HOLD seconds (default 1.5); resampled to
+#   $MEDIA_GIF_FPS (default 10) frames a second, WIDTH pixels wide
+#   (default 1280), two-pass palette. Must stay under 8 MB: a larger
+#   result is made again narrower (three tries), else removed (exit 1).
 # Needs ffmpeg (drawtext, blend, xfade, palettegen, paletteuse).
 
 set -eu
+
+if [ "${1:-}" = gif ]; then
+    frames=${2:?usage: compose.sh gif FRAMES_DIR OUT.gif [WIDTH]}
+    out=${3:?usage: compose.sh gif FRAMES_DIR OUT.gif [WIDTH]}
+    width=${4:-1280}
+    limit=8000000
+    list="$frames/frames.ffconcat"
+    # The concat list, and the GIF's length (printed): the fps filter would
+    # either drop the last frame's duration or, with the last file listed
+    # twice, hold it longer, so the output is cut at that length (-t).
+    total=$(python3 -I -c 'import os, sys
+folder, hold = sys.argv[1], float(sys.argv[2])
+rows = [line.split() for line in open(os.path.join(folder, "times.txt")) if line.strip()]
+if not rows:
+    sys.exit("compose.sh gif: no frame in times.txt")
+lines = ["ffconcat version 1.0"]
+for i, (n, t) in enumerate(rows):
+    nxt = float(rows[i + 1][1]) if i + 1 < len(rows) else float(t) + hold
+    lines += ["file %05d.png" % int(n), "duration %.3f" % max(0.01, nxt - float(t))]
+lines.append("file %05d.png" % int(rows[-1][0]))
+with open(os.path.join(folder, "frames.ffconcat"), "w") as f:
+    f.write("\n".join(lines) + "\n")
+print("%.3f" % (float(rows[-1][1]) - float(rows[0][1]) + hold))' "$frames" "${MEDIA_GIF_HOLD:-1.5}")
+    mkdir -p "$(dirname "$out")"
+    tries=0
+    while :; do
+        ffmpeg -hide_banner -loglevel error -y -f concat -i "$list" -filter_complex \
+            "[0]fps=${MEDIA_GIF_FPS:-10},scale=$width:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=192:stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle" \
+            -t "$total" -loop 0 "$out"
+        size=$(wc -c < "$out")
+        [ "$size" -lt "$limit" ] && break
+        tries=$((tries + 1))
+        if [ "$tries" -ge 3 ]; then
+            rm -f "$out" "$list"
+            echo "compose.sh gif: still $size bytes at $width px wide (limit $limit)" >&2
+            exit 1
+        fi
+        width=$((width * 3 / 4 / 2 * 2))
+    done
+    rm -f "$list"
+    echo "$out: $size bytes, $width px wide"
+    exit 0
+fi
 
 SHOTS=${1:?usage: compose.sh SHOTS_DIR WALLPAPER OUT_DIR}
 WALL=${2:?usage: compose.sh SHOTS_DIR WALLPAPER OUT_DIR}

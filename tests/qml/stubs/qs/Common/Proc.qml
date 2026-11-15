@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Quickshell.Io
 
 // Stand-in for DMS's Proc: nothing is ever run. Same API and the same
 // debounce as the real one (requests with the same id within debounceMs
@@ -9,7 +10,10 @@ import QtQuick
 // What a test reads:
 //   calls     every runCommand() request: {id, command, debounceMs, timeoutMs}
 //   launched  every launch after the debounce (what would really have run):
-//             {id, command, output, exitCode}
+//             {id, command, output, exitCode, settingsFile}
+//             settingsFile: for a command with `--settings-file FILE`, what
+//             FILE held in FileViewLog at launch (null: missing); the launch
+//             then deletes it, as `browserglass.py sync` does
 //   released  every release(id)
 // What a test sets:
 //   results   id -> {output, exitCode}, or a function(command, id) returning one
@@ -172,12 +176,20 @@ QtObject {
         const command = entry.command;
         const callback = entry.callback;
         _drop(id);
+        let settingsFile;
+        const at = Array.isArray(command) ? command.indexOf("--settings-file") : -1;
+        if (at >= 0) {
+            const file = command[at + 1];
+            settingsFile = FileViewLog.has(file) ? FileViewLog.read(file) : null;
+            FileViewLog.remove(file);
+        }
         const r = _answer(id, command);
         launched = launched.concat([{
                 "id": id,
                 "command": command,
                 "output": r.output,
-                "exitCode": r.exitCode
+                "exitCode": r.exitCode,
+                "settingsFile": settingsFile
             }]);
         if (typeof callback === "function") {
             try {

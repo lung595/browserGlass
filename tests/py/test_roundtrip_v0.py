@@ -102,9 +102,9 @@ WINDOW_RULES = (
 DMS_FIREFOX_CSS = "/* DMS file, never touched */\n:root { --dms-test: 1; }\n"
 
 # Raw prefs.js values (text after the comma), as Firefox writes them.
-# content-override 2 is a user choice v0 never writes (v0 wrote 0 or 1).
+# content-override 3 is a user value neither v0 (0 or 1) nor v1 (2) writes.
 FF_PREFS = {"browser.startup.page": "3",
-            "layout.css.prefers-color-scheme.content-override": "2"}
+            "layout.css.prefers-color-scheme.content-override": "3"}
 LW_PREFS = {"browser.download.useDownloadDir": "false"}
 FP_PREFS = {"browser.uidensity": "1"}
 # For the fresh HOME only (no v0 ever ran, so the value is unambiguously the
@@ -374,7 +374,7 @@ class RoundTripBase(unittest.TestCase):
         self.assertFalse(self.fh.exists(V0_CACHE_REL))
         # The user's pref is back with its original value.
         prefs = self.fh.read(FF_PROFILE + "/prefs.js")
-        self.assertIn('user_pref("layout.css.prefers-color-scheme.content-override", 2);', prefs)
+        self.assertIn('user_pref("layout.css.prefers-color-scheme.content-override", 3);', prefs)
 
     def simulate_browser_run(self, original, check_ff=True):
         """What a browser start does to prefs.js: every pref user.js sets is
@@ -390,8 +390,8 @@ class RoundTripBase(unittest.TestCase):
                 merged[pref] = found[-1]
             self.fh.write(rel + "/prefs.js", prefs_text(merged))
         if check_ff:
-            # Firefox native's content-override now holds v1's value, not 2.
-            self.assertNotIn('content-override", 2);', self.fh.read(FF_PROFILE + "/prefs.js"))
+            # Firefox native's content-override now holds v1's value, not 3.
+            self.assertNotIn('content-override", 3);', self.fh.read(FF_PROFILE + "/prefs.js"))
 
 
 class VendoredV0Test(unittest.TestCase):
@@ -447,7 +447,7 @@ class V0RoundTripTest(RoundTripBase):
         info, pre, expected = self.seed()
         self.fh.write_dms_colors(mode="light", surface_dark="#1a1c22")
         self.run_v0()
-        # Firefox native keeps its user value 2 (never started here).
+        # Firefox native keeps its user value 3 (never started here).
         self.simulate_browser_run({LW_PROFILE: LW_PREFS, FP_PROFILE: FP_PREFS}, check_ff=False)
         self.fh.write_dms_colors(mode="dark", surface_dark="#1a1c22")
         self.run_v0()

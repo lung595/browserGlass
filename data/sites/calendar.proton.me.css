@@ -1,0 +1,20 @@
+/* browserGlass: Proton Calendar paints its sidebar, top bar and grid with
+   the theme's solid background (near black in the dark themes). Let the
+   glass show through them, and give the sticky day headings the glass tint
+   so events scrolled under them stay readable. */
+html,
+body,
+.content,
+.sidebar,
+.header,
+.main,
+.main-area,
+.main-area-content,
+.ui-standard,
+.ui-prominent {
+  background: transparent !important;
+}
+.calendar-row-heading {
+  background: var(--browserglass-bar, rgba(16, 16, 20, 0.8)) !important;
+  backdrop-filter: blur(24px) saturate(1.5) !important;
+}

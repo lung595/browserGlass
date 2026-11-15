@@ -4,6 +4,10 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 ## Planned
 
+- **A signed companion add-on for Firefox release**: have Mozilla sign the add-on as unlisted (`web-ext sign --channel=unlisted`), so that Live control works on Firefox release and ESR builds too. The manifest will then need `browser_specific_settings.gecko.data_collection_permissions`.
+- **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
+- **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
+- **Live control in frames** (`all_frames`): today only the main page switches at once; frames follow at the next restart.
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
@@ -19,7 +23,15 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 ## Known limits
 
-- **A manual restart is needed.** Firefox reads its CSS only when it starts. After any change, colours included (a new wallpaper, light or dark mode), a running browser shows the new look only after a restart. When the glass turns on, niri applies the plugin's rule at once, so a running browser stays opaque until its restart.
+- **A manual restart is needed.** Firefox reads its CSS only when it starts. After a change (a new wallpaper, the opacity, a setting), a running browser shows the new look only after a restart. When the glass turns on, niri applies the plugin's rule at once, so a running browser stays opaque until its restart. The exceptions: the light or dark switch (with DMS's *Sync with portal* on), and site exclusions with Live control.
+- **`gs on` and `gs off` are not live**: the browser's own bars are read at start-up, so they follow at the next restart; the niri rule changes at once.
+- **Live control needs an add-on that loads unsigned.** Firefox release and ESR builds refuse the unsigned companion, so there the launcher's changes apply at the next restart (see *Planned*). LibreWolf loads it, but its add-ons page always shows the companion as *could not be verified*.
+- **Private windows have no live control**: the companion does not run there and their site cannot be read, so `gs blist` refuses in a private window, and a private window shows exclusion changes after a restart.
+- **Frames follow at the next restart**: the companion switches the main page only (no `all_frames`).
+- **Shadow trees follow at the next restart**: a live exclusion leaves the parts a site draws in its shadow DOM styled until the browser restarts, since they do not see the page's `data-browserglass-off` mark.
+- **Shadow trees cannot tell a light page from a dark one**: the parts a site draws in its shadow DOM do not see the page's dark-version markers or the companion's tone mark. Under a dark theme the generic style therefore leaves them alone on every page (as in 1.0), and a dedicated site style still applies there on every page, light-only ones included.
+- **Launcher results come after the apps** whose name matches the query, ten lines at most, since the plugin answers in the launcher's *all* mode instead of having a mode of its own.
+- **The current site can lag without the companion**: the browser's saved session is about 15 s behind, up to an hour after 3 minutes of system idle.
 - **Firefox family only**: there is no Chromium support (see *Not planned*).
 - **The niri rule covers the whole app-id.** It matches every window of `firefox`, `librewolf`, `zen` and the rest. A profile without glass, started with `-profile` for instance, is also shown fully opaque instead of following DMS's global opacity.
 - **Zen has not been tested live.** Its profile folders and its transparency-mod warning are tested on fixtures only.

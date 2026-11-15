@@ -50,11 +50,25 @@ QtObject {
             bytes[i] = bin.charCodeAt(i);
         return bytes.buffer;
     }
+    // Writes at once; like the real one, blockWrites makes the write (and
+    // `saved` or `saveFailed`) synchronous, otherwise they come on the next
+    // turn. Like the real one, a text equal to the last one this view wrote
+    // is not written again (even when the file went since). A path in
+    // FileViewLog.failing fails to write (saveFailed, nothing stored).
+    property var _written: undefined
     function setText(newText) {
-        if (blockWrites)
+        if (newText === _written)
             return;
-        FileViewLog.write(path, newText);
-        Qt.callLater(() => view.saved());
+        const failed = FileViewLog.failing.indexOf(path) >= 0;
+        if (!failed) {
+            _written = newText;
+            FileViewLog.write(path, newText);
+        }
+        const done = () => failed ? view.saveFailed(13) : view.saved();
+        if (blockWrites)
+            done();
+        else
+            Qt.callLater(done);
     }
     function reload() {
         _load(true);

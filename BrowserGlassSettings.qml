@@ -212,6 +212,18 @@ PluginSettings {
         defaultValue: "follow"
     }
 
+    // The browser follows the system light/dark scheme live; DMS writes its
+    // mode there only with "Sync with portal" on.
+    StyledText {
+        objectName: "portalHint"
+        visible: !SettingsData.syncModeWithPortal
+        width: parent.width
+        text: I18n.trFor("browserGlass", "To switch the browser between light and dark along with DMS, without a restart, turn on Settings → Theme → Portal & terminals → Sync with portal.")
+        wrapMode: Text.WordWrap
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.warning
+    }
+
     ToggleSetting {
         objectName: "pagesTransparent"
         settingKey: "pagesTransparent"
@@ -300,6 +312,14 @@ PluginSettings {
         title: I18n.trFor("browserGlass", "Advanced & help")
     }
 
+    ToggleSetting {
+        objectName: "liveControl"
+        settingKey: "liveControl"
+        label: I18n.trFor("browserGlass", "Live control")
+        description: I18n.trFor("browserGlass", "Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets xpinstall.signatures.required to false and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. Uninstalling Browser Glass removes the add-on and puts these settings back.")
+        defaultValue: true
+    }
+
     StyledText {
         width: parent.width
         text: I18n.trFor("browserGlass", "Files written")
@@ -314,7 +334,9 @@ PluginSettings {
         text: [
             "• " + I18n.trFor("browserGlass", "In each browser profile: chrome/dms-glass-*.css, one @import line in userChrome.css and userContent.css, a marked block in user.js, and the cleanup of prefs.js."),
             "• " + I18n.trFor("browserGlass", "~/.config/niri/dms-browser-glass.kdl, and its include line in ~/.config/niri/config.kdl."),
-            "• " + I18n.trFor("browserGlass", "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values.")
+            "• " + I18n.trFor("browserGlass", "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values."),
+            "• " + I18n.trFor("browserGlass", "With Live control: the companion add-on in each profile's extensions/ folder, ~/.mozilla/native-messaging-hosts/browserglass.json, the helper's native-host script in the state folder, and while a browser runs, a socket and two small files in $XDG_RUNTIME_DIR/browserGlass/."),
+            "• " + I18n.trFor("browserGlass", "Before each sync: its settings, in $XDG_RUNTIME_DIR/browserGlass-sync-settings.json, deleted once read.")
         ].join("\n")
         wrapMode: Text.WordWrap
         font.pixelSize: Theme.fontSizeSmall

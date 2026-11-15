@@ -12,8 +12,9 @@ Source strings, all as string literals:
     translates `text` with trFor;
   - in .js files, the literals of a `"text": ...` entry (logic.js toast
     objects, comparison operands skipped) and the `return "...";` lines of
-    the functions in TEXT_FUNCTIONS (logic.js reasonText() and
-    warningText(), whose values the QML and the daemon's toasts translate).
+    the functions in TEXT_FUNCTIONS (logic.js reasonText(), warningText()
+    and liveStatusText(), launcher.js launcherText(), whose values the QML
+    and the daemon's toasts translate).
 
 The QML passes the literal plugin id to trFor, as DMS asks, except where the
 term is computed (trFor("browserGlass", Logic.reasonText(...)), the daemon's
@@ -36,8 +37,8 @@ import sys
 
 SKIP_DIRS = {"tests", "tools", "docs", "screenshots", "node_modules", "__pycache__"}
 CATALOG = os.path.join("translations", "fr.json")
-# logic.js functions that return source strings for trFor
-TEXT_FUNCTIONS = ("reasonText", "warningText")
+# logic.js and launcher.js functions that return source strings for trFor
+TEXT_FUNCTIONS = ("reasonText", "warningText", "liveStatusText", "launcherText")
 
 # One JS string literal (double or single quotes, escapes included)
 _STR = r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\''

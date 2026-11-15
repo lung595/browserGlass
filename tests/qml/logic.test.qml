@@ -57,7 +57,8 @@ Item {
                             }, 7],
                         "newTabGlass": false,
                         "readerOpaque": false,
-                        "privateGlass": false
+                        "privateGlass": false,
+                        "liveControl": false
                     }, false, true);
                     t.check("every key is mapped", s, {
                         "blur": false,
@@ -72,7 +73,8 @@ Item {
                         "disabledStyles": ["youtube.com", "wikipedia.org"],
                         "newTabGlass": false,
                         "readerOpaque": false,
-                        "privateGlass": false
+                        "privateGlass": false,
+                        "liveControl": false
                     });
                     t.check("blur and isLight come from DMS, not pluginData", [Logic.buildSettings({
                             "blur": false,
@@ -117,8 +119,30 @@ Item {
                     // --- Command lines -------------------------------------------
                     const dir = "/tmp/fakehome/.config/DankMaterialShell/plugins/browserGlass/";
                     const base = "/tmp/fakehome/.config/DankMaterialShell/plugins/browserGlass";
-                    t.check("sync argv", Logic.syncArgv(dir, "{}"), ["python3", "-I", base + "/browserglass.py", "sync", "--data", base + "/data", "--settings", "{}", "--if-plugin", base + "/plugin.json"]);
+                    t.check("sync argv", Logic.syncArgv(dir, "{}"), ["python3", "-I", base + "/browserglass.py", "sync", "--data", base + "/data", "--settings", "{}", "--if-plugin", base + "/plugin.json", "--plugin-dir", base]);
+                    t.check("sync argv with a settings file: no settings in it", Logic.syncArgv(dir, "{\"excluded\":[\"a.com\"]}", "/run/user/1000/f.json"), ["python3", "-I", base + "/browserglass.py", "sync", "--data", base + "/data", "--settings-file", "/run/user/1000/f.json", "--if-plugin", base + "/plugin.json", "--plugin-dir", base]);
+                    t.check("the settings file goes in the runtime dir", [Logic.settingsFilePath("/run/user/1000/"), Logic.settingsFilePath("/run/user/1000")], ["/run/user/1000/browserGlass-sync-settings.json", "/run/user/1000/browserGlass-sync-settings.json"]);
+                    t.check("no (or a relative) runtime dir: no file", [Logic.settingsFilePath(""), Logic.settingsFilePath(null), Logic.settingsFilePath("run")], ["", "", ""]);
+                    t.check("active-site argv", Logic.activeSiteArgv(base, {
+                        "id": 7,
+                        "pid": 4242,
+                        "app_id": "firefox",
+                        "title": "-x Proton"
+                    }), ["python3", "-I", base + "/browserglass.py", "active-site", "--json", "--pid=4242", "--app-id=firefox", "--window-id=7", "--data", base + "/data"]);
+                    t.check("active-site argv without an id", Logic.activeSiteArgv(base, {
+                        "pid": "12",
+                        "app_id": "zen"
+                    }).slice(5, 8), ["--pid=12", "--app-id=zen", "--window-id=-1"]);
+                    t.check("the title never goes in the argv", Logic.activeSiteArgv(base, {
+                        "id": 7,
+                        "pid": 4242,
+                        "app_id": "firefox",
+                        "title": "Inbox (3) - Secret"
+                    }).join(" ").indexOf("Secret"), -1);
+                    t.ok("the script knows --window-id", t.readFile("browserglass.py").indexOf('add_argument("--window-id"') >= 0);
+                    t.ok("the script knows active-site", t.readFile("browserglass.py").indexOf('"active-site"') >= 0);
                     t.ok("the script knows --if-plugin", t.readFile("browserglass.py").indexOf('p.add_argument("--if-plugin"') >= 0);
+                    t.ok("the script knows --plugin-dir", t.readFile("browserglass.py").indexOf('p.add_argument("--plugin-dir"') >= 0);
                     t.check("status argv", Logic.statusArgv(base), ["python3", "-I", base + "/browserglass.py", "status", "--json"]);
                     t.check("sites argv", Logic.sitesArgv(base), ["python3", "-I", base + "/browserglass.py", "sites", "--json", "--data", base + "/data"]);
                     t.check("report argv", Logic.reportArgv(base), ["python3", "-I", base + "/browserglass.py", "report"]);
@@ -145,6 +169,53 @@ Item {
                     t.check("parseSync without an error line gives the exit code", Logic.parseSync("Traceback...", 1).error, "exit code 1");
                     t.check("a timeout", Logic.parseSync("", 124).error, "timed out");
                     t.check("parseSync on garbage", [Logic.parseSync("{nope", 0).ok, Logic.parseSync("", 0).ok, Logic.parseSync('{"glass":"yes"}', 0).ok], [false, false, false]);
+                    t.check("parseSync without live gives zeros", Logic.parseSync('{"glass":true}', 0).result.live, {
+                        "hosts": 0,
+                        "acked": 0
+                    });
+                    t.check("parseSync reads live", Logic.parseSync('{"glass":true,"live":{"hosts":2,"acked":1}}', 0).result.live, {
+                        "hosts": 2,
+                        "acked": 1
+                    });
+                    t.check("parseSync ignores a bad live", Logic.parseSync('{"glass":true,"live":{"hosts":"2","acked":-1}}', 0).result.live, {
+                        "hosts": 0,
+                        "acked": 0
+                    });
+                    const withCompanion = Logic.parseSync(t.readFile("contract/sync-companion.json"), 0).result;
+                    t.check("parseSync keeps the companion states", withCompanion.companion.map(c => c.state).slice(0, 2), ["pending_restart", "installed"]);
+                    t.check("parseSync without them gives none", [sync.result.companion, Logic.parseSync('{"glass":true,"companion":[1,null,{"profile":"p"}]}', 0).result.companion], [[], [{
+                                    "profile": "p"
+                                }]]);
+                    // A pending add-on found loaded by a status
+                    const statusDoc = JSON.parse(t.readFile("contract/status.json"));
+                    t.check("companionLoaded: pending in the sync, installed in the status", Logic.companionLoaded(withCompanion, statusDoc), true);
+                    t.check("companionLoaded: nothing pending, or not installed yet", [Logic.companionLoaded(sync.result, statusDoc), Logic.companionLoaded({
+                                    "companion": [{
+                                            "profile": "0f1e2d3c4b5a",
+                                            "state": "pending_restart"
+                                        }]
+                                }, statusDoc)], [false, false]);
+                    t.check("companionLoaded: unreadable input", [Logic.companionLoaded(null, statusDoc), Logic.companionLoaded(withCompanion, null), Logic.companionLoaded(withCompanion, {
+                                    "browsers": [null, {
+                                            "profiles": [null]
+                                        }]
+                                })], [false, false, false]);
+                    t.check("liveControlChanged", [Logic.liveControlChanged('{"liveControl":true}', '{"liveControl":false}'), Logic.liveControlChanged('{"liveControl":true,"opacity":1}', '{"liveControl":true}'), Logic.liveControlChanged("", '{"liveControl":true}')], [true, false, false]);
+                    // active-site answers (contract fixtures, one per outcome)
+                    t.check("parseActiveSite: companion", Logic.parseActiveSite(t.readFile("contract/active-site-companion.json"), 0), {
+                        "host": "account.proton.me",
+                        "domain": "proton.me",
+                        "source": "companion",
+                        "age": null
+                    });
+                    t.check("parseActiveSite: session", Logic.parseActiveSite(t.readFile("contract/active-site-session.json"), 0), {
+                        "host": "user.github.io",
+                        "domain": "user.github.io",
+                        "source": "session",
+                        "age": 3.4
+                    });
+                    t.check("parseActiveSite: each error code", Logic.SITE_ERRORS.map(code => Logic.parseActiveSite(t.readFile("contract/active-site-" + code + ".json"), 0).error), Logic.SITE_ERRORS);
+                    t.check("parseActiveSite: a failure", [Logic.parseActiveSite("", 1).error, Logic.parseActiveSite("{nope", 0).error, Logic.parseActiveSite('{"error":"new_code"}', 0).error, Logic.parseActiveSite('{"host":"a.b"}', 0).error], ["failed", "failed", "failed", "failed"]);
                     const noop = Logic.parseSync(t.readFile("contract/sync-noop.json"), 0);
                     t.check("the noop fixture", [noop.ok, noop.result.changed, noop.result.first_run], [true, [], false]);
                     t.ok("the busy error is recognised", Logic.isBusyError("another browserGlass command holds the state lock; try again"));
@@ -217,8 +288,30 @@ Item {
                     r = Logic.syncRequest(Logic.newSyncBook(), "x", 5000, 800);
                     r = Logic.syncRequest(r.book, "y", 1000, 800);
                     t.check("a negative delta counts as launched: dirty, no restart", [r.schedule, r.book.dirty, r.book.scheduledAt], [false, true, 5000]);
+                    // A launcher command: no debounce
+                    r = Logic.syncRequestNow(Logic.newSyncBook(), "launcher", 5000);
+                    t.check("an idle book launches at once", [r.schedule, r.book.phase, r.book.urgent], [true, "scheduled", false]);
+                    t.check("a later request counts it as launched", Logic.syncRequest(r.book, "settings", 5000, 800).schedule, false);
+                    r = Logic.syncRequest(Logic.newSyncBook(), "settings", 5000, 800);
+                    r = Logic.syncRequestNow(r.book, "launcher", 5100);
+                    t.check("a pending debounced request is restarted with no wait", [r.schedule, r.book.reasons], [true, ["settings", "launcher"]]);
+                    r = Logic.syncRequest(Logic.newSyncBook(), "settings", 5000, 800);
+                    r = Logic.syncRequestNow(r.book, "launcher", 5000 + 800);
+                    t.check("a sync that may run: an urgent one follows", [r.schedule, r.book.dirty, r.book.urgent], [false, true, true]);
+                    f = Logic.syncFinished(r.book, 7000, false);
+                    t.check("the follow-up is urgent", [f.schedule, f.urgent, f.retry, f.book.urgent], [true, true, false, false]);
+                    t.check("then nothing more", Logic.syncFinished(f.book, 7100, false).schedule, false);
+                    r = Logic.syncRequest(Logic.newSyncBook(), "a", 0, 800);
+                    r = Logic.syncRequest(r.book, "b", 900, 800);
+                    t.check("a debounced follow-up is not urgent", Logic.syncFinished(r.book, 1000, false).urgent, false);
 
                     // --- Toasts ---------------------------------------------------------
+                    t.ok("the restart toast is recognised", Logic.isRestartToast(Logic.syncToasts(Logic.parseSync('{"glass":true,"running_changed":["p"]}', 0), Logic.newToastContext()).toasts[0]));
+                    t.ok("other toasts are not", !Logic.isRestartToast({
+                        "text": "Browser Glass sync failed"
+                    }) && !Logic.isRestartToast(null));
+                    t.check("live status lines", ["connected", "waiting_restart", "outdated", "unavailable", "removed", "off", "?"].map(Logic.liveStatusText).map(x => x.indexOf("Live control: ") === 0), [true, true, true, true, true, true, true]);
+                    t.ok("each live state has its own line", new Set(["connected", "waiting_restart", "outdated", "unavailable", "removed", "off"].map(Logic.liveStatusText)).size === 6);
                     let ctx = Logic.newToastContext();
                     let out = Logic.syncToasts(Logic.parseSync(t.readFile("contract/sync.json"), 0), ctx);
                     t.check("first run: set-up toast + the zen warning", out.toasts.map(x => x.level), ["info", "warning"]);

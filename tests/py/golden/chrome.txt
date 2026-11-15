@@ -1,11 +1,15 @@
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #2a3b4c */
+/* glass active: opacity 0.85, surface dark #2a3b4c, light #fafbfc */
 body {
   background: rgba(42, 59, 76, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -16,14 +20,39 @@ body {
 }
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #aabbcc */
+/* glass active: opacity 0.85, surface dark #2a3b4c, light #f7f9ff */
+body {
+  background: rgba(42, 59, 76, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
+}
+:root, #main-window, #browser, #appcontent, #navigator-toolbox,
+#TabsToolbar, #nav-bar, #PersonalToolbar,
+#tabbrowser-tabbox, #tabbrowser-tabpanels,
+.browserContainer, .browserStack, browser {
+  background: transparent !important;
+  border: none !important;
+}
+@@@@ end
+@@@@ cases
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+@@@@ text
+/* browserGlass v1: generated file, do not edit */
+/* glass active: opacity 0.85, surface dark #aabbcc, light #fafbfc */
 body {
   background: rgba(170, 187, 204, 0.85) !important;
 }
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
+}
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
 #tabbrowser-tabbox, #tabbrowser-tabpanels,
@@ -33,14 +62,40 @@ body {
 }
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none mode=dark
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #101418 */
+/* glass active: opacity 0.85, surface dark #aabbcc, light #f7f9ff */
+body {
+  background: rgba(170, 187, 204, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
+}
+:root, #main-window, #browser, #appcontent, #navigator-toolbox,
+#TabsToolbar, #nav-bar, #PersonalToolbar,
+#tabbrowser-tabbox, #tabbrowser-tabpanels,
+.browserContainer, .browserStack, browser {
+  background: transparent !important;
+  border: none !important;
+}
+@@@@ end
+@@@@ cases
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+@@@@ text
+/* browserGlass v1: generated file, do not edit */
+/* glass active: opacity 0.85, surface dark #101418, light #fafbfc */
 body {
   background: rgba(16, 20, 24, 0.85) !important;
 }
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
+}
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
 #tabbrowser-tabbox, #tabbrowser-tabpanels,
@@ -50,13 +105,18 @@ body {
 }
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #f7f9ff */
+/* glass active: opacity 0.85, surface dark #101418, light #f7f9ff */
 body {
-  background: rgba(247, 249, 255, 0.85) !important;
+  background: rgba(16, 20, 24, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -67,13 +127,17 @@ body {
 }
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #2a3b4c */
+/* glass active: opacity 0.85, surface dark #2a3b4c, light #fafbfc */
 body {
   background: rgba(42, 59, 76, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -85,15 +149,53 @@ body {
 :root[privatebrowsingmode="temporary"] body {
   background: rgba(42, 59, 76, 1) !important;
 }
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(250, 251, 252, 1) !important;
+  }
+}
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #aabbcc */
+/* glass active: opacity 0.85, surface dark #2a3b4c, light #f7f9ff */
+body {
+  background: rgba(42, 59, 76, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
+}
+:root, #main-window, #browser, #appcontent, #navigator-toolbox,
+#TabsToolbar, #nav-bar, #PersonalToolbar,
+#tabbrowser-tabbox, #tabbrowser-tabpanels,
+.browserContainer, .browserStack, browser {
+  background: transparent !important;
+  border: none !important;
+}
+:root[privatebrowsingmode="temporary"] body {
+  background: rgba(42, 59, 76, 1) !important;
+}
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(247, 249, 255, 1) !important;
+  }
+}
+@@@@ end
+@@@@ cases
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+@@@@ text
+/* browserGlass v1: generated file, do not edit */
+/* glass active: opacity 0.85, surface dark #aabbcc, light #fafbfc */
 body {
   background: rgba(170, 187, 204, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -105,15 +207,54 @@ body {
 :root[privatebrowsingmode="temporary"] body {
   background: rgba(170, 187, 204, 1) !important;
 }
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(250, 251, 252, 1) !important;
+  }
+}
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none mode=dark
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #101418 */
+/* glass active: opacity 0.85, surface dark #aabbcc, light #f7f9ff */
+body {
+  background: rgba(170, 187, 204, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
+}
+:root, #main-window, #browser, #appcontent, #navigator-toolbox,
+#TabsToolbar, #nav-bar, #PersonalToolbar,
+#tabbrowser-tabbox, #tabbrowser-tabpanels,
+.browserContainer, .browserStack, browser {
+  background: transparent !important;
+  border: none !important;
+}
+:root[privatebrowsingmode="temporary"] body {
+  background: rgba(170, 187, 204, 1) !important;
+}
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(247, 249, 255, 1) !important;
+  }
+}
+@@@@ end
+@@@@ cases
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+@@@@ text
+/* browserGlass v1: generated file, do not edit */
+/* glass active: opacity 0.85, surface dark #101418, light #fafbfc */
 body {
   background: rgba(16, 20, 24, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(250, 251, 252, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -125,15 +266,25 @@ body {
 :root[privatebrowsingmode="temporary"] body {
   background: rgba(16, 20, 24, 1) !important;
 }
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(250, 251, 252, 1) !important;
+  }
+}
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none mode=light
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
-/* glass active: opacity 0.85, surface #f7f9ff */
+/* glass active: opacity 0.85, surface dark #101418, light #f7f9ff */
 body {
-  background: rgba(247, 249, 255, 0.85) !important;
+  background: rgba(16, 20, 24, 0.85) !important;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background: rgba(247, 249, 255, 0.85) !important;
+  }
 }
 :root, #main-window, #browser, #appcontent, #navigator-toolbox,
 #TabsToolbar, #nav-bar, #PersonalToolbar,
@@ -143,265 +294,270 @@ body {
   border: none !important;
 }
 :root[privatebrowsingmode="temporary"] body {
-  background: rgba(247, 249, 255, 1) !important;
+  background: rgba(16, 20, 24, 1) !important;
+}
+@media (prefers-color-scheme: light) {
+  :root[privatebrowsingmode="temporary"] body {
+    background: rgba(247, 249, 255, 1) !important;
+  }
 }
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none mode=light
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
 /* glass inactive (opaque): neutral file */
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none mode=light
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=0.85 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=1 opacity=1.0 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=0.85 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=1 opacity=1.0 privateGlass=0 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
 /* glass inactive (forced_off): neutral file */
 @@@@ end
 @@@@ cases
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none mode=light
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=1 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=0.85 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=0 off=0 opacity=1.0 privateGlass=0 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
 /* glass inactive (toggled_off): neutral file */
 @@@@ end
 @@@@ cases
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus mode=light
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none mode=dark
-blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none mode=light
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=0.85 privateGlass=0 surface=none light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=#abc light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=bogus light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=1 surface=none light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#2a3b4c light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=#abc light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=bogus light=none
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none light=#fafbfc
+blur=0 glassEnabled=1 off=0 opacity=1.0 privateGlass=0 surface=none light=none
 @@@@ text
 /* browserGlass v1: generated file, do not edit */
 /* glass inactive (blur_disabled): neutral file */

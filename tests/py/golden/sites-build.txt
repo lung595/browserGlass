@@ -5,107 +5,209 @@ default
 
 /* a.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* www.c.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* dup.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* example.com.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* gist.a.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* my-site.net.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* numbers.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* spaced.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* upper.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -goo.test.css */
 @-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -shop.co.uk.css */
 @-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* a.test.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* example.com.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
@@ -113,11 +215,27 @@ html, body {
   background: transparent !important;
 }
 }
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
 
 /* Other sites: generic style (example.com.css) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 @@@@ end
@@ -128,107 +246,209 @@ excluded
 
 /* a.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* www.c.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* dup.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* example.com.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* gist.a.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* my-site.net.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* numbers.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* spaced.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* upper.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -goo.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -shop.co.uk.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* a.test.css (mapping) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* example.com.css (mapping) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css (mapping) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
@@ -236,11 +456,27 @@ html, body {
   background: transparent !important;
 }
 }
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
 
 /* Other sites: generic style (example.com.css) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 @@@@ end
@@ -251,77 +487,153 @@ disabled
 
 /* +b.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* www.c.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* dup.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* gist.a.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* my-site.net.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* numbers.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* spaced.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* upper.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -shop.co.uk.css */
 @-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 @@@@ end
@@ -332,98 +644,195 @@ generic-off
 
 /* a.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* www.c.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* dup.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* gist.a.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* my-site.net.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* numbers.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* spaced.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* upper.test.css */
 @-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -goo.test.css */
 @-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -shop.co.uk.css */
 @-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* a.test.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css (mapping) */
 @-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 @@@@ end
@@ -434,91 +843,1204 @@ excluded-disabled-generic-off
 
 /* a.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* www.c.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* dup.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* my-site.net.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* numbers.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* spaced.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* upper.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -goo.test.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* -shop.co.uk.css */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* a.test.css (mapping) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 
 /* +b.test.css (mapping) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
 }
 .b-head {
   background: transparent !important;
+}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer)),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+@@@@ end
+@@@@ cases
+default gated
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* example.com.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* example.com.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* Other sites: generic style (example.com.css) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+@@@@ end
+@@@@ cases
+excluded gated
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* example.com.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* example.com.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* Other sites: generic style (example.com.css) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *), body:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+@@@@ end
+@@@@ cases
+disabled gated
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+@@@@ end
+@@@@ cases
+generic-off gated
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* gist.a.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.gist:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+@@@@ end
+@@@@ cases
+excluded-disabled-generic-off gated
+@@@@ text
+/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
+
+/* a.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* www.c.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.c:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* dup.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.dup:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* my-site.net.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.my-site:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* numbers.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.numbers:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* spaced.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.spaced:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* upper.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.upper:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -goo.test.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.goo:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* -shop.co.uk.css */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.shop:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* a.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.a-main:where(&,& *) {
+  background: transparent !important;
+}}
+}
+}
+
+/* +b.test.css (mapping) */
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@media not (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
+}
+@media (prefers-color-scheme: dark) {
+:where(:root:not([data-browserglass-off]):where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone]),:not(:root,* *)){.b-side:where(&,& *) {
+  background: transparent !important;
+}
+.b-head:where(&,& *) {
+  background: transparent !important;
+}}
 }
 }
 @@@@ end

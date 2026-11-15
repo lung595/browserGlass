@@ -8,10 +8,20 @@ Floorp, Waterfox; native, Flatpak and Snap) under niri.
 Commands (one JSON line on stdout unless stated otherwise; the frozen output
 contract is tests/fixtures/contract/schema.json, an error is {"error": "..."}
 with exit status 1, or 2 for a usage error):
-  sync --settings JSON [--data DIR] [--profile DIR]... [--opacity X] [--off]
-       [--if-plugin FILE]       (--if-plugin: refused with a "plugin_gone:"
+  sync (--settings JSON | --settings-file FILE) [--data DIR] [--profile DIR]...
+       [--opacity X] [--off] [--if-plugin FILE] [--plugin-dir DIR]
+                                (--settings-file: the same JSON read from
+                                FILE, which is then deleted; the daemon's
+                                way, as an argv is public;
+                                --if-plugin: refused with a "plugin_gone:"
                                 error, nothing written, when FILE, the
-                                daemon's plugin.json, is missing)
+                                daemon's plugin.json, is missing or DMS's
+                                plugin_settings.json has the plugin
+                                disabled;
+                                --plugin-dir: the plugin folder, whose
+                                extension/ is the companion add-on, deposited
+                                while liveControl is on; without it the
+                                add-on is left as it is)
   status --json
   uninstall [--if-gone FILE]    (--if-gone: waits $BG_SWEEP_GRACE seconds, then
                                 exits 3, printing nothing, if FILE exists again)
@@ -19,6 +29,15 @@ with exit status 1, or 2 for a usage error):
                                 prints nothing, exit 0)
   report                        (anonymous plain text)
   sites --json [--data DIR]
+  native-host [--data DIR] [ARG]...
+                                (internal: run by the browser for the companion
+                                add-on; native messaging frames on stdin and
+                                stdout, never a JSON line, see section native)
+  active-site --json --pid PID --app-id ID [--window-id ID | --title T]
+              [--data DIR]
+                                (the site of a browser window: {"host",
+                                "domain", "source", "age"}, or one of the
+                                spec's {"error": ...} answers, exit 0 both)
 
 Constraints: Python stdlib only, Python >= 3.9, run as `python3 -I`.
 The file never refers to its own location (no module path lookup): the uninstaller
@@ -33,13 +52,17 @@ import collections
 import copy
 import errno
 import fcntl
+import functools
 import hashlib
+import io
 import json
 import math
 import os
 import pwd
 import re
+import shlex
 import shutil
+import socket
 import stat
 import struct
 import sys
@@ -51,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -101,6 +124,33 @@ STATE_DIR_REL = "dms/browserGlass"
 STATE_FILE = "state.json"
 STATE_LOCK = "state.lock"
 BACKUP_DIR = "backup"  # backup/<profile-hash>/{userChrome.css,userContent.css,user.js}
+
+# Embedded data (relative to the --data folder, <plugin>/data).
+PSL_FILE = "public_suffix_list.dat"   # Mozilla Public Suffix List (section psl)
+
+# Companion add-on and native messaging host (section companion).
+# The add-on's sources sit in <plugin>/<EXTENSION_DIR>; the sync zips them
+# into <profile>/extensions/<COMPANION_XPI> (the file name must be the gecko
+# id). The browser starts the host through the manifest
+# $HOME/<NATIVE_MANIFEST_REL>/<NATIVE_MANIFEST_NAME> (Firefox and LibreWolf
+# both read it; never ~/.config/...), which points at the wrapper
+# $XDG_STATE_HOME/<STATE_DIR_REL>/<HOST_WRAPPER>. The host's sockets and
+# files live in $XDG_RUNTIME_DIR/<RUNTIME_DIR_NAME>.
+EXTENSION_DIR = "extension"
+COMPANION_ID = "browserglass@companion"
+COMPANION_XPI = COMPANION_ID + ".xpi"
+EXTENSIONS_DIR = "extensions"  # relative to a profile directory
+NATIVE_HOST_NAME = "browserglass"
+NATIVE_MANIFEST_REL = ".mozilla/native-messaging-hosts"  # relative to $HOME
+NATIVE_MANIFEST_NAME = NATIVE_HOST_NAME + ".json"
+HOST_WRAPPER = "native-host"
+RUNTIME_DIR_NAME = "browserGlass"
+# Attributes the add-on sets on <html> of a web page: OFF while the page's
+# site is excluded, LIVE once the add-on knows the list (see extension/),
+# TONE the page's measured tone, "light" (dark text) or "dark" (light text).
+ATTR_OFF = "data-browserglass-off"
+ATTR_LIVE = "data-browserglass-live"
+ATTR_TONE = "data-browserglass-tone"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -218,19 +268,36 @@ NIRI_INCLUDE_LINES = (V1_NIRI_INCLUDE,)
 PREF_STYLESHEETS = "toolkit.legacyUserProfileCustomizations.stylesheets"
 PREF_TRANSPARENT = "browser.tabs.allow_transparent_browser"
 PREF_COLOR_SCHEME = "layout.css.prefers-color-scheme.content-override"
+# Companion add-on prefs (liveControl): load an unsigned add-on, and load the
+# ones placed in the profile folder without a prompt (bit 1 = profile scope).
+PREF_SIGNATURES = "xpinstall.signatures.required"
+PREF_AUTODISABLE = "extensions.autoDisableScopes"
+PREF_STARTUP_SCAN = "extensions.startupScanScopes"
 # Prefs whose original prefs.js value is recorded in the state on first
 # contact and restored on uninstall (instead of deleting the line).
-PREFS = (PREF_STYLESHEETS, PREF_TRANSPARENT, PREF_COLOR_SCHEME)
+PREFS = (PREF_STYLESHEETS, PREF_TRANSPARENT, PREF_COLOR_SCHEME,
+         PREF_SIGNATURES, PREF_AUTODISABLE, PREF_STARTUP_SCAN)
+# The companion prefs (written only while the add-on is deposited in the profile).
+COMPANION_PREFS = (PREF_SIGNATURES, PREF_AUTODISABLE, PREF_STARTUP_SCAN)
+# Browser defaults of the two scope prefs (prefs.js has no line at the default).
+AUTODISABLE_DEFAULT = 15
+STARTUP_SCAN_DEFAULT = 0
+SCOPE_PROFILE = 1  # the profile scope bit of both scope prefs
 # Values v0 could have written (JS literal text). Without a v1 state, uninstall
-# only removes prefs.js lines carrying one of these values (H2).
+# only removes prefs.js lines carrying one of these values (H2). v0 never wrote
+# the companion prefs.
 V0_PREF_VALUES = {
     PREF_STYLESHEETS: ("true",),
     PREF_TRANSPARENT: ("true", "false"),
     PREF_COLOR_SCHEME: ("0", "1"),
+    PREF_SIGNATURES: (),
+    PREF_AUTODISABLE: (),
+    PREF_STARTUP_SCAN: (),
 }
 # layout.css.prefers-color-scheme.content-override values.
 COLOR_SCHEME_DARK = 0
 COLOR_SCHEME_LIGHT = 1
+COLOR_SCHEME_BROWSER = 2  # "automatic": follow the browser's light/dark theme
 
 # ---- Browser families, profile roots (H8) and niri app-ids (H7) ------------
 FAMILIES = ("firefox", "librewolf", "zen", "floorp", "waterfox")
@@ -336,7 +403,13 @@ SETTINGS_DEFAULTS = collections.OrderedDict([
     ("newTabGlass", True),
     ("readerOpaque", True),
     ("privateGlass", True),
+    ("liveControl", True),
 ])
+# The largest `sync --settings-file` the script reads (bytes)
+SETTINGS_FILE_MAX = 4 * 1024 * 1024
+# The file in $XDG_RUNTIME_DIR the daemon passes to `sync --settings-file`
+# (logic.js SETTINGS_FILE_NAME); uninstall removes one a sync never read
+SYNC_SETTINGS_NAME = "browserGlass-sync-settings.json"
 
 # Why glass is inactive (status / sync "reason"); "active" when it is on.
 REASONS = ("active", "blur_disabled", "opaque", "toggled_off", "forced_off")
@@ -431,7 +504,13 @@ def write_if_changed(path, text, warnings=None, family=None, profile=None,
     - os.replace() gives the file a new inode: a hard link to the old file
       keeps the old content (as with most editors).
     """
-    data = text.encode("utf-8", "surrogateescape")
+    return write_bytes_if_changed(path, text.encode("utf-8", "surrogateescape"),
+                                  warnings, family, profile, mode, make_dirs)
+
+
+def write_bytes_if_changed(path, data, warnings=None, family=None, profile=None,
+                           mode=None, make_dirs=True):
+    """write_if_changed() for `data` (bytes), compared byte for byte."""
     target = os.path.realpath(path)
 
     def skipped():
@@ -1302,6 +1381,24 @@ def dms_opacity(env=None):
     return global_opacity(text)
 
 
+def plugin_disabled(env=None):
+    """True when $XDG_CONFIG_HOME/dms/plugin_settings.json says DMS has
+    browserGlass disabled: its entry has "enabled": false, which DMS's
+    disablePlugin writes and which makes the daemon's onDestruction run the
+    uninstall (logic.js teardownAction, enabled === false). False when the
+    file is missing, unreadable, not a JSON object or has no such value: no
+    uninstall ran then."""
+    path = os.path.join(xdg_dir("XDG_CONFIG_HOME", env), DMS_PLUGIN_SETTINGS_REL)
+    try:
+        doc = json.loads(read_text(path).lstrip("\ufeff"))
+    except (OSError, ValueError, RecursionError):
+        return False
+    if not isinstance(doc, dict):
+        return False
+    entry = doc.get(PLUGIN_ID)
+    return isinstance(entry, dict) and entry.get("enabled") is False
+
+
 def dms_colors(env=None, mode=None):
     """Colors(mode, surface) from $XDG_CACHE_HOME/dms/dms-colors.json.
 
@@ -1331,6 +1428,11 @@ def dms_colors(env=None, mode=None):
             digits = match.group(1) or "".join(c * 2 for c in match.group(2))
             surface = "#" + digits.lower()
     return Colors(mode, surface)
+
+
+def dms_surfaces(env=None):
+    """{mode: surface} of both DMS modes (see dms_colors)."""
+    return {mode: dms_colors(env, mode).surface for mode in MODES}
 
 # ============================================================================
 # settings
@@ -1470,6 +1572,37 @@ def _unique(items):
     return out
 
 
+def read_settings_file(path):
+    """The --settings JSON text of `sync --settings-file PATH`, then PATH is
+    deleted (read or not). The daemon writes it in $XDG_RUNTIME_DIR (mode
+    700) just before the sync: the excluded sites never go in an argv,
+    which every local user can read in /proc/PID/cmdline. It must be a
+    regular file of this user (no symlink) of at most SETTINGS_FILE_MAX
+    bytes. Raises ValueError otherwise, or when it cannot be read.
+    """
+    try:
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+        except OSError as exc:
+            raise ValueError(_oserror_text(exc))
+        with os.fdopen(fd, "rb") as handle:
+            st = os.fstat(handle.fileno())
+            if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid():
+                raise ValueError("not a regular file of this user")
+            data = handle.read(SETTINGS_FILE_MAX + 1)
+        if len(data) > SETTINGS_FILE_MAX:
+            raise ValueError("larger than %d bytes" % SETTINGS_FILE_MAX)
+        return data.decode("utf-8", "surrogateescape")
+    except OSError as exc:
+        raise ValueError(_oserror_text(exc))
+    finally:
+        try:
+            if stat.S_ISREG(os.lstat(path).st_mode):
+                os.unlink(path)
+        except OSError:
+            pass
+
+
 def settings_from_json(value):
     """The complete, normalised settings dict from the --settings value.
 
@@ -1529,30 +1662,99 @@ def settings_from_json(value):
 # writes a file. When glass is inactive the generated stylesheets are kept
 # but neutral (a header comment only), so the @import lines stay valid.
 
-_CHROME_GLASS = (
-    "body {{\n"
-    "  background: rgba({r}, {g}, {b}, {a}) !important;\n"
+# The tint is written for both DMS modes and picked by the browser's own
+# light/dark theme, so it always matches the toolbar text colour and follows
+# a theme switch live (a stylesheet is only re-read on restart).
+_CHROME_TINT = (
+    "{selector} {{\n"
+    "  background: rgba({dark}, {a}) !important;\n"
     "}}\n"
+    "@media (prefers-color-scheme: light) {{\n"
+    "  {selector} {{\n"
+    "    background: rgba({light}, {a}) !important;\n"
+    "  }}\n"
+    "}}\n"
+)
+_CHROME_GLASS = (
     ":root, #main-window, #browser, #appcontent, #navigator-toolbox,\n"
     "#TabsToolbar, #nav-bar, #PersonalToolbar,\n"
     "#tabbrowser-tabbox, #tabbrowser-tabpanels,\n"
-    ".browserContainer, .browserStack, browser {{\n"
+    ".browserContainer, .browserStack, browser {\n"
     "  background: transparent !important;\n"
     "  border: none !important;\n"
-    "}}\n"
+    "}\n"
 )
 # privateGlass=false: private windows get an opaque tint. "temporary" only:
 # "permanent" is the always-private mode, which must stay like normal windows.
-_CHROME_PRIVATE_OPAQUE = (
-    ":root[privatebrowsingmode=\"temporary\"] body {{\n"
-    "  background: rgba({r}, {g}, {b}, 1) !important;\n"
-    "}}\n"
+_CHROME_PRIVATE_SELECTOR = ':root[privatebrowsingmode="temporary"] body'
+# Generic page rule: web pages get transparent html and body. Under a light
+# browser theme every page does (the tint is light, like most pages). Under a
+# dark one only pages that say they have a dark mode do: a light-only page
+# (dark text, no dark mode) would be unreadable on the dark tint, so it keeps
+# its own background. A page says so with <meta name="color-scheme"> naming
+# "dark", or a dark-mode marker on <html> (_DARK_PAGE_MARKERS).
+_DARK_PAGE_MARKERS = (
+    ':has(> head > meta[name="color-scheme" i][content~="dark" i])',
+    '[data-theme~="dark" i]', '[data-theme-mode="dark" i]', '[data-color-mode="dark" i]',
+    '[data-bs-theme="dark" i]', '[data-mode="dark" i]', '[dark]', '.dark', '.dark-mode',
+    '.theme-dark',
+    ':has(> body > #outerContainer #viewerContainer)',  # pdf.js: light-dark() colours
 )
-# Generic page rule (v0): every web page gets transparent html and body.
-_CONTENT_GENERIC = (
-    "@-moz-document regexp(\"https?://{lookahead}.*\") {{\n"
-    "  html, body {{ background: transparent !important; }}\n"
-    "}}\n"
+# :where(): no added specificity, so the opaque PDF rule still wins.
+_DARK_PAGE_ROOT = ":root:where(%s)" % ", ".join(_DARK_PAGE_MARKERS)
+# With liveControl a page the companion add-on measured (ATTR_TONE) counts
+# as one with a dark version: the tone tint (_CONTENT_TONE) makes it legible.
+_DARK_PAGE_TONE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS + ("[%s]" % ATTR_TONE,))
+_DARK_PAGE_TONE_ROOT = ":root" + _DARK_PAGE_TONE_WHERE
+
+
+def _content_generic(dark_root):
+    """The rules of the generic page block (_content_block, regexp
+    "https?://<exclusion lookahead>.*"), `dark_root` the root condition of
+    a page made see-through under a dark theme."""
+    return ("  @media not (prefers-color-scheme: dark) {\n"
+            "    html, body { background: transparent !important; }\n"
+            "  }\n"
+            "  @media (prefers-color-scheme: dark) {\n"
+            "    " + dark_root + ",\n"
+            "    " + dark_root + " > body { background: transparent !important; }\n"
+            "  }\n")
+
+
+_CONTENT_GENERIC = _content_generic(_DARK_PAGE_ROOT)
+_CONTENT_GENERIC_TONE = _content_generic(_DARK_PAGE_TONE_ROOT)  # liveControl
+# Tone tint (liveControl, a block with the regexp "https?://.*", after the
+# site styles): a page whose measured tone is not the theme's gets the
+# glass of its own tone on <html>, the DMS surface of that mode at
+# SITES_TONE_OPACITY, and the bar variable to match: a light page under a
+# dark theme gets a light glass, a dark page under a light theme a dark one.
+# "html:root[...]" (0,2,1) beats the "html" and ":root" backgrounds of the
+# site styles (html { background: transparent !important }).
+SITES_TONE_OPACITY = 0.72
+_CONTENT_TONE = (
+    "  @media (prefers-color-scheme: dark) {{\n"
+    "    html:root[" + ATTR_TONE + "=\"light\"] {{\n"
+    "      background: rgba({light}, {a}) !important;\n"
+    "      --browserglass-bar: rgba({light}, {bar});\n"
+    "    }}\n"
+    "  }}\n"
+    "  @media not (prefers-color-scheme: dark) {{\n"
+    "    html:root[" + ATTR_TONE + "=\"dark\"] {{\n"
+    "      background: rgba({dark}, {a}) !important;\n"
+    "      --browserglass-bar: rgba({dark}, {bar});\n"
+    "    }}\n"
+    "  }}\n"
+)
+# --browserglass-bar: the DMS surface (the tint's colour) at SITES_BAR_OPACITY,
+# for site parts that float over the page (data/sites/), with the light
+# surface while the theme is light, like the chrome tint.
+SITES_BAR_OPACITY = 0.8
+# Rules of a block with the regexp "https?://.*" (_content_block).
+_CONTENT_BAR_VAR = (
+    "  :root {{ --browserglass-bar: rgba({dark}, {a}); }}\n"
+    "  @media (prefers-color-scheme: light) {{\n"
+    "    :root {{ --browserglass-bar: rgba({light}, {a}); }}\n"
+    "  }}\n"
 )
 # readerOpaque=false: reader view in glass. --main-background is set on body.
 _CONTENT_READER_GLASS = (
@@ -1666,58 +1868,539 @@ def exclusion_lookahead(excluded):
     return "(?!(?:[^/]*\\\\.)?(?:%s)(?:[:/]|$))" % css_rx_alt(domains)
 
 
+def inclusion_lookahead(domains):
+    """Positive lookahead (CSS string text) accepting only `domains` and
+    their subdomains right after "https?://" (the live section's blocks);
+    "" when there are none."""
+    domains = [d for d in domains if d]
+    if not domains:
+        return ""
+    return "(?=(?:[^/]*\\\\.)?(?:%s)(?:[:/]|$))" % css_rx_alt(domains)
+
+
+# ---- live gating (liveControl) ----------------------------------------------
+#
+# With liveControl, every rule of the http(s) blocks (generic rule, bar
+# variable, site styles) applies only while <html> does not carry ATTR_OFF:
+# the companion add-on sets it on a page excluded after the browser started,
+# which turns glass off there without a restart. The blocks of the domains
+# excluded at sync time come back in the live section (content_live_section),
+# gated on ATTR_LIVE and not ATTR_OFF: the add-on sets ATTR_LIVE on every
+# page it handles, so a domain taken off the list since the browser started
+# gets its glass back. Without the add-on (a private window included, where
+# it does not run) neither attribute is ever set: the normal blocks apply as
+# in v1.0 and the live section is inert. With liveControl off nothing is
+# gated and there is no live section (the v1.0 stylesheet, byte for byte).
+#
+# Shadow trees: user rules apply inside them, but for selectors their
+# elements are neither :root nor under it (a combinator stops at the shadow
+# root), so they cannot see the root's attributes. The normal gate lets
+# them through (GATE_SHADOW_TOP in the wrapper, GATE_SHADOW_TREE in
+# @scope): shadow content is styled as in v1.0,
+# and stays so under ATTR_OFF (a limit). The live gate does not: an
+# excluded site's shadow content stays unstyled, as in v1.0, ATTR_LIVE
+# included (until a restart). In the wrapper, "& *" tests the branch on
+# every ancestor, so it must not climb to the root there: GATE_SHADOW_TREE
+# would (a match in depth squared), GATE_SHADOW_TOP only looks at the
+# parent. On Firefox 160, restyling 14000 elements with a "*" rule at
+# depth 40 / 80 (timer granularity 0.5 ms): 8 / 12.5 ms, against 4 / 5.5
+# ungated and 13 / 29 with GATE_SHADOW_TREE in the wrapper; linear in the
+# depth, at no size cost.
+#
+# Gating, "nesting run" (measured on Firefox 160: same cascade as the
+# original, specificity unchanged, about +39 % size on the embedded data):
+#   - each run of consecutive style rules of a rule list goes inside one
+#     ":where(<root condition>){ ... }" (with the shadow branch for the
+#     normal gate), and each complex selector of the run gets ":where(&,& *)"
+#     on its subject compound, before a pseudo-element: it matches only at
+#     or under a root meeting the condition, with zero added specificity;
+#   - group rules (_GATE_GROUP_RULES) stay outside the wrapper and are gated
+#     recursively; inside @scope, where a wrapper selector would be relative
+#     to the scope root (and could never match <html>), each selector gets the
+#     plain ":where(C, C *)" instead (the shadow branch added the same way),
+#     and each declaration (Firefox applies it to the scope root) goes in
+#     ":where(:scope:where(C, C *)){ ... }", the implicit ":where(:scope)"
+#     rule made explicit;
+#   - every other at-rule (@keyframes, @font-face, @page, @property, the
+#     statements) is copied as it is (the live section leaves out those
+#     with a block, @keyframes apart: see _Nest), and so is what Firefox
+#     drops at rule-list level with its {} block (a prelude starting with
+#     "--x:", or holding a ";", like a declaration left outside a rule, or
+#     with a complex selector starting with a combinator): inside the
+#     wrapper it would be a declaration of the root or a nested rule, so it
+#     would apply; a ";" before a rule is skipped by Firefox, and so it
+#     stays where it is;
+#   - a selector list starting with a "--x" type selector (it never
+#     matches) stays outside the wrapper, which would make it "--x:", a
+#     declaration eating the next rules: its other selectors get the plain
+#     ":where(C, C *)", as in @scope;
+#   - a style rule's own body is never touched: its nested rules are relative
+#     to it, so already gated.
+# Text is only inserted, never removed or reordered (but for the at-rules
+# the live section leaves out). The input is a site style that passed
+# sites_validate, or one of this file's own rules.
+GATE_NORMAL_ROOT = ":root:not([%s])" % ATTR_OFF
+GATE_LIVE_ROOT = ":root[%s]:not([%s])" % (ATTR_LIVE, ATTR_OFF)
+# Any element of a shadow tree, none of the document tree.
+GATE_SHADOW_TREE = ":not(:root,:root *)"
+# The top elements of a shadow tree (no parent element), never the root:
+# with "& *" it lets every element of a shadow tree through, testing each
+# ancestor in constant time (see "Shadow trees" above).
+GATE_SHADOW_TOP = ":not(:root,* *)"
+# The root condition of a site style under a dark theme (_scheme_gated), for
+# each gate it is built with (None: liveControl off): the page declares a
+# dark version, or with liveControl carries the add-on's measured tone. The
+# shadow branch and the at-rules follow the gate's (see _Nest), but a
+# shadow tree cannot see the root's markers or tone: the generic style
+# leaves it out (as v1.0 did), the dedicated ones keep it (see
+# _scheme_gated).
+GATE_DARK = {
+    None: _DARK_PAGE_ROOT,
+    GATE_NORMAL_ROOT: GATE_NORMAL_ROOT + _DARK_PAGE_TONE_WHERE,
+    GATE_LIVE_ROOT: GATE_LIVE_ROOT + _DARK_PAGE_TONE_WHERE,
+}
+_GATE_SHADOW_CONDS = frozenset((GATE_NORMAL_ROOT, GATE_DARK[None], GATE_DARK[GATE_NORMAL_ROOT]))
+_GATE_LIVE_CONDS = frozenset((GATE_LIVE_ROOT, GATE_DARK[GATE_LIVE_ROOT]))
+_GATE_GROUP_RULES = frozenset(("media", "supports", "layer", "container", "scope",
+                               "starting-style", "document", "-moz-document"))
+_GATE_KEYFRAMES = frozenset(("keyframes", "-webkit-keyframes", "-moz-keyframes"))
+# Pseudo-elements also written with one colon (CSS 2).
+_GATE_LEGACY_PSEUDO_ELEMENTS = frozenset(("before", "after", "first-line", "first-letter"))
+# One token at a time, as far as structure and selectors need: comments,
+# strings (a newline ends one, broken), unquoted url(), identifiers (escapes
+# included), whitespace, any other single character.
+_GATE_TOK = re.compile(
+    r"(?P<comment>/\*[\s\S]*?(?:\*/|\Z))"
+    r"|(?P<string>\"(?:[^\"\\\n\r\f]|\\[\s\S])*(?:\"|(?=[\n\r\f])|\Z)"
+    r"|'(?:[^'\\\n\r\f]|\\[\s\S])*(?:'|(?=[\n\r\f])|\Z))"
+    r"|(?P<url>[Uu][Rr][Ll]\((?![ \t\n\r\f]*[\"'])(?:[^)\\]|\\[\s\S])*(?:\)|\Z))"
+    r"|(?P<ident>(?:[A-Za-z0-9_\-\x80-\U0010ffff]"
+    r"|\\(?:[0-9A-Fa-f]{1,6}[ \t\n\r\f]?|[^\n\r\f]))+)"
+    r"|(?P<ws>[ \t\n\r\f]+)"
+    r"|(?P<ch>[\s\S])")
+# A run of _GATE_TOK tokens that bracket and stop scans skip as a whole:
+# identifiers (not a url( token), whitespace, single characters other than
+# brackets, quotes, "/", a backslash and ";" (each of those goes through
+# _GATE_TOK).
+_GATE_SKIP = re.compile(
+    r"(?:(?![Uu][Rr][Ll]\((?![ \t\n\r\f]*[\"']))"
+    r"(?:(?:[A-Za-z0-9_\-\x80-\U0010ffff]|\\(?:[0-9A-Fa-f]{1,6}[ \t\n\r\f]?|[^\n\r\f]))+"
+    r"|[^{}()\[\]\"'/\\;A-Za-z0-9_\-\x80-\U0010ffff]))+")
+# The same for css_gate_selector_list: identifiers and single characters
+# with no role in a selector's structure (not whitespace, ",", a combinator,
+# ":", a bracket, a quote, "/" or a backslash).
+_GATE_SEL_PLAIN = re.compile(
+    r"(?:(?![Uu][Rr][Ll]\((?![ \t\n\r\f]*[\"']))"
+    r"(?:(?:[A-Za-z0-9_\-\x80-\U0010ffff]|\\(?:[0-9A-Fa-f]{1,6}[ \t\n\r\f]?|[^\n\r\f]))+"
+    r"|[^ \t\n\r\f,>+~|:()\[\]\"'/\\A-Za-z0-9_\-\x80-\U0010ffff]))+")
+_GATE_WS = re.compile(r"[ \t\n\r\f]*")
+# A custom-property-looking name and its colon. At rule-list level Firefox
+# drops it up to the end of the next {} block (a ";" does not end it), like
+# a prelude starting with a combinator; inside @scope it is a declaration,
+# which ends at the next top-level ";" or "}".
+_GATE_BAD_DECL = re.compile(
+    r"--(?:[A-Za-z0-9_\-\x80-\U0010ffff]|\\[\s\S])*[ \t\n\r\f]*:")
+
+
+def _gate_name(raw):
+    """CSS name `raw` unescaped and ASCII-lowercased, as CSS compares it."""
+    return (css_unescape(raw) if "\\" in raw else raw).translate(_ASCII_LOWER)
+
+
+def _gate_block_end(text, pos, end):
+    """Position after the bracket matching the one at `pos` (end when it
+    is never closed before `end`)."""
+    depth = 0
+    while pos < end:
+        skip = _GATE_SKIP.match(text, pos)
+        if skip:
+            pos = skip.end()
+            continue
+        match = _GATE_TOK.match(text, pos)
+        pos = match.end()
+        char = match.group("ch")
+        if char is None:
+            continue
+        if char in "{([":
+            depth += 1
+        elif char in "})]":
+            depth -= 1
+            if depth == 0:
+                return pos
+    return end
+
+
+def _gate_prelude_end(text, pos, end, stops):
+    """Position of the first top-level character of `stops` from `pos`,
+    `end` when there is none before it."""
+    depth = 0
+    while pos < end:
+        skip = _GATE_SKIP.match(text, pos, end)
+        if skip:
+            pos = skip.end()
+            continue
+        match = _GATE_TOK.match(text, pos)
+        char = match.group("ch")
+        if char is not None:
+            if depth == 0 and char in stops:
+                return match.start()
+            if char in "([{":
+                depth += 1
+            elif char in ")]}":
+                depth -= 1
+        pos = match.end()
+    return end
+
+
+def css_gate_selector_list(sel, gate, skip_first=False):
+    """`sel` (a selector list) with `gate` inserted in each complex selector
+    (but the first one with `skip_first`), at the end of its subject
+    compound (after the last top-level combinator: whitespace, ">", "+",
+    "~", "||") and before its first pseudo-element ("::x", or a legacy
+    ":before" not followed by "("). Comments are skipped; strings, url(),
+    escapes, () and [] are nesting."""
+    inserts, _ = _gate_selector_scan(sel)
+    out = []
+    pos = 0
+    for item, at in inserts:
+        if item or not skip_first:
+            out += [sel[pos:at], gate]
+            pos = at
+    out.append(sel[pos:])
+    return "".join(out)
+
+
+def _gate_selector_relative(sel):
+    """Whether a complex selector of the selector list `sel` starts with a
+    combinator (">", "+", "~"): a relative selector, which Firefox reads in
+    a nested rule or @scope only (at rule-list level it drops the rule)."""
+    return _gate_selector_scan(sel)[1]
+
+
+def _gate_selector_scan(sel):
+    """([(item, position)], relative) for css_gate_selector_list: where the
+    gate goes in each non-empty complex selector of `sel` (`item` its index
+    in the list), and _gate_selector_relative(sel)."""
+    inserts = []
+    item = 0
+    starting = True  # nothing but whitespace and comments yet in this item
+    relative = False
+    depth = 0
+    pe_at = last_end = None
+    gap = False
+    pos, end = 0, len(sel)
+    while pos < end:
+        plain = _GATE_SEL_PLAIN.match(sel, pos)
+        if plain:
+            # one or more tokens of a compound: no role of their own
+            if depth == 0:
+                if gap and last_end is not None:
+                    pe_at = None  # descendant combinator: a new compound starts
+                gap = starting = False
+                last_end = plain.end()
+            pos = plain.end()
+            continue
+        match = _GATE_TOK.match(sel, pos)
+        pos = match.end()
+        kind, char = match.lastgroup, match.group("ch")
+        if kind == "comment":
+            continue
+        if kind == "ws":
+            gap = gap or depth == 0
+            continue
+        if depth == 0:
+            if char == ",":
+                if last_end is not None:
+                    inserts.append((item, pe_at if pe_at is not None else last_end))
+                item += 1
+                starting = True
+                pe_at = last_end = None
+                gap = False
+                pos = _GATE_WS.match(sel, pos).end()  # whitespace after: no role
+                continue
+            relative = relative or (starting and char in (">", "+", "~"))
+            starting = False
+            column = char == "|" and sel.startswith("|", pos)
+            if char in (">", "+", "~") or column:
+                pe_at, gap = None, False
+                # the second "|" of "||", and the whitespace after: no role
+                pos = _GATE_WS.match(sel, pos + column).end()
+                continue
+            if gap and last_end is not None:
+                pe_at = None  # descendant combinator: a new compound starts
+            gap = False
+            if char == ":" and pe_at is None and pos < end:
+                nxt = _GATE_TOK.match(sel, pos)
+                if nxt.group("ch") == ":":
+                    pe_at = match.start()
+                elif (nxt.group("ident")
+                      and _gate_name(nxt.group("ident")) in _GATE_LEGACY_PSEUDO_ELEMENTS
+                      and not sel.startswith("(", nxt.end())):
+                    pe_at = match.start()
+        if char is not None and char in "([":
+            depth += 1
+        elif char is not None and char in ")]":
+            depth = max(0, depth - 1)
+        if depth == 0:
+            last_end = match.end()
+    if last_end is not None:
+        inserts.append((item, pe_at if pe_at is not None else last_end))
+    return inserts, relative
+
+
+class _Nest:
+    """The texts css_gate_rules inserts for the root condition `cond` (with
+    the shadow branch for GATE_NORMAL_ROOT and its GATE_DARK conditions
+    unless `shadow` is false: see "live gating" above)."""
+
+    def __init__(self, cond, shadow=True):
+        shadow = shadow and cond in _GATE_SHADOW_CONDS
+        top = "," + GATE_SHADOW_TOP if shadow else ""
+        tree = "," + GATE_SHADOW_TREE if shadow else ""
+        self.open = ":where(%s%s){" % (cond, top)  # wraps a run of style rules
+        self.amp = ":where(&,& *)"          # each selector of the run
+        self.plain = ":where(%s, %s *%s)" % (cond, cond, tree)  # each selector in @scope
+        self.scope_open = ":where(:scope%s){" % self.plain  # each declaration in @scope
+        # the at-rules with a block that cannot be gated are left out of
+        # the live section, which applies on excluded domains without
+        # ATTR_LIVE too (only @keyframes stay: used by name, by gated rules)
+        self.ungated_at_rules = cond not in _GATE_LIVE_CONDS
+
+
+def css_gate_rules(text, root_cond, shadow=True):
+    """The rule list `text` gated on the root condition `root_cond`
+    (GATE_NORMAL_ROOT, GATE_LIVE_ROOT, a GATE_DARK one), without the shadow
+    branch when `shadow` is false: see "live gating" above. Memoized:
+    sync gates the same site styles again for its restart render."""
+    return _gate_rules_memo(text, root_cond, shadow)
+
+
+@functools.lru_cache(maxsize=4096)
+def _gate_rules_memo(text, root_cond, shadow):
+    return _gate_rule_list(text, _Nest(root_cond, shadow), 0, len(text))
+
+
+def _gate_rule_list(text, nest, pos, end, scoped=False):
+    """text[pos:end] (a rule list) gated with the texts of `nest` (a _Nest):
+    a nesting run, or inside @scope (`scoped`) the plain selector gate."""
+    final = []
+    run = []
+
+    def flush():
+        if run:
+            # the run's trailing whitespace goes after the wrapper (easier
+            # to read); its comments stay inside: harmless
+            tail = []
+            while run[-1].isspace():
+                tail.insert(0, run.pop())
+            final.append(nest.open + "".join(run) + "}" + "".join(tail))
+            del run[:]
+
+    def outside(piece):
+        flush()
+        final.append(piece)
+
+    while pos < end:
+        match = _GATE_TOK.match(text, pos)
+        kind = match.lastgroup
+        char = match.group("ch")
+        if kind in ("ws", "comment") or char == ";":
+            # a ";" before a rule (or a declaration) is skipped by Firefox
+            (run if run else final).append(match.group())
+            pos = match.end()
+            continue
+        if char == "}":  # stray: copied, the structure stays the same
+            outside(char)
+            pos = match.end()
+            continue
+        if char == "@":
+            name = _GATE_TOK.match(text, match.end()) if match.end() < end else None
+            name = _gate_name(name.group("ident") or "") if name and name.end() <= end else ""
+            stop = _gate_prelude_end(text, pos, end, "{;}")
+            if stop >= end or text[stop] != "{":
+                stop = min(stop + (1 if stop < end and text[stop] == ";" else 0), end)
+                outside(text[pos:stop])
+                pos = stop
+                continue
+            close = _gate_block_end(text, stop, end)
+            if name in _GATE_GROUP_RULES:
+                inner = _gate_rule_list(text, nest, stop + 1, close - 1, scoped or name == "scope")
+                outside(text[pos:stop + 1] + inner + "}")
+            elif nest.ungated_at_rules or name in _GATE_KEYFRAMES:
+                outside(text[pos:close])
+            else:
+                flush()  # left out (see _Nest)
+            pos = close
+            continue
+        stop = _gate_prelude_end(text, pos, end, "{;}")
+        if scoped and (_GATE_BAD_DECL.match(text, pos, end) or stop >= end or text[stop] != "{"):
+            # inside @scope: a declaration (of the scope root), up to ";" or "}"
+            stop = _gate_prelude_end(text, pos, end, ";}")
+            stop = stop + 1 if stop < end and text[stop] == ";" else stop
+            final.append(nest.scope_open + text[pos:stop] + "}")
+            pos = stop
+            continue
+        has_semicolon = stop < end and text[stop] == ";"
+        if has_semicolon:
+            stop = _gate_prelude_end(text, stop, end, "{}")
+        if stop >= end or text[stop] != "{":
+            outside(text[pos:stop])
+            pos = stop
+            continue
+        close = _gate_block_end(text, stop, end)
+        prelude = text[pos:stop]
+        if not scoped and (has_semicolon or _GATE_BAD_DECL.match(prelude)
+                           or _gate_selector_relative(prelude)):
+            outside(prelude + text[stop:close])  # dropped by Firefox, block included: kept so
+        elif prelude.startswith("--"):
+            # a "--x" type selector first (it never matches): the others
+            # gated, outside any wrapper (the gate after it would be "--x:")
+            outside(css_gate_selector_list(prelude, nest.plain, skip_first=True)
+                    + text[stop:close])
+        else:
+            piece = css_gate_selector_list(prelude, nest.plain if scoped else nest.amp)
+            (final if scoped else run).append(piece + text[stop:close])
+        pos = close
+    flush()
+    return "".join(final)
+
+
+def live_gate(settings):
+    """The root condition the normal http(s) blocks are gated on:
+    GATE_NORMAL_ROOT with liveControl, None (not gated) without."""
+    return GATE_NORMAL_ROOT if settings["liveControl"] else None
+
+
 def _css_head(note):
     return "%s\n/* %s */\n" % (V1_CSS_HEADER, note)
 
 
-def chrome_css(settings, opacity, surface, mode="dark", off=False):
-    """Text of chrome/dms-glass-chrome.css (imported by userChrome.css)."""
+def chrome_css(settings, opacity, surfaces, off=False):
+    """Text of chrome/dms-glass-chrome.css (imported by userChrome.css).
+
+    `surfaces` maps "dark" and "light" to the DMS surface of that mode
+    (DEFAULT_SURFACES for a missing or unusable one): the dark tint is the
+    default, the light one applies while the browser's theme is light.
+    """
     active, reason = glass_state(settings, opacity, off)
     if not active:
         return _css_head("glass inactive (%s): neutral file" % reason)
     opacity = _clamp01(opacity)
-    r, g, b = surface_rgb(surface, mode)
-    text = _css_head("glass active: opacity %s, surface #%02x%02x%02x"
-                     % (format_number(opacity), r, g, b))
-    text += _CHROME_GLASS.format(r=r, g=g, b=b, a=format_number(opacity))
+    surfaces = surfaces if isinstance(surfaces, dict) else {}
+    rgb = {mode: surface_rgb(surfaces.get(mode), mode) for mode in MODES}
+    rgb_text = {mode: "%d, %d, %d" % rgb[mode] for mode in MODES}
+    text = _css_head("glass active: opacity %s, surface dark #%02x%02x%02x, light #%02x%02x%02x"
+                     % ((format_number(opacity),) + rgb["dark"] + rgb["light"]))
+    text += _CHROME_TINT.format(selector="body", a=format_number(opacity), **rgb_text)
+    text += _CHROME_GLASS
     if not settings["privateGlass"]:
-        text += _CHROME_PRIVATE_OPAQUE.format(r=r, g=g, b=b)
+        text += _CHROME_TINT.format(selector=_CHROME_PRIVATE_SELECTOR, a="1", **rgb_text)
     return text
 
 
-def content_css(settings, opacity, sites_css="", off=False):
+def _content_block(rx, rules, gate=None):
+    """@-moz-document regexp("`rx`") block holding `rules` ("\\n" ends),
+    gated on the root condition `gate` when given (css_gate_rules)."""
+    if gate:
+        rules = css_gate_rules(rules, gate)
+    return '@-moz-document regexp("%s") {\n%s}\n' % (rx, rules)
+
+
+def content_css(settings, opacity, sites_css="", off=False, surfaces=None, sites=None):
     """Text of chrome/dms-glass-content.css (imported by userContent.css).
 
-    `sites_css` is the output of sites_build_css() (already validated), put
-    after the generic and special-page rules and before the PDF rule.
+    `sites_css` is the output of sites_build_css() (already validated, and
+    gated on live_gate(settings)), put after the generic and special-page
+    rules and before the PDF rule, behind the --browserglass-bar variable
+    (`surfaces` as in chrome_css). With liveControl the http(s) rules are
+    gated, a page the add-on measured counts as one with a dark version and
+    gets the tone tint (_CONTENT_TONE) after the site styles, and the live
+    section (content_live_section, with the site styles of `sites`, a Sites
+    or None) comes before the PDF rule.
     """
     active, reason = glass_state(settings, opacity, off)
     if not active:
         return _css_head("glass inactive (%s): neutral file" % reason)
     if not settings["pagesTransparent"]:
         return _css_head("page transparency disabled: neutral file")
+    gate = live_gate(settings)
     parts = [_css_head("page backgrounds are transparent (the DMS tint is behind them); "
                        "images, videos and text stay opaque")]
-    parts.append(_CONTENT_GENERIC.format(lookahead=exclusion_lookahead(settings["excluded"])))
+    parts.append(_content_block("https?://%s.*" % exclusion_lookahead(settings["excluded"]),
+                                _CONTENT_GENERIC_TONE if gate else _CONTENT_GENERIC, gate))
     if not settings["readerOpaque"]:
         parts.append(_CONTENT_READER_GLASS)
     if settings["newTabGlass"]:
         parts.append(_CONTENT_NEWTAB_GLASS)
+    surfaces = surfaces if isinstance(surfaces, dict) else {}
+    rgb = {mode: "%d, %d, %d" % surface_rgb(surfaces.get(mode), mode) for mode in MODES}
+    bar = format_number(SITES_BAR_OPACITY)
     if sites_css and sites_css.strip():
+        parts.append(_content_block("https?://.*", _CONTENT_BAR_VAR.format(a=bar, **rgb), gate))
         parts.append(sites_css if sites_css.endswith("\n") else sites_css + "\n")
+    if gate:
+        # one block for every page: ATTR_TONE comes with the add-on, which
+        # also sets ATTR_OFF on an excluded page (see "live gating")
+        parts.append(_content_block("https?://.*", _CONTENT_TONE.format(
+            a=format_number(SITES_TONE_OPACITY), bar=bar, **rgb), gate))
+        live = content_live_section(settings, sites)
+        if live:
+            parts.append(live)
     if settings["readerOpaque"]:
         parts.append(_CONTENT_PDF_OPAQUE)
     return "\n".join(parts)
 
 
-def userjs_prefs(settings, opacity, off=False):
+# Comment line of the live section.
+_CONTENT_LIVE_COMMENT = ("/* Live: the domains excluded at sync, back while the companion "
+                         "add-on says they are not */")
+
+
+def content_live_section(settings, sites):
+    """The live section of the content stylesheet (see "live gating"): the
+    generic page rule and the site style blocks of the domains of
+    settings["excluded"], restricted to them (inclusion_lookahead) and gated
+    on GATE_LIVE_ROOT. `sites` is a Sites (None: the generic rule only).
+    "" when no domain is excluded.
+
+    A site block is kept when its regexp matches a probe URL https://H/,
+    for each probe host H: each excluded domain D, www.D and x0.D, the same
+    for each dedicated or mapped host of the site styles that D covers, and
+    the hosts of the dash styles D covers (_live_hosts). Only the blocks
+    that may match one (_sites_block_rows) have their regexp compiled.
+    """
+    domains = [d for d in settings["excluded"] if d]
+    if not domains:
+        return ""
+    look = inclusion_lookahead(domains)
+    out = [_CONTENT_LIVE_COMMENT + "\n"
+           + _content_block("https?://%s.*" % look, _CONTENT_GENERIC_TONE, GATE_LIVE_ROOT)]
+    if sites is not None:
+        generic = settings["genericStyle"]
+        hosts = _live_hosts(_sites_index(sites, generic), domains)
+        rows = _sites_block_rows(sites, (), settings["disabledStyles"], generic)
+        for comment, tail, body, may_match in rows:
+            if not any(may_match(host) for host in hosts):
+                continue
+            rx = re.compile(css_unescape("https?://" + tail))
+            if any(rx.fullmatch("https://%s/" % host) for host in hosts):
+                out.append(_sites_block_text(comment, "https?://" + look + tail, body,
+                                             GATE_LIVE_ROOT) + "\n")
+    return "\n".join(out)
+
+
+def userjs_prefs(settings, opacity, off=False, profile=None, companion=None):
     """[(pref, JS literal)] of the user.js block, in PREFS order.
 
     The stylesheet pref is always on (the imported files must load);
     transparent browser only while glass is active with transparent pages;
-    the colour-scheme override follows siteTheme: "follow" -> isLight
-    (1 light, 0 dark), "dark" -> 0, "none" -> not written (its original
-    value is restored from the state by sync, H3).
+    the colour-scheme override follows siteTheme: "follow" -> 2 (sites follow
+    the browser's theme, live, like the chrome tint), "dark" -> 0, "none" ->
+    not written (its original value is restored from the state by sync, H3).
+    `profile` (a Profile, None for any) is the profile the block is for.
+    `companion`, None when the companion add-on is not deposited in the
+    profile, holds the original prefs.js values ({pref: JS literal or None})
+    the companion prefs are derived from (companion_prefs).
     """
     active, _ = glass_state(settings, opacity, off)
     prefs = [
@@ -1726,19 +2409,26 @@ def userjs_prefs(settings, opacity, off=False):
     ]
     theme = settings["siteTheme"]
     if theme == "follow":
-        scheme = COLOR_SCHEME_LIGHT if settings["isLight"] else COLOR_SCHEME_DARK
-        prefs.append((PREF_COLOR_SCHEME, str(scheme)))
+        prefs.append((PREF_COLOR_SCHEME, str(COLOR_SCHEME_BROWSER)))
     elif theme == "dark":
         prefs.append((PREF_COLOR_SCHEME, str(COLOR_SCHEME_DARK)))
+    if companion is not None:
+        prefs += companion_prefs(companion)
     return prefs
 
 
-def userjs_block(settings, opacity, off=False):
-    """The v1 managed block of user.js (marker lines included, "\\n" ends)."""
+def userjs_block_text(prefs):
+    """The v1 managed block of user.js holding `prefs` ([(pref, JS literal)],
+    marker lines included, "\\n" ends)."""
     lines = [V1_USERJS_BEGIN]
-    lines += ['user_pref("%s", %s);' % pref for pref in userjs_prefs(settings, opacity, off)]
+    lines += ['user_pref("%s", %s);' % pref for pref in prefs]
     lines.append(V1_USERJS_END)
     return "\n".join(lines) + "\n"
+
+
+def userjs_block(settings, opacity, off=False, profile=None):
+    """The v1 managed block of user.js (marker lines included, "\\n" ends)."""
+    return userjs_block_text(userjs_prefs(settings, opacity, off, profile))
 
 
 def niri_kdl(rule_needed):
@@ -1790,6 +2480,11 @@ SITES_MAPPING_FILE = "css-mapping.json"
 SITES_GENERIC_KEY = "example.com.css"
 SITES_KEEP = re.compile(r"transparen|glass|translucent", re.I)
 SITES_HEADER = "/* Site styles: sameerasw/my-internet (MIT); generated, do not edit */"
+# browserGlass's own site css: data/sites/<style name>.css, one plain file per
+# style, added as the style's last feature (its name matches SITES_KEEP). It
+# extends the my-internet style of that name, or is a new style on its own.
+SITES_OWN_DIR = "sites"
+SITES_OWN_FEATURE = "browserGlass additions"
 SITES_GENERIC_COMMENT = "/* Other sites: generic style (example.com.css) */"
 
 # styles: {key "name.css": {feature: css}} in file order, keys normalised;
@@ -1816,7 +2511,8 @@ def _site_key_name(key):
 
 def sites_load(data_dir):
     """Sites from `data_dir`/styles.json (required) and css-mapping.json
-    (optional: missing or corrupt gives no mapping, as in v0).
+    (optional: missing or corrupt gives no mapping, as in v0), plus
+    browserGlass's own `data_dir`/sites/*.css (_sites_own).
 
     Keys lose surrounding whitespace (around the name and the ".css",
     upstream has "bestbuy.com .css") and are lowercased; a key that still
@@ -1846,6 +2542,8 @@ def sites_load(data_dir):
     for norm, features, is_untouched in entries:
         if is_untouched or (norm not in untouched and norm not in styles):
             styles[norm] = features
+    for key, css in _sites_own(data_dir):
+        styles.setdefault(key, collections.OrderedDict())[SITES_OWN_FEATURE] = css
     mapping = collections.OrderedDict()
     try:
         raw = json.loads(read_text(os.path.join(data_dir, SITES_MAPPING_FILE), DATA_READ_LIMIT))
@@ -1861,6 +2559,28 @@ def sites_load(data_dir):
             if _SITE_HOST.fullmatch(host) and host not in hosts:
                 hosts.append(host)
     return Sites(styles, mapping)
+
+
+def _sites_own(data_dir):
+    """[(key, css)] of data_dir/sites/*.css, sorted by name; files whose name
+    is not a style name, or that cannot be read, are skipped."""
+    folder = os.path.join(data_dir, SITES_OWN_DIR)
+    try:
+        names = sorted(os.listdir(folder))
+    except OSError:
+        return []
+    out = []
+    for name in names:
+        key = _site_key_name(name) if name.endswith(".css") else None
+        if key is None or key + ".css" != name:
+            continue
+        try:
+            css = read_text(os.path.join(folder, name), DATA_READ_LIMIT).strip()
+        except OSError:
+            continue
+        if css:
+            out.append((name, css))
+    return out
 
 
 def _sites_feature_css(features):
@@ -1922,7 +2642,7 @@ def _deeper_domains(suffix):
     return deeper
 
 
-def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None):
+def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None, gate=None):
     """userContent CSS of the site styles: one @-moz-document regexp() block
     per dedicated style, per mapping entry, then the generic style. "" when
     there is nothing to emit.
@@ -1934,12 +2654,52 @@ def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None
     `generic`: emit the generic style (example.com.css) for the other sites.
     A style whose css fails sites_validate() is treated like a disabled one;
     "<key>: <problem>" strings are appended to `problems` when given.
+    `gate`: the root condition the rules of every block are gated on
+    (live_gate; None: not gated by liveControl). Every block is also gated
+    on the colour scheme (_scheme_gated), with or without `gate`.
     """
+    blocks = _sites_blocks(sites, excluded, disabled, generic, problems)
+    if not blocks:
+        return ""
+    out = [SITES_HEADER]
+    out += [_sites_block_text(comment, "https?://" + tail, body, gate)
+            for comment, tail, body in blocks]
+    return "\n\n".join(out) + "\n"
+
+
+def _sites_block_text(comment, rx, body, gate=None):
+    """One site style block: `comment` line, then `body` in an
+    @-moz-document regexp("`rx`") block, gated on the colour scheme and
+    `gate` (_scheme_gated; the generic style without the shadow branch
+    under a dark theme)."""
+    return '%s\n@-moz-document regexp("%s") {\n%s\n}' % (
+        comment, rx, _scheme_gated(body, gate, comment != SITES_GENERIC_COMMENT))
+
+
+def _sites_blocks(sites, excluded=(), disabled=(), generic=True, problems=None):
+    """The blocks of sites_build_css (same arguments) as
+    [(comment, rx_tail, body)]: `comment` is the block's comment line, the
+    block's regexp is "https?://" + `rx_tail` (CSS string text), `body` its
+    rules, not gated."""
+    return [row[:3] for row in _sites_block_rows(sites, excluded, disabled, generic, problems)]
+
+
+@functools.lru_cache(maxsize=2048)
+def _sites_errors(text):
+    """sites_validate(text) as a tuple, memoized: the live section and the
+    restart render build the same blocks again."""
+    return tuple(sites_validate(text))
+
+
+def _sites_block_rows(sites, excluded=(), disabled=(), generic=True, problems=None):
+    """_sites_blocks with a fourth item per block, `may_match(host)`: False
+    when the block's regexp cannot match https://host/ (a test cheaper than
+    the regexp, for content_live_section)."""
     index = _sites_index(sites, generic)
     excluded = [d for d in (normalize_domain(x) for x in excluded) if d]
     skip = {name + ".css" for name in (normalize_style_name(x) for x in disabled) if name}
     for key, text in sorted(index.css.items()):
-        errors = sites_validate(text)
+        errors = _sites_errors(text)
         if errors:
             skip.add(key)
             if problems is not None:
@@ -1948,10 +2708,10 @@ def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None
     end = "(?:[:/].*)?"
     any_sub = "(?:[^/]*\\\\.)?"
     www = "(?:www\\\\.)?"
-    out = [SITES_HEADER]
+    out = []
 
-    def block(comment, rx, text):
-        out.append('/* %s */\n@-moz-document regexp("%s") {\n%s\n}' % (comment, rx, text))
+    def block(comment, tail, text, may_match):
+        out.append(("/* %s */" % comment, tail, text, may_match))
 
     deeper = _deeper_domains(index.suffix)
     for domain, key in sorted(index.suffix.items()):
@@ -1960,18 +2720,20 @@ def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None
         neg = ""
         if deeper.get(domain):
             neg = "(?!%s(?:%s)(?:[:/]|$))" % (any_sub, css_rx_alt(deeper[domain]))
-        block(key, "https?://%s%s%s%s%s" % (neg_excl, neg, any_sub, css_rx_escape(domain), end),
-              index.css[key])
+        block(key, "%s%s%s%s%s" % (neg_excl, neg, any_sub, css_rx_escape(domain), end),
+              index.css[key], lambda host, d=domain: host == d or host.endswith("." + d))
     for base, key in sorted(index.dash.items()):
         if key in skip:
             continue
-        block(key, "https?://%s%s%s\\\\.[^./:]+%s" % (neg_excl, www, css_rx_escape(base), end),
-              index.css[key])
+        block(key, "%s%s%s\\\\.[^./:]+%s" % (neg_excl, www, css_rx_escape(base), end),
+              index.css[key], lambda host, b="." + base + ".": b in "." + host)
     for key, hosts in index.mapped:
         if key in skip:
             continue
         block("%s (mapping)" % key,
-              "https?://%s%s(?:%s)%s" % (neg_excl, www, css_rx_alt(hosts), end), index.css[key])
+              "%s%s(?:%s)%s" % (neg_excl, www, css_rx_alt(hosts), end),
+              index.css[key], lambda host, hs=frozenset(hosts):
+              host in hs or (host.startswith("www.") and host[4:] in hs))
     if generic and SITES_GENERIC_KEY in index.css and SITES_GENERIC_KEY not in skip:
         known = []
         if index.suffix:
@@ -1982,11 +2744,47 @@ def sites_build_css(sites, excluded=(), disabled=(), generic=True, problems=None
         if hosts:
             known.append("%s(?:%s)(?:[:/]|$)" % (www, css_rx_alt(hosts)))
         lookahead = "(?!%s)" % "|".join(known) if known else ""
-        out.append('%s\n@-moz-document regexp("https?://%s%s.*") {\n%s\n}' % (
-            SITES_GENERIC_COMMENT, neg_excl, lookahead, index.css[SITES_GENERIC_KEY]))
-    if len(out) == 1:
-        return ""
-    return "\n\n".join(out) + "\n"
+        out.append((SITES_GENERIC_COMMENT, "%s%s.*" % (neg_excl, lookahead),
+                    index.css[SITES_GENERIC_KEY], lambda host: True))
+    return out
+
+
+def _live_hosts(index, domains):
+    """Probe hosts of content_live_section for the excluded `domains`: each
+    domain and each host of `index` (a _SitesIndex: dedicated and mapped
+    hosts) it covers, bare, with "www." and with another subdomain; and for
+    each dash style base B (it matches (www.)B.L, L one label), B.L with L
+    the domain's last label when the domain covers it, bare and with "www."."""
+    known = list(index.suffix) + [h for _, hosts in index.mapped for h in hosts]
+    hosts = set()
+    for domain in domains:
+        for host in [domain] + [h for h in known if _covered(h, [domain])]:
+            hosts.update((host, "www." + host, "x0." + host))
+        last = domain.rsplit(".", 1)[-1]
+        for base in index.dash:
+            host = base + "." + last
+            if _covered(host, [domain]):
+                hosts.update((host, "www." + host))
+    return sorted(hosts)
+
+
+def _scheme_gated(css, gate=None, shadow=True):
+    """The site style `css` gated on `gate` (live_gate, GATE_LIVE_ROOT, None)
+    under a light theme; under a dark one on GATE_DARK[gate], so only on
+    pages that declare a dark version (as the generic content rule), or
+    with liveControl carry the add-on's tone: a light-only page asked for
+    dark keeps its light backgrounds behind its dark text instead of showing
+    it on the dark tint. One gating per branch (css_gate_rules: rules on
+    the root itself match too), never two nested: the scheme and live
+    conditions share the envelope. Shadow trees cannot see the root: under
+    a dark theme they get the style on every page (the dark branch's
+    shadow branch, not under GATE_LIVE_ROOT) when `shadow` is true (a
+    dedicated style, as before the scheme gating), none when it is false
+    (the generic style, as in v1.0)."""
+    light = css_gate_rules(css, gate) if gate else css
+    dark = css_gate_rules(css, GATE_DARK[gate], shadow)
+    return ("@media not (prefers-color-scheme: dark) {\n%s\n}\n"
+            "@media (prefers-color-scheme: dark) {\n%s\n}" % (light, dark))
 
 
 def sites_list(sites):
@@ -2261,6 +3059,569 @@ def _check_regexp(pattern, problems):
 
 
 # ============================================================================
+# psl
+# ============================================================================
+
+# Mozilla's Public Suffix List (MPL-2.0, data/PSL-LICENSE), embedded as
+# data/<PSL_FILE>: no network, no system file. Both sections are read, ICANN
+# (co.uk) and PRIVATE (github.io). Rules are kept in the ASCII form
+# normalize_domain() gives (an IDN label as "xn--" Punycode), the form
+# Firefox shows a host in. data/<PSL_FILE> is the upstream list minus the
+# lines the data updater drops (tools/update_styles.py, through the
+# denylist); it must keep applying it.
+# rules: {"co.uk"}; wildcards: {"ck"} for "*.ck"; exceptions: {"www.ck"} for
+# "!www.ck".
+Psl = collections.namedtuple("Psl", "rules wildcards exceptions")
+# Fewer rules than this, or no "com" rule: the file is taken as corrupt.
+PSL_MIN_RULES = 1000
+# Characters a rule never holds (normalize_domain would cut a URL at them).
+_PSL_BAD_RULE = re.compile(r"[/?#@:\[\]*!\\]")
+_IPV4 = re.compile(r"[0-9]{1,3}(?:\.[0-9]{1,3}){3}")
+# {absolute path: ((mtime_ns, size, inode), Psl)}
+_PSL_CACHE = {}
+
+
+class PslError(ValueError):
+    """The embedded Public Suffix List is missing, unreadable or corrupt."""
+
+
+def psl_parse(text):
+    """The Psl of the list `text` (the public_suffix_list.dat format).
+
+    One rule per line, its first whitespace-separated word; "//" comments
+    and blank lines are skipped, and so is a rule normalize_domain()
+    rejects. "*.x" is a wildcard rule, "!x" an exception rule.
+    """
+    rules, wildcards, exceptions = set(), set(), set()
+    for line in text.splitlines():
+        words = line.split()
+        if not words or words[0].startswith("//"):
+            continue
+        rule, target = words[0], rules
+        if rule.startswith("!"):
+            rule, target = rule[1:], exceptions
+        elif rule.startswith("*."):
+            rule, target = rule[2:], wildcards
+        if rule.startswith(".") or _PSL_BAD_RULE.search(rule):
+            continue
+        name = normalize_domain(rule)
+        if name is not None:
+            target.add(name)
+    return Psl(frozenset(rules), frozenset(wildcards), frozenset(exceptions))
+
+
+def psl_load(data_dir):
+    """The Psl of `data_dir`/<PSL_FILE>, parsed once per path (again only
+    when the file changes). Raises PslError, with a message naming the
+    file, when it is missing, unreadable, not UTF-8 or corrupt: the caller
+    turns that into a warning.
+    """
+    path = os.path.abspath(os.path.join(data_dir, PSL_FILE))
+    try:
+        st = os.stat(path)
+        signature = (st.st_mtime_ns, st.st_size, st.st_ino)
+        cached = _PSL_CACHE.get(path)
+        if cached is not None and cached[0] == signature:
+            return cached[1]
+        text = read_text(path, DATA_READ_LIMIT)
+    except OSError as exc:
+        raise PslError("%s: %s" % (PSL_FILE, exc.strerror or exc))
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        raise PslError("%s: not UTF-8" % PSL_FILE)
+    psl = psl_parse(text)
+    count = len(psl.rules) + len(psl.wildcards) + len(psl.exceptions)
+    if count < PSL_MIN_RULES or "com" not in psl.rules:
+        raise PslError("%s: corrupt (%d rules)" % (PSL_FILE, count))
+    _PSL_CACHE[path] = (signature, psl)
+    return psl
+
+
+def _psl_suffix_size(labels, psl):
+    """Number of labels in the public suffix of `labels`: the standard PSL
+    algorithm (an exception rule prevails, then the longest normal or
+    wildcard rule, else the implicit "*" rule)."""
+    n = len(labels)
+    for i in range(n):
+        if ".".join(labels[i:]) in psl.exceptions:
+            return n - i - 1
+    for i in range(n):
+        if ".".join(labels[i:]) in psl.rules or (
+                i + 1 < n and ".".join(labels[i + 1:]) in psl.wildcards):
+            return n - i
+    return 1
+
+
+def psl_registrable(name, psl):
+    """The registrable domain (public suffix plus one label) of the ASCII
+    host `name`, or None when `name` is itself a public suffix (standard
+    PSL semantics, as tests/test_psl.txt of the PSL repository checks)."""
+    labels = name.split(".")
+    size = _psl_suffix_size(labels, psl)
+    return ".".join(labels[-size - 1:]) if len(labels) > size else None
+
+
+def registrable_domain(host, psl):
+    """The domain the launcher excludes for the page host `host`.
+
+    The host is normalised like normalize_domain() does (lowercase, port
+    and trailing dot dropped, IDN to "xn--" Punycode), then reduced to its
+    registrable domain: "account.proton.me" -> "proton.me", "a.b.co.uk" ->
+    "b.co.uk", "user.github.io" -> "user.github.io". An IPv4 address and
+    "localhost" are returned unchanged, and so is a bare public suffix
+    ("co.uk", "github.io"): never all the sites under a public suffix.
+    None when the host is unusable, the caller's "unsupported": an IPv6
+    literal (bracketed or not), a leading dot, an empty label, characters
+    outside [a-z0-9.-] after normalisation (a "*" included), or a
+    non-string.
+    """
+    if not isinstance(host, str):
+        return None
+    host = host.strip()
+    bare = re.split(r"[/?#]", host.split("://", 1)[-1], maxsplit=1)[0].rpartition("@")[2]
+    # The checks run on the NFKC form normalize_domain() works on, so that
+    # a full-width "\uff0a", "\uff0e" or "\uff1a" cannot get past them. "*"
+    # is refused here: normalize_domain() drops a leading "*." of user
+    # input, which would turn the page host "*.com" into "com".
+    folded = unicodedata.normalize("NFKC", bare)
+    for dot in _IDEOGRAPHIC_DOTS:
+        folded = folded.replace(dot, ".")
+    if folded.startswith((".", "[")) or folded.count(":") > 1 or "*" in folded:
+        return None
+    name = normalize_domain(bare)
+    if name is None:
+        return None
+    if name == "localhost" or _IPV4.fullmatch(name):
+        return name
+    return psl_registrable(name, psl) or name
+
+
+# ============================================================================
+# session
+# ============================================================================
+
+# The site of the browser window niri has focused, for the launcher's
+# blist/unblist (`active-site`, read-only). The companion add-on's report
+# wins while its host is alive (<runtime>/active-<pid>.json, written by the
+# native host); otherwise the browser's own session file is read: Firefox
+# rewrites sessionstore-backups/recovery.jsonlz4 every
+# browser.sessionstore.interval ms (15 s by default) while it runs. Nothing
+# read here is ever logged or written anywhere: only the answer goes to
+# stdout.
+
+# niri app-id -> browser family (every APP_IDS entry, see test_session)
+APP_FAMILY = {
+    "firefox": "firefox",
+    "firefox-esr": "firefox",
+    "org.mozilla.firefox": "firefox",
+    "librewolf": "librewolf",
+    "io.gitlab.librewolf-community": "librewolf",
+    "zen": "zen",
+    "zen-browser": "zen",
+    "zen-beta": "zen",
+    "app.zen_browser.zen": "zen",
+    "floorp": "floorp",
+    "one.ablaze.floorp": "floorp",
+    "waterfox": "waterfox",
+    "net.waterfox.waterfox": "waterfox",
+}
+# How a private window's title ends ("<page> \u2014 Mozilla Firefox Private
+# Browsing"; LibreWolf, Zen, Floorp and Waterfox share the Firefox strings),
+# compared case-insensitively. French: "... Navigation priv\u00e9e".
+PRIVATE_TITLE_SUFFIXES = (
+    "private browsing",
+    "navigation priv\u00e9e",
+)
+# A window title is "<tab title> \u2014 <brand>" (an em dash; a hyphen-minus
+# where a build uses one).
+TITLE_BRAND_SEPARATORS = (" \u2014 ", " - ")
+# Answers of active-site (contract spec active_site)
+SITE_ERRORS = ("no_browser", "private", "not_web", "no_session", "ambiguous",
+               "unsupported", "outdated")
+ACTIVE_FILE = "active-%d.json"   # in the runtime folder, by the native host
+HOST_SOCKET = "host-%d.sock"     # idem: the host listens there while alive
+ACTIVE_FILE_VERSION = 1
+ACTIVE_FILE_LIMIT = 64 * 1024
+SOCKET_PROBE_TIMEOUT = 0.3  # seconds
+
+# mozlz4 (Firefox's jsonlz4 files): MOZLZ4_MAGIC, the decoded size as a
+# uint32 LE, then one LZ4 block (no frame, no checksum).
+MOZLZ4_MAGIC = b"mozLz40\0"
+MOZLZ4_MAX = 256 << 20  # decoded size refused above this (corrupt header)
+# Newest readable wins: recovery.jsonlz4 while the browser runs (baklz4 is
+# the previous copy), sessionstore.jsonlz4 after a clean quit.
+SESSION_FILES = (
+    os.path.join("sessionstore-backups", "recovery.jsonlz4"),
+    os.path.join("sessionstore-backups", "recovery.baklz4"),
+    "sessionstore.jsonlz4",
+)
+
+
+class Lz4Error(ValueError):
+    pass
+
+
+def _lz4_length(src, i, value):
+    """LZ4's extended length: add bytes from src[i] while they are 255."""
+    while True:
+        b = src[i]
+        i += 1
+        value += b
+        if b != 255:
+            return value, i
+
+
+def lz4_block_decode(src, size):
+    """The `size` bytes that the LZ4 block `src` decodes to.
+
+    Raises Lz4Error on any corruption (truncation, an offset before the
+    start, a length that disagrees with `size`): never loops, never returns
+    a wrong length.
+    """
+    out = bytearray()
+    n = len(src)
+    i = 0
+    try:
+        while True:
+            token = src[i]
+            i += 1
+            lit = token >> 4
+            if lit == 15:
+                lit, i = _lz4_length(src, i, lit)
+            if i + lit > n:
+                raise Lz4Error("literals past the end")
+            if len(out) + lit > size:
+                raise Lz4Error("longer than the header says")
+            out += src[i:i + lit]
+            i += lit
+            if i >= n:  # the last sequence holds literals only
+                break
+            off = src[i] | (src[i + 1] << 8)
+            i += 2
+            if off == 0 or off > len(out):
+                raise Lz4Error("bad offset")
+            mlen = token & 15
+            if mlen == 15:
+                mlen, i = _lz4_length(src, i, mlen)
+            mlen += 4
+            # Checked before the copy: a run of 255 bytes would otherwise
+            # build ~255 output bytes per input byte first
+            if len(out) + mlen > size:
+                raise Lz4Error("longer than the header says")
+            start = len(out) - off
+            if mlen <= off:
+                out += out[start:start + mlen]
+            else:  # overlapping copy: repeat the last `off` bytes
+                chunk = bytes(out[start:])
+                reps, rest = divmod(mlen, off)
+                out += chunk * reps + chunk[:rest]
+    except IndexError:
+        raise Lz4Error("truncated block")
+    if len(out) != size:
+        raise Lz4Error("shorter than the header says")
+    return bytes(out)
+
+
+def mozlz4_read(path):
+    """The decoded bytes of the mozlz4 file `path` (OSError, Lz4Error)."""
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as f:
+        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+            raise OSError(errno.EINVAL, "not a regular file", path)
+        head = f.read(12)
+        if len(head) < 12 or head[:8] != MOZLZ4_MAGIC:
+            raise Lz4Error("not a mozlz4 file")
+        size = int.from_bytes(head[8:12], "little")
+        if size > MOZLZ4_MAX:
+            raise Lz4Error("decoded size too large")
+        # An LZ4 block never takes more than size + size/255 + 16 bytes
+        data = f.read(size + size // 255 + 17)
+    return lz4_block_decode(data, size)
+
+
+def session_read(profile):
+    """The session state (a dict) of the newest readable session file of
+    `profile`, or None. Only ever called for a running profile."""
+    found = []
+    for rel in SESSION_FILES:
+        path = os.path.join(profile, rel)
+        try:
+            found.append((os.stat(path).st_mtime, path))
+        except (OSError, ValueError):
+            pass
+    for _, path in sorted(found, reverse=True):
+        try:
+            state = json.loads(mozlz4_read(path).decode("utf-8"))
+        except (OSError, ValueError, RecursionError):  # Lz4Error, bad JSON, bad UTF-8
+            continue
+        if isinstance(state, dict):
+            return state
+    return None
+
+
+def title_strip_brand(title):
+    """The tab title in the niri window title "<tab title> \u2014 <brand>"
+    (the whole title when it has no separator)."""
+    for sep in TITLE_BRAND_SEPARATORS:
+        if sep in title:
+            return title.rsplit(sep, 1)[0]
+    return title
+
+
+def title_is_private(title):
+    folded = title.strip().lower()
+    return any(folded.endswith(s) for s in PRIVATE_TITLE_SUFFIXES)
+
+
+def title_hash(text):
+    """The first 16 hex digits of the SHA-256 of `text` (UTF-8): what the
+    add-on reports for a tab title (extension/background.js titleHash)."""
+    return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
+
+
+def url_host(url):
+    """(host, None) for an http(s) URL, the host as normalize_domain() gives
+    it; else (None, "not_web") (about:, view-source:, file:, data:,
+    moz-extension:...) or (None, "unsupported") (an IPv6 or unusable host)."""
+    if not isinstance(url, str):
+        return None, "not_web"
+    match = re.match(r"(?i)https?://([^/?#\\]*)", url)
+    if not match:
+        return None, "not_web"
+    netloc = match.group(1).rpartition("@")[2]
+    if netloc.startswith("[") or netloc.count(":") > 1:
+        return None, "unsupported"
+    host = normalize_domain(netloc)
+    return (host, None) if host else (None, "unsupported")
+
+
+def _nth(items, one_based):
+    """items[one_based - 1] when that is a dict (session indexes are
+    1-based), else None."""
+    if (not isinstance(items, list) or isinstance(one_based, bool)
+            or not isinstance(one_based, int) or not 1 <= one_based <= len(items)):
+        return None
+    item = items[one_based - 1]
+    return item if isinstance(item, dict) else None
+
+
+def _tab_entry(tab):
+    """The history entry a session tab shows: entries[index - 1]."""
+    return _nth(tab.get("entries"), tab.get("index"))
+
+
+def _is_one(value):
+    return value == 1 and not isinstance(value, bool)
+
+
+def _title_hits(state, want):
+    """{url_host(url): url} of the tabs of `state` whose current entry has
+    the title `want`."""
+    hits = {}
+    windows = state.get("windows")
+    for win in windows if isinstance(windows, list) else ():
+        tabs = win.get("tabs") if isinstance(win, dict) else None
+        for tab in tabs if isinstance(tabs, list) else ():
+            entry = _tab_entry(tab) if isinstance(tab, dict) else None
+            if entry and entry.get("title") == want:
+                url = entry.get("url")
+                hits.setdefault(url_host(url), url)
+    return hits
+
+
+def session_active_tab(state, title):
+    """(url, None) of the tab the user looks at in the session `state`, or
+    (None, error) with error "ambiguous" or "no_session".
+
+    Only state["windows"] is read: the open windows, private ones left out
+    by the browser. A tab or window switch does not schedule a session
+    write, so the selected indexes can be stale; the title niri shows is
+    current. 1. Every tab whose current entry has the title `title` minus
+    its brand: one host among them -> that tab; several -> "ambiguous".
+    2. No match (or no title): the selected tab of the selected window, but
+    only when a window has zIndex 1 (the most recent one): when it is
+    missing, the most recent window was private and selectedWindow points
+    at another one.
+    """
+    windows = state.get("windows")
+    if not isinstance(windows, list) or not any(isinstance(w, dict) for w in windows):
+        return None, "no_session"
+    hits = _title_hits(state, title_strip_brand(title)) if title else {}
+    if len(hits) == 1:
+        return next(iter(hits.values())), None
+    if hits:
+        return None, "ambiguous"
+    if not any(isinstance(w, dict) and _is_one(w.get("zIndex")) for w in windows):
+        return None, "ambiguous"
+    win = _nth(windows, state.get("selectedWindow"))
+    tab = _nth(win.get("tabs"), win.get("selected")) if win else None
+    entry = _tab_entry(tab) if tab else None
+    if entry is None:
+        return None, "ambiguous"
+    return entry.get("url"), None
+
+
+def session_age(state, now=None):
+    """Seconds since the session `state` was written (session.lastUpdate,
+    in ms), or None."""
+    session = state.get("session")
+    last = session.get("lastUpdate") if isinstance(session, dict) else None
+    if isinstance(last, bool) or not isinstance(last, (int, float)):
+        return None
+    try:
+        last = float(last)
+    except OverflowError:  # an int beyond the float range
+        return None
+    if not math.isfinite(last):
+        return None
+    now = time.time() if now is None else now
+    return round(max(0.0, now - last / 1000.0), 1)
+
+
+def profile_of_pid(pid, env=None):
+    """The Profile (of find_profiles) whose .parentlock the process `pid`
+    holds open (PROC_DIR/<pid>/fd), or None. The open lock proves the
+    profile is the one this browser runs on, whatever its family."""
+    fd_dir = os.path.join(PROC_DIR, str(pid), "fd")
+    try:
+        names = os.listdir(fd_dir)
+    except (OSError, ValueError):
+        return None
+    held = set()
+    for name in names:
+        try:
+            target = os.readlink(os.path.join(fd_dir, name))
+        except (OSError, ValueError):
+            continue
+        if target.endswith("/" + PARENT_LOCK):
+            held.add(os.path.realpath(os.path.dirname(target)))
+    if not held:
+        return None
+    for profile in find_profiles(env):
+        if os.path.realpath(profile.path) in held:
+            return profile
+    return None
+
+
+def _socket_alive(path):
+    """True when the Unix socket `path` accepts a connection (closed at once)."""
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.settimeout(SOCKET_PROBE_TIMEOUT)
+        sock.connect(path)
+        return True
+    except (OSError, ValueError):
+        return False
+    finally:
+        sock.close()
+
+
+def companion_active(pid, title, env):
+    """What the companion reported for the browser `pid`: (host, None) with
+    host "" for a non-web page, (None, "ambiguous" | "outdated"), or None
+    when there is no live report (no file, a dead host, no title to check
+    it against).
+
+    The report counts only when the browser process is alive, its host's
+    socket accepts a connection and the reported title hash equals the hash
+    of the niri title minus its brand: a private tab (never reported) or a
+    stale focus gives another hash, hence "ambiguous".
+    """
+    # A report planted by another user is never read (_runtime_dir_ours).
+    folder = runtime_dir(env)
+    if folder is None or not title or not _runtime_dir_ours(folder):
+        return None
+    try:
+        doc = json.loads(read_text(os.path.join(folder, ACTIVE_FILE % pid), ACTIVE_FILE_LIMIT))
+    except (OSError, ValueError, RecursionError):
+        return None
+    if not isinstance(doc, dict) or doc.get("browser_pid") != pid or isinstance(
+            doc.get("browser_pid"), bool):
+        return None
+    if not os.path.isdir(os.path.join(PROC_DIR, str(pid))):
+        return None
+    if not _socket_alive(os.path.join(folder, HOST_SOCKET % pid)):
+        return None
+    if doc.get("outdated") is True or doc.get("version") != ACTIVE_FILE_VERSION:
+        return None, "outdated"
+    host = doc.get("host")
+    if not isinstance(host, str):
+        return None, "ambiguous"
+    # The stripped title, or the whole one for a build whose window title
+    # has no brand (a page title holding " - " is then cut wrongly)
+    if doc.get("title_hash") in (title_hash(title_strip_brand(title)), title_hash(title)):
+        return host, None
+    if not any(sep in title for sep in TITLE_BRAND_SEPARATORS):
+        # The brand alone ("Mozilla Firefox"): a page with no title, such
+        # as about:newtab, whose tab title the add-on hashed. Not a web
+        # page when the add-on says so, else the session file decides.
+        return ("", None) if host == "" else None
+    return None, "ambiguous"
+
+
+def _session_of(pid, family, title, env):
+    """(state, None) of the session file of the browser `pid`, or (None,
+    error). The profile is the one `pid` holds the lock of; failing that,
+    the running profiles of `family`, and among several the only one with
+    a tab titled like the window. A profile no browser runs on is never
+    read."""
+    profile = profile_of_pid(pid, env)
+    if profile is not None:
+        state = session_read(profile.path)
+        return (state, None) if state is not None else (None, "no_session")
+    states = []
+    for p in find_profiles(env):
+        if p.family == family and lock_state(p.path) == LOCK_RUNNING:
+            state = session_read(p.path)
+            if state is not None:
+                states.append(state)
+    if len(states) > 1 and title:
+        want = title_strip_brand(title)
+        states = [s for s in states if _title_hits(s, want)] or states
+    if not states:
+        return None, "no_session"
+    return (states[0], None) if len(states) == 1 else (None, "ambiguous")
+
+
+def active_site(pid, app_id, title, env, psl_of):
+    """The active-site answer (contract spec active_site) for the niri
+    window of process `pid`, app-id `app_id` and title `title` (or None).
+    `psl_of()` gives the Psl, loaded only once a host is known."""
+    family = APP_FAMILY.get(app_id)
+    if family is None or pid <= 0:
+        return {"error": "no_browser"}
+    if title and title_is_private(title):
+        return {"error": "private"}
+    report = companion_active(pid, title, env)
+    if report is not None:
+        host, error = report
+        if error:
+            return {"error": error}
+        source, age = "companion", None
+        host, error = url_host("http://" + host) if host else (None, "not_web")
+    else:
+        state, error = _session_of(pid, family, title, env)
+        if error:
+            return {"error": error}
+        url, error = session_active_tab(state, title)
+        if error:
+            return {"error": error}
+        source, age = "session", session_age(state)
+        host, error = url_host(url)
+    if error:
+        return {"error": error}
+    psl = psl_of()
+    domain = registrable_domain(host, psl)
+    # A host that is itself a public suffix (github.io, a PRIVATE-section
+    # entry): excluding it would exclude every site under it
+    if domain is None or (domain != "localhost" and not _IPV4.fullmatch(domain)
+                          and psl_registrable(domain, psl) is None):
+        return {"error": "unsupported"}
+    return {"host": host, "domain": domain, "source": source, "age": age}
+
+
+# ============================================================================
 # edits
 # ============================================================================
 
@@ -2449,6 +3810,720 @@ def replace_block(text, block, markers=USERJS_BLOCK_MARKERS):
             out.append(line)
     return bom + "".join(out)
 
+
+# ============================================================================
+# companion
+# ============================================================================
+
+# Pure functions: the bytes of the companion add-on, the text of the native
+# messaging manifest and of the host wrapper. Writing them is the sync's job.
+
+# Fixed zip metadata, so that the same sources always give the same bytes and
+# a sync that changes nothing writes nothing (the xpi is compared byte for
+# byte). 1980-01-01 is the earliest date a zip entry can hold.
+_XPI_DATE = (1980, 1, 1, 0, 0, 0)
+_XPI_MODE = 0o100644  # regular file, rw-r--r--
+_XPI_SYSTEM = 3       # "made by" Unix, whatever the platform
+_XPI_MAX_BYTES = 4 * 1024 * 1024
+
+
+def _xpi_sources(ext_dir):
+    """Sorted (zip name, path) of the regular files under `ext_dir`.
+    Hidden files and folders, symlinks and anything else are left out."""
+    def fail(exc):
+        raise exc
+    out = []
+    for top, dirs, files in os.walk(ext_dir, onerror=fail, followlinks=False):
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".")
+                         and not os.path.islink(os.path.join(top, d)))
+        for name in files:
+            path = os.path.join(top, name)
+            if name.startswith(".") or not stat.S_ISREG(os.lstat(path).st_mode):
+                continue
+            rel = os.path.relpath(path, ext_dir).split(os.sep)
+            out.append(("/".join(rel), path))
+    out.sort()
+    return out
+
+
+def companion_xpi(ext_dir):
+    """The companion add-on as xpi bytes, built from the files of `ext_dir`
+    (<plugin>/extension). Deterministic: stored (not deflated) entries in
+    sorted name order, with a fixed date, mode and creator system, so two
+    builds of the same sources are identical. manifest.json must sit at the
+    root of `ext_dir`. Raises OSError when the folder is unreadable and
+    ValueError when manifest.json is missing or the add-on is too large."""
+    import zipfile  # here: ~9 ms that only a sync building the xpi pays
+    sources = _xpi_sources(ext_dir)
+    # The messages name the folder only (sync warnings never hold a path).
+    label = os.path.basename(os.path.normpath(ext_dir)) + "/"
+    if "manifest.json" not in (name for name, _ in sources):
+        raise ValueError("%s: no manifest.json" % label)
+    buf = io.BytesIO()
+    total = 0
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+        for name, path in sources:
+            with open(path, "rb") as f:
+                data = f.read(_XPI_MAX_BYTES + 1)
+            total += len(data)
+            if total > _XPI_MAX_BYTES:
+                raise ValueError("%s: larger than %d bytes" % (label, _XPI_MAX_BYTES))
+            info = zipfile.ZipInfo(name, date_time=_XPI_DATE)
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = _XPI_SYSTEM
+            info.external_attr = _XPI_MODE << 16
+            zf.writestr(info, data)
+    return buf.getvalue()
+
+
+# Per-profile companion states (contract companion_state). "outdated" is
+# told by status only (the running host speaks another protocol).
+COMPANION_OFF = "off"
+COMPANION_UNSUPPORTED = "unsupported_variant"
+COMPANION_NO_PLUGIN = "no_plugin_dir"
+COMPANION_ENFORCED = "signing_enforced"
+COMPANION_REFUSED = "signing_required"
+COMPANION_REMOVED = "removed_by_user"
+COMPANION_PENDING = "pending_restart"
+COMPANION_INSTALLED = "installed"
+COMPANION_OUTDATED = "outdated"
+COMPANION_DEPOSITED = (COMPANION_PENDING, COMPANION_INSTALLED)
+# Variants whose browser runs in a sandbox the host cannot run from (D6).
+COMPANION_SANDBOXED = ("flatpak", "snap")
+# Firefox channels that require signed add-ons (MOZ_REQUIRE_SIGNING): the
+# xpi would be deleted at startup, so nothing is deposited.
+SIGNED_CHANNELS = ("release", "esr", "beta")
+# Firefox channels built without MOZ_REQUIRE_SIGNING (Nightly, Developer
+# Edition, a local build): with our pref they never delete the add-on.
+UNSIGNED_CHANNELS = ("nightly", "aurora", "default")
+# Families built without MOZ_REQUIRE_SIGNING (checked on LibreWolf 160).
+# On these builds and channels only the user removes the add-on.
+UNSIGNED_FAMILIES = ("librewolf",)
+# Where distributions and Mozilla's tarball install Firefox. A profile that
+# never ran has no compatibility.ini to name its build: its channel is that of
+# these builds ($BG_FIREFOX_BUILDS, colon-separated, replaces the list).
+FIREFOX_BUILDS = ("/usr/lib64/firefox", "/usr/lib/firefox", "/usr/lib64/firefox-esr",
+                  "/usr/lib/firefox-esr", "/opt/firefox")
+ENV_FIREFOX_BUILDS = "BG_FIREFOX_BUILDS"
+EXTENSIONS_JSON = "extensions.json"
+CHANNEL_PREFS_REL = os.path.join("defaults", "pref", "channel-prefs.js")
+_EXTENSIONS_JSON_LIMIT = 64 * 1024 * 1024
+_COMPAT_LINE = re.compile(r"^(LastVersion|LastPlatformDir)=([^\r\n]{1,4096}?)\r?$", re.M)
+_CHANNEL_PREF = re.compile(
+    r'^\s*pref\(\s*"app\.update\.channel"\s*,\s*"([A-Za-z0-9_.-]{1,64})"\s*\)', re.M)
+_SCOPE_LITERAL = re.compile(r"-?\d{1,10}")
+
+
+def companion_prefs(originals):
+    """[(pref, JS literal)] of the companion prefs for the original prefs.js
+    values `originals` ({pref: JS literal or None}): unsigned add-ons
+    allowed, and of the two scope prefs only the profile bit changes (no
+    sideload prompt, an existing profile scans its extensions/ folder at
+    the next start); a missing or odd value counts as the default."""
+    def scope(pref, default):
+        value = originals.get(pref)
+        if value is not None and _SCOPE_LITERAL.fullmatch(value):
+            return int(value)
+        return default
+    return [
+        (PREF_SIGNATURES, "false"),
+        (PREF_AUTODISABLE, str(scope(PREF_AUTODISABLE, AUTODISABLE_DEFAULT) & ~SCOPE_PROFILE)),
+        (PREF_STARTUP_SCAN, str(scope(PREF_STARTUP_SCAN, STARTUP_SCAN_DEFAULT) | SCOPE_PROFILE)),
+    ]
+
+
+def companion_xpi_path(profile_path):
+    return os.path.join(profile_path, EXTENSIONS_DIR, COMPANION_XPI)
+
+
+def compat_values(profile_path):
+    """{"LastVersion", "LastPlatformDir"} found in the profile's
+    compatibility.ini (missing keys left out; {} without the file)."""
+    try:
+        text = read_text(os.path.join(profile_path, "compatibility.ini"), limit=65536)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for key, value in _COMPAT_LINE.findall(text):
+        out.setdefault(key, value)
+    return out
+
+
+def browser_channel(compat):
+    """The update channel of the browser build that last ran the profile
+    (`compat`: compat_values()), None when it cannot be read."""
+    folder = compat.get("LastPlatformDir")
+    if not folder or not os.path.isabs(folder):
+        return None
+    return _channel_of(folder)
+
+
+def _channel_of(folder):
+    try:
+        match = _CHANNEL_PREF.search(read_text(os.path.join(folder, CHANNEL_PREFS_REL), limit=65536))
+    except (OSError, ValueError):
+        return None
+    return match.group(1) if match else None
+
+
+def installed_firefox_signed(env=None):
+    """True when a Firefox build installed in FIREFOX_BUILDS is on a channel
+    that requires signed add-ons."""
+    env = os.environ if env is None else env
+    builds = env.get(ENV_FIREFOX_BUILDS)
+    folders = FIREFOX_BUILDS if builds is None else [f for f in builds.split(":") if os.path.isabs(f)]
+    return any(_channel_of(f) in SIGNED_CHANNELS for f in folders)
+
+
+def companion_registered(profile_path):
+    """True when the profile's extensions.json names the companion add-on."""
+    try:
+        text = read_text(os.path.join(profile_path, EXTENSIONS_JSON), limit=_EXTENSIONS_JSON_LIMIT)
+    except (OSError, ValueError):
+        return False
+    return ('"%s"' % COMPANION_ID) in text
+
+
+def _mtime(path):
+    try:
+        return os.stat(path).st_mtime
+    except OSError:
+        return None
+
+
+def companion_refused(profile_path, comp):
+    """True when the browser deleted the add-on we deposited: it started
+    since (compatibility.ini or extensions.json newer than the deposit),
+    the xpi is gone and extensions.json does not name it."""
+    if comp is None or comp["dropped"] is None:
+        return False
+    if os.path.lexists(companion_xpi_path(profile_path)):
+        return False
+    started = [m for m in (_mtime(os.path.join(profile_path, "compatibility.ini")),
+                           _mtime(os.path.join(profile_path, EXTENSIONS_JSON)))
+               if m is not None and m > comp["dropped"]]
+    return bool(started) and not companion_registered(profile_path)
+
+
+def companion_can_refuse(family, compat):
+    """False when the build that last ran the profile (`compat`:
+    compat_values()) never deletes an unsigned add-on: an add-on gone from
+    it was removed by the user. True when unknown."""
+    if family in UNSIGNED_FAMILIES:
+        return False
+    return not (family == "firefox" and browser_channel(compat) in UNSIGNED_CHANNELS)
+
+
+def companion_state(profile_path, family, variant, comp, enabled, available, compat=None, env=None):
+    """The companion state of one profile (COMPANION_*, never "outdated").
+    `comp` is the profile's record["companion"], `enabled` liveControl,
+    `available` whether the add-on can be deposited (sync: --plugin-dir and
+    a built xpi; status: we deposited it)."""
+    if not enabled:
+        return COMPANION_OFF
+    if variant in COMPANION_SANDBOXED:
+        return COMPANION_UNSUPPORTED
+    compat = compat_values(profile_path) if compat is None else compat
+    if family == "firefox" and browser_channel(compat) in SIGNED_CHANNELS:
+        return COMPANION_ENFORCED
+    if family == "firefox" and not compat and installed_firefox_signed(env):
+        # Never ran: the Firefox installed here is the one that will.
+        return COMPANION_ENFORCED
+    if comp is not None and not os.path.lexists(companion_xpi_path(profile_path)) \
+            and (comp["seen"] or (not companion_can_refuse(family, compat)
+                                  and companion_refused(profile_path, comp))):
+        # Seen registered then gone, or gone from a build that never deletes
+        # it: removed in about:addons. Left out until liveControl is turned
+        # off and on (or an uninstall).
+        return COMPANION_REMOVED
+    if comp is not None and comp["refused"] is not None \
+            and comp["refused"] == (compat.get("LastVersion") or ""):
+        return COMPANION_REFUSED
+    if companion_refused(profile_path, comp):
+        return COMPANION_REFUSED
+    if not available:
+        return COMPANION_NO_PLUGIN
+    if os.path.isfile(companion_xpi_path(profile_path)) and companion_registered(profile_path):
+        return COMPANION_INSTALLED
+    return COMPANION_PENDING
+
+
+def native_manifest_text(wrapper_path):
+    """The native messaging manifest (<NATIVE_MANIFEST_NAME>) that lets the
+    companion add-on, and only it, start the host at `wrapper_path`, an
+    absolute path (ValueError otherwise)."""
+    if not isinstance(wrapper_path, str) or not os.path.isabs(wrapper_path):
+        raise ValueError("the native host path must be absolute: %r" % (wrapper_path,))
+    doc = collections.OrderedDict([
+        ("name", NATIVE_HOST_NAME),
+        ("description", "Browser Glass helper"),
+        ("path", wrapper_path),
+        ("type", "stdio"),
+        ("allowed_extensions", [COMPANION_ID]),
+    ])
+    return json.dumps(doc, indent=2) + "\n"
+
+
+def host_wrapper_text(plugin_dir):
+    """The /bin/sh wrapper the browser runs as the native host: it runs this
+    file from the absolute `plugin_dir` (ValueError otherwise) with the
+    browser's own arguments (manifest path, add-on id) after
+    `native-host --data <plugin_dir>/data`. Paths are shell-quoted."""
+    if not isinstance(plugin_dir, str) or not os.path.isabs(plugin_dir):
+        raise ValueError("the plugin folder must be absolute: %r" % (plugin_dir,))
+    plugin_dir = os.path.normpath(plugin_dir)
+    script = os.path.join(plugin_dir, PROG + ".py")
+    data = os.path.join(plugin_dir, "data")
+    return ("#!/bin/sh\n"
+            "# browserGlass: native messaging host of the companion add-on"
+            " (generated, do not edit).\n"
+            "exec python3 -I -B %s native-host --data %s \"$@\"\n"
+            % (shlex.quote(script), shlex.quote(data)))
+
+
+# ============================================================================
+# native
+# ============================================================================
+
+# The native messaging host (`native-host`): the browser starts it for the
+# companion add-on and it lives as long as the browser, blocked in select()
+# on stdin and its socket (no timer). Frames on stdin and stdout: a 4-byte
+# length in native byte order, then UTF-8 JSON. stdout carries frames only;
+# diagnostics go to stderr (the browser console) and never name a site or a
+# title.
+#
+# $XDG_RUNTIME_DIR/<RUNTIME_DIR_NAME>/ (mode 700) holds, per browser process
+# (its pid, the host's parent):
+#   host-<pid>.sock    the host listens there: a sync (live_push) connects,
+#                      sends one line {"excluded": [domain...]} and reads
+#                      back {"acked": seq} once the add-on has applied it
+#   active-<pid>.json  {"version": 1, "browser_pid", "host", "domain",
+#                      "title_hash", "ts"}: the site of the browser's focused
+#                      tab (read by active-site); {"version": 1,
+#                      "browser_pid", "outdated": true, "ts"} when the add-on
+#                      speaks another protocol (it was updated and only a
+#                      restart loads the new one)
+#   ack-<pid>.json     {"seq", "ts"}: the last list the add-on applied
+# A host removes its own files when the browser closes (EOF on stdin), and
+# exits quietly when the folder disappears (uninstall).
+
+NM_PROTO = 1
+NM_MAX_MESSAGE = 1024 * 1024   # larger incoming frame: the host exits
+LIVE_LINE_MAX = 256 * 1024     # a socket request, {"excluded": [...]} + "\n"
+LIVE_CLIENT_TIMEOUT = 1.0      # seconds to read a socket request
+LIVE_ACK_TIMEOUT = 1.0         # seconds to wait for the add-on's "applied"
+LIVE_CONNECT_TIMEOUT = 0.3     # seconds for live_push to reach one host
+_RUNTIME_NAMES = {"host": "host-%d.sock", "active": "active-%d.json", "ack": "ack-%d.json"}
+_HOST_SOCKET = re.compile(r"host-([0-9]{1,10})\.sock")
+_TITLE_HASH = re.compile(r"[0-9a-f]{16}")
+
+
+class NmError(ValueError):
+    """A native messaging frame the host cannot go on after (too large, or
+    cut short)."""
+
+
+class _RuntimeGone(Exception):
+    """The runtime folder, or the host's socket in it, is gone."""
+
+
+def runtime_dir(env=None):
+    """$XDG_RUNTIME_DIR/<RUNTIME_DIR_NAME>, else /run/user/<uid>/... when
+    that folder exists; None when there is no runtime folder (no live
+    control then)."""
+    env = os.environ if env is None else env
+    base = env.get("XDG_RUNTIME_DIR") or ""
+    if not os.path.isabs(base):
+        base = "/run/user/%d" % os.getuid()
+        if not os.path.isdir(base):
+            return None
+    return os.path.join(os.path.normpath(base), RUNTIME_DIR_NAME)
+
+
+def runtime_file(rdir, kind, pid):
+    """The runtime file `kind` ("host" socket, "active" or "ack") of the
+    browser process `pid` in the runtime folder `rdir`."""
+    return os.path.join(rdir, _RUNTIME_NAMES[kind] % pid)
+
+
+def _runtime_dir_ours(rdir):
+    """True when `rdir` is a real folder (no symlink) of this user."""
+    try:
+        st = os.lstat(rdir)
+    except OSError:
+        return False
+    return stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid()
+
+
+def _read_upto(stream, size):
+    """Up to `size` bytes of the binary `stream`, fewer only at its end."""
+    chunks = []
+    while size > 0:
+        chunk = stream.read(size)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        size -= len(chunk)
+    return b"".join(chunks)
+
+
+def nm_read(stream):
+    """The next native messaging message of the binary `stream`: None at
+    the end of the stream, {} for a frame that is not UTF-8 JSON (ignored by
+    the host), else the decoded value. Raises NmError for a frame larger
+    than NM_MAX_MESSAGE or cut short."""
+    head = _read_upto(stream, 4)
+    if not head:
+        return None
+    if len(head) < 4:
+        raise NmError("truncated frame header")
+    size = struct.unpack("=I", head)[0]
+    if size > NM_MAX_MESSAGE:
+        raise NmError("message of %d bytes refused" % size)
+    body = _read_upto(stream, size)
+    if len(body) < size:
+        raise NmError("truncated frame")
+    try:
+        return json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, RecursionError):
+        return {}
+
+
+def nm_write(stream, doc):
+    """Write `doc` to the binary `stream` as one native messaging frame."""
+    data = json.dumps(doc, separators=(",", ":")).encode("utf-8")
+    stream.write(struct.pack("=I", len(data)) + data)
+    stream.flush()
+
+
+def live_domains(value):
+    """The plain host names of the list `value` the add-on may receive:
+    normalize_domain() of each entry (no scheme, port, path or IPv6), the
+    unusable ones and duplicates dropped, in order. [] for a non-list."""
+    if not isinstance(value, list):
+        return []
+    return _unique(normalize_domain(item) for item in value)
+
+
+def _host_log(message):
+    """A diagnostic of the native host, on stderr (the browser console)."""
+    try:
+        sys.stderr.write("%s native-host: %s\n" % (PROG, message))
+        sys.stderr.flush()
+    except (OSError, ValueError):
+        pass
+
+
+def _socket_line(conn, limit, timeout):
+    """The first line (without "\\n") the socket `conn` sends within
+    `timeout` seconds, or what it sent before closing; None when it sends
+    more than `limit` bytes without one, too slowly, or fails."""
+    deadline = time.monotonic() + timeout
+    buf = b""
+    while b"\n" not in buf:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return None
+        try:
+            conn.settimeout(left)
+            chunk = conn.recv(65536)
+        except OSError:  # socket.timeout included
+            return None
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf.split(b"\n", 1)[0]) > limit:
+            return None
+    return buf.split(b"\n", 1)[0]
+
+
+class _NativeHost:
+    """One run of the native messaging host for the browser `bpid`."""
+
+    def __init__(self, env, data_dir, stdin, stdout, bpid):
+        self.env = env
+        self.data_dir = data_dir
+        self.stdin = stdin
+        self.stdout = stdout
+        self.bpid = bpid
+        self.rdir = runtime_dir(env)
+        self.listener = None
+        self.sock_path = None
+        self.sock_ino = None
+        self.written = set()
+        self.seq = 0
+        self.applied = 0
+        self.current = []
+        self.outdated = False
+        self.done = False
+        self.psl = None
+
+    # -- runtime folder ---------------------------------------------------
+
+    def listen(self):
+        """Bind host-<bpid>.sock in the runtime folder (made, mode 700,
+        when missing; a stale socket of the same name is replaced). The
+        socket is bound under a temporary name, made mode 600 and listening
+        before it is renamed: live_push never finds it refusing (it would
+        take it for a dead host's). One retry when the folder vanished in
+        between (the last host of another browser removing it)."""
+        import socket
+        rdir = self.rdir
+        path = runtime_file(rdir, "host", self.bpid)
+        for attempt in (0, 1):
+            try:
+                os.mkdir(rdir, 0o700)
+            except FileExistsError:
+                pass
+            if not _runtime_dir_ours(rdir):
+                raise OSError(errno.EPERM, "not a folder of this user", rdir)
+            if stat.S_IMODE(os.lstat(rdir).st_mode) != 0o700:
+                os.chmod(rdir, 0o700)
+            tmp = os.path.join(rdir, "%s%d.%s%s" % (TMP_PREFIX, self.bpid, os.urandom(4).hex(),
+                                                     TMP_SUFFIX))
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+            try:
+                sock.bind(tmp)
+                try:
+                    os.chmod(tmp, 0o600)
+                    sock.listen(8)
+                    ino = os.stat(tmp).st_ino
+                    os.rename(tmp, path)
+                except BaseException:
+                    try:
+                        os.unlink(tmp)
+                    except OSError:
+                        pass
+                    raise
+            except FileNotFoundError:
+                sock.close()
+                if attempt:
+                    raise
+                continue
+            except BaseException:
+                sock.close()
+                raise
+            break
+        self.sock_ino = ino
+        self.listener = sock
+        self.sock_path = path
+
+    def check_runtime(self):
+        """Raise _RuntimeGone when our socket left the runtime folder."""
+        if self.listener is None:
+            return
+        try:
+            same = os.stat(self.sock_path).st_ino == self.sock_ino
+        except OSError:
+            same = False
+        if not same:
+            raise _RuntimeGone()
+
+    def write_runtime(self, kind, doc):
+        """Write the runtime file `kind` of this browser (atomic, mode 600);
+        nothing without a socket. The folder is never made again here."""
+        if self.listener is None:
+            return
+        self.check_runtime()  # replaced: these names are the new host's
+        path = runtime_file(self.rdir, kind, self.bpid)
+        try:
+            write_if_changed(path, json.dumps(doc) + "\n", mode=0o600, make_dirs=False)
+        except FileNotFoundError:
+            raise _RuntimeGone()
+        except OSError as exc:
+            _host_log("%s file not written: %s" % (kind, _oserror_text(exc)))
+            return
+        self.written.add(path)
+
+    def cleanup(self):
+        """At the end: our socket and files go, then the folder if empty."""
+        if self.listener is None:
+            return
+        self.listener.close()
+        try:
+            self.check_runtime()
+            paths = [self.sock_path] + sorted(self.written)
+        except _RuntimeGone:
+            # Replaced by another host of the same browser: the socket and
+            # the active-/ack- names are its files now. With no socket
+            # left (uninstall emptied the folder), a file this host wrote
+            # after that goes, so the folder does too.
+            paths = [] if os.path.lexists(self.sock_path) else sorted(self.written)
+        for path in paths:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        try:
+            os.rmdir(self.rdir)
+        except OSError:
+            pass
+
+    # -- messages ---------------------------------------------------------
+
+    def send(self, doc):
+        nm_write(self.stdout, doc)
+
+    def send_list(self, domains):
+        """Send the exclusion list `domains`; returns its seq."""
+        self.current = domains
+        self.seq += 1
+        self.send({"type": "excluded", "seq": self.seq, "domains": domains})
+        return self.seq
+
+    def startup_list(self):
+        """The exclusion list of the last full sync (state.json, read
+        without the lock: sync saves it before it pushes)."""
+        try:
+            state, _ = state_load(state_dir(self.env), [])
+        except Exception:  # unreadable or newer: no list yet
+            return []
+        last = state.get("last_sync")
+        return live_domains(last["settings"].get("excluded")) if last else []
+
+    def domain_of(self, host):
+        """registrable_domain() of `host`; the host itself when the public
+        suffix list is unavailable (never more than that host)."""
+        if self.psl is None:
+            try:
+                self.psl = psl_load(self.data_dir) if self.data_dir else False
+            except PslError:
+                self.psl = False
+        if self.psl is False:
+            return normalize_domain(host)
+        return registrable_domain(host, self.psl)
+
+    def on_message(self, msg):
+        if not isinstance(msg, dict):
+            return
+        kind = msg.get("type")
+        if kind == "hello":
+            proto = msg.get("proto")
+            if self.outdated or isinstance(proto, bool) or proto != NM_PROTO:
+                self.outdated = True
+                self.write_runtime("active", {"version": 1, "browser_pid": self.bpid,
+                                              "outdated": True, "ts": time.time()})
+            else:
+                self.send_list(self.current)
+        elif self.outdated:
+            return  # another protocol: nothing else is understood
+        elif kind == "active":
+            host = msg.get("host")
+            host = host.lower() if isinstance(host, str) and len(host) <= 253 else ""
+            title_hash = msg.get("title_hash")
+            if not isinstance(title_hash, str) or not _TITLE_HASH.fullmatch(title_hash):
+                title_hash = ""
+            self.write_runtime("active", {
+                "version": 1, "browser_pid": self.bpid, "host": host,
+                "domain": self.domain_of(host) if host else "",
+                "title_hash": title_hash, "ts": time.time()})
+        elif kind == "applied":
+            seq = msg.get("seq")
+            if isinstance(seq, int) and not isinstance(seq, bool) and self.applied < seq <= self.seq:
+                self.applied = seq
+
+    def read_stdin(self):
+        """Handle the next message on stdin; at its end, done."""
+        msg = nm_read(self.stdin)
+        if msg is None:
+            self.done = True
+            return
+        self.on_message(msg)
+        self.check_runtime()
+
+    def wait_applied(self, seq):
+        """True once the add-on applied the list `seq`, within
+        LIVE_ACK_TIMEOUT (other messages are handled meanwhile)."""
+        import select
+        deadline = time.monotonic() + LIVE_ACK_TIMEOUT
+        while self.applied < seq and not self.done:
+            left = deadline - time.monotonic()
+            if left <= 0 or not select.select([self.stdin], [], [], left)[0]:
+                return False
+            self.read_stdin()
+        return self.applied >= seq
+
+    def serve_client(self):
+        """One sync's push: relay its list, then answer {"acked": seq} once
+        the add-on applied it (nothing when it does not in time)."""
+        try:
+            conn, _ = self.listener.accept()
+        except OSError:
+            return
+        with conn:
+            line = _socket_line(conn, LIVE_LINE_MAX, LIVE_CLIENT_TIMEOUT)
+            if line is None or self.outdated:
+                return
+            try:
+                doc = json.loads(line.decode("utf-8"))
+            except (UnicodeDecodeError, ValueError, RecursionError):
+                return
+            if not isinstance(doc, dict) or not isinstance(doc.get("excluded"), list):
+                return
+            seq = self.send_list(live_domains(doc["excluded"]))
+            if not self.wait_applied(seq):
+                return
+            self.write_runtime("ack", {"seq": seq, "ts": time.time()})
+            try:
+                conn.settimeout(LIVE_CLIENT_TIMEOUT)
+                conn.sendall((json.dumps({"acked": seq}) + "\n").encode("ascii"))
+            except OSError:
+                pass
+        self.check_runtime()
+
+    def run(self):
+        """Serve until the browser closes stdin."""
+        import select
+        if self.rdir is not None:
+            try:
+                self.listen()
+            except OSError as exc:
+                _host_log("no live control: %s" % _oserror_text(exc))
+        # Read after the socket is bound: a sync that pushes before the bind
+        # saved its list to state.json first, one that pushes after it
+        # reaches the socket.
+        self.current = self.startup_list()
+        self.send({"type": "hello", "proto": NM_PROTO})
+        while not self.done:
+            fds = [self.stdin] + ([self.listener] if self.listener is not None else [])
+            ready = select.select(fds, [], [])[0]
+            if self.stdin in ready:
+                self.read_stdin()
+            elif ready:
+                self.serve_client()
+
+
+def native_host(env, data_dir, stdin, stdout, bpid):
+    """Run the native host for the browser process `bpid` on the binary
+    streams `stdin` / `stdout`. Returns the exit status: 0 at the end of
+    stdin or when the runtime folder disappears, 1 after a bad frame or an
+    error (reported on stderr only)."""
+    import signal
+
+    def stop(signum, frame):
+        raise SystemExit(EXIT_OK)
+
+    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(signum, stop)
+    host = _NativeHost(env, data_dir, stdin, stdout, bpid)
+    code = EXIT_OK
+    try:
+        host.run()
+    except _RuntimeGone:
+        pass  # uninstalled or replaced: cleanup() leaves the new host's files
+    except BrokenPipeError:
+        pass  # the browser went away
+    except NmError as exc:
+        _host_log(str(exc))
+        code = EXIT_ERROR
+    except Exception as exc:
+        _host_log("%s: %s" % (exc.__class__.__name__, getattr(exc, "strerror", None) or exc))
+        code = EXIT_ERROR
+    finally:  # SIGTERM (SystemExit) included
+        host.cleanup()
+    return code
+
+
 # ============================================================================
 # state
 # ============================================================================
@@ -2471,16 +4546,51 @@ def replace_block(text, block, markers=USERJS_BLOCK_MARKERS):
 #       instance        "pid:starttime" of the browser running on the profile
 #                       ("?" when unknown), None when it is closed
 #       glass_loaded_since_start   that browser started with glass CSS (H1)
+#       restart_hash    applied_hash without the exclusion list (what only a
+#                       restart applies), excl_hash the exclusion list's hash
+#                       (both None when applied_hash is; see profile_output)
+#       live            None, or {instance, restart_hash, excl_hash, mtime}:
+#                       what the running browser `instance` has, the
+#                       exclusion list pushed live and acknowledged, valid
+#                       while no RESTART_FILES is newer than mtime (see
+#                       live_push)
+#       companion       None, or {dropped, build, refused, ext_dir, seen}: dropped
+#                       the mtime of the add-on we deposited (None when none
+#                       is), build the browser's LastVersion then, refused
+#                       the LastVersion of a browser that deleted it
+#                       (signing_required: no new deposit until it changes,
+#                       "" when unknown), ext_dir we created extensions/,
+#                       seen a sync found it registered, or found it removed
+#                       by the user (gone since: removed_by_user, no new
+#                       deposit until liveControl is turned off and on)
 #     backups         {profile_id: backup record}, also kept as
 #                     backup/<profile_id>/meta.json
-#       path, chrome_dir (the chrome folder existed before us)
+#       path, chrome_dir (the chrome folder existed before us), ext_dir
+#       (we created extensions/, as in the companion record)
 #       files {name: {"existed", "mode", "sha256"}}
 #       prefs_original  the profile's prefs_original at first contact (H2):
-#                       meta.json is never rewritten, so the originals
-#                       survive a lost or corrupt state.json
+#                       meta.json is only rewritten to add the original of
+#                       a pref it lacks (a v1.0 backup: the companion
+#                       prefs) or to record ext_dir, so the originals
+#                       survive a lost or corrupt state.json; a backup
+#                       whose originals an uninstall dropped (null) is
+#                       refilled from the record at the next sync
 #     niri            {"include_added", "config_eol"}
-#     created_dirs    folders made for the state, removed by uninstall
+#     created_dirs    folders made for the state, removed by uninstall once
+#                     empty; also kept in state-dirs.json
+#     native          {"manifests", "created_dirs"}: the native messaging
+#                     manifests we wrote and the folders made for them
+#                     (explicit paths, uninstall never globs); the folders
+#                     are also kept in native-dirs.json
 #     synced          a sync ran since the last uninstall (first_run)
+#   native-dirs.json
+#                the folders made for the native messaging manifest (a JSON
+#                list), next to the host wrapper, so they survive a lost or
+#                corrupt state.json; removed with the wrapper
+#   state-dirs.json
+#                a copy of state.created_dirs (a JSON list), read when
+#                state.json is missing or corrupt; removed with the state
+#                folder (a pending file carries its own copy)
 #   backup/<profile_id>/{userChrome.css,userContent.css,user.js}
 #                original files without any v0/v1 addition (H4), taken once
 #                before the first write, never overwritten
@@ -2497,12 +4607,15 @@ def replace_block(text, block, markers=USERJS_BLOCK_MARKERS):
 #                whose only content is pending/ counts as removed.
 STATE_VERSION = 1
 BACKUP_META = "meta.json"
+NATIVE_DIRS = "native-dirs.json"
+STATE_DIRS = "state-dirs.json"
 PENDING_DIR = "pending"
 _PID = re.compile(r"[0-9a-f]{12}")
 # Environment knobs (tests use them to stay fast).
 ENV_LOCK_TIMEOUT = "BG_LOCK_TIMEOUT"   # seconds to wait for state.lock
 ENV_POLL_INTERVAL = "BG_POLL_INTERVAL"  # seconds between clean-prefs probes
 ENV_POLL_MAX = "BG_POLL_MAX"            # seconds before clean-prefs gives up
+ENV_TERM_GRACE = "BG_TERM_GRACE"        # seconds the cleaner keeps polling after SIGTERM
 ENV_SWEEP_GRACE = "BG_SWEEP_GRACE"      # seconds uninstall --if-gone waits
 ENV_PLUGIN_RECHECK = "BG_PLUGIN_RECHECK"  # seconds sync --if-plugin waits to trust a missing file
 DEFAULT_LOCK_TIMEOUT = 2.0
@@ -2517,6 +4630,14 @@ DEFAULT_SWEEP_GRACE = 4.0
 DEFAULT_PLUGIN_RECHECK = 0.5
 DEFAULT_POLL_INTERVAL = 5.0
 DEFAULT_POLL_MAX = 7 * 24 * 3600.0
+# At logout or shutdown the cleaner gets SIGTERM with the browser: it then
+# polls this often, for this long, to run the cleanup once the lock frees.
+# Started by the plugin, it stays in the shell's service, which a restart
+# stops with the browser still open and kills after its stop timeout (10 s
+# for dms.service): the grace stays well below it, so a shell restart is
+# never held up long (the pending file stays for the next sync).
+TERM_POLL_INTERVAL = 0.2
+DEFAULT_TERM_GRACE = 4.0
 LOCK_RETRY_STEP = 0.05
 # A stale temporary file is swept only when older than this (seconds): a
 # clean-prefs running outside the state lock may own a fresh one.
@@ -2527,7 +4648,7 @@ _STALE_TMP = re.compile(
     re.escape(TMP_PREFIX)
     + r"(?:userChrome\.css|userContent\.css|user\.js|prefs\.js|dms-glass-chrome\.css|"
     r"dms-glass-content\.css|config\.kdl|dms-browser-glass\.kdl|state\.json|meta\.json|"
-    r"[0-9a-f]{12}\.json)"
+    r"[0-9a-f]{12}\.json|browserglass@companion\.xpi|browserglass\.json|native-host)"
     r"\.[a-z0-9_]{8}" + re.escape(TMP_SUFFIX))
 # One user_pref line of prefs.js / user.js: name and raw value literal.
 _PREF_LINE = re.compile(r'\s*user_pref\(\s*"((?:[^"\\\n]|\\.)*)"\s*,\s*(.*?)\s*\)\s*;\s*')
@@ -2641,6 +4762,7 @@ def state_lock(folder, env=None, default_timeout=DEFAULT_LOCK_TIMEOUT):
 def new_state(synced=False):
     return {"version": STATE_VERSION, "profiles": {}, "backups": {},
             "niri": {"include_added": False, "config_eol": True}, "created_dirs": [],
+            "native": {"manifests": [], "created_dirs": []},
             "synced": synced, "last_sync": None}
 
 
@@ -2717,6 +4839,30 @@ def _norm_pref_list(value):
     return [p for p in PREFS if p in value]
 
 
+def _norm_str(value):
+    return value if isinstance(value, str) else None
+
+
+def _norm_live(value):
+    """A profile record's "live" field read back; None when unusable."""
+    if not isinstance(value, dict):
+        return None
+    out = {key: value.get(key) for key in ("instance", "restart_hash", "excl_hash")}
+    if not all(isinstance(v, str) for v in out.values()):
+        return None
+    mtime = value.get("mtime")
+    if not isinstance(mtime, (int, float)) or isinstance(mtime, bool):
+        return None
+    try:
+        mtime = float(mtime)  # an int too large for a float raises
+    except OverflowError:
+        return None
+    if not math.isfinite(mtime):
+        return None
+    out["mtime"] = mtime
+    return out
+
+
 def _norm_record(value):
     if not isinstance(value, dict) or not isinstance(value.get("path"), str):
         return None
@@ -2734,7 +4880,33 @@ def _norm_record(value):
         "applied_hash": applied if isinstance(applied, str) else None,
         "instance": instance if isinstance(instance, str) else None,
         "glass_loaded_since_start": value.get("glass_loaded_since_start") is True,
+        "restart_hash": _norm_str(value.get("restart_hash")),
+        "excl_hash": _norm_str(value.get("excl_hash")),
+        "live": _norm_live(value.get("live")),
+        "companion": _norm_companion(value.get("companion")),
     }
+
+
+def _norm_companion(value):
+    if not isinstance(value, dict):
+        return None
+    dropped = value.get("dropped")
+    if isinstance(dropped, bool) or not isinstance(dropped, (int, float)):
+        dropped = None
+    else:
+        try:
+            dropped = float(dropped)
+        except OverflowError:
+            dropped = None
+        if dropped is not None and not math.isfinite(dropped):
+            dropped = None
+    return {"dropped": dropped, "build": _norm_str(value.get("build")),
+            "refused": _norm_str(value.get("refused")), "ext_dir": value.get("ext_dir") is True,
+            "seen": value.get("seen") is True}
+
+
+def _abs_paths(value):
+    return [d for d in value if isinstance(d, str) and os.path.isabs(d)] if isinstance(value, list) else []
 
 
 def _norm_backup(value):
@@ -2755,7 +4927,8 @@ def _norm_backup(value):
     path = value.get("path")
     originals = value.get("prefs_original")
     return {"path": path if isinstance(path, str) else None,
-            "chrome_dir": value.get("chrome_dir") is True, "files": files,
+            "chrome_dir": value.get("chrome_dir") is True, "ext_dir": value.get("ext_dir") is True,
+            "files": files,
             "prefs_original": _norm_prefs_original(originals) if isinstance(originals, dict) else None}
 
 
@@ -2763,24 +4936,25 @@ def state_load(folder, warnings):
     """(state, existed) from `folder`/state.json. A missing file gives a new
     state (existed False); an unreadable or corrupt one a new state plus a
     "state_corrupt" warning (existed True; the profile records are then
-    rebuilt from backup/*/meta.json). Unknown fields are dropped. A file of
-    a newer STATE_VERSION raises StateNewer: it is never overwritten."""
+    rebuilt from backup/*/meta.json, created_dirs from STATE_DIRS). Unknown
+    fields are dropped. A file of a newer STATE_VERSION raises StateNewer:
+    it is never overwritten."""
     path = os.path.join(folder, STATE_FILE)
     try:
         doc = json.loads(read_text(path))
     except FileNotFoundError:
-        return new_state(), False
+        return _state_dirs_load(folder, new_state()), False
     except (OSError, ValueError, RecursionError) as exc:
         warnings.append(make_warning(WARN_STATE_CORRUPT, "state.json unusable, starting afresh (%s)"
                                      % (getattr(exc, "strerror", None) or exc.__class__.__name__)))
-        return new_state(synced=True), True
+        return _state_dirs_load(folder, new_state(synced=True)), True
     state = new_state(synced=True)
     version = doc.get("version") if isinstance(doc, dict) else None
     if isinstance(version, int) and not isinstance(version, bool) and version > STATE_VERSION:
         raise StateNewer(version)
     if version != STATE_VERSION:
         warnings.append(make_warning(WARN_STATE_CORRUPT, "state.json has an unknown layout, starting afresh"))
-        return state, True
+        return _state_dirs_load(folder, state), True
     state["synced"] = doc.get("synced") is not False
     for key, norm in (("profiles", _norm_record), ("backups", _norm_backup)):
         items = doc.get(key)
@@ -2795,6 +4969,10 @@ def state_load(folder, warnings):
     created = doc.get("created_dirs")
     if isinstance(created, list):
         state["created_dirs"] = [d for d in created if isinstance(d, str) and os.path.isabs(d)]
+    native = doc.get("native")
+    if isinstance(native, dict):
+        state["native"] = {"manifests": _abs_paths(native.get("manifests")),
+                           "created_dirs": _abs_paths(native.get("created_dirs"))}
     state["last_sync"] = _norm_last_sync(doc.get("last_sync"))
     return state, True
 
@@ -2814,7 +4992,37 @@ def state_save(folder, state, warnings):
     except OSError as exc:
         warnings.append(make_warning(WARN_WRITE_FAILED, "state.json not written: %s"
                                      % (exc.strerror or exc)))
-    return len(warnings) == before
+    saved = len(warnings) == before
+    if saved:
+        _state_dirs_save(folder, state["created_dirs"], warnings)
+    return saved
+
+
+def _state_dirs_load(folder, state):
+    """`state` with the folders kept in STATE_DIRS added to its
+    created_dirs (state.json missing or corrupt)."""
+    try:
+        doc = json.loads(read_text(os.path.join(folder, STATE_DIRS), limit=65536))
+    except (OSError, ValueError, RecursionError):
+        return state
+    for path in _abs_paths(doc):
+        if path not in state["created_dirs"]:
+            state["created_dirs"].append(path)
+    return state
+
+
+def _state_dirs_save(folder, created_dirs, warnings):
+    """Keep `created_dirs` in STATE_DIRS, removed when there are none."""
+    path = os.path.join(folder, STATE_DIRS)
+    created_dirs = sorted(set(_abs_paths(list(created_dirs))))
+    try:
+        if created_dirs:
+            write_if_changed(path, state_text(created_dirs), warnings, mode=0o600, make_dirs=False)
+        else:
+            _remove_file(path)
+    except OSError as exc:
+        warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
+                                     % (STATE_DIRS, _oserror_text(exc))))
 
 
 def backup_records(sdir, state):
@@ -3010,7 +5218,7 @@ def backup_take(sdir, pid, path, texts, prefs_original=None):
                     chrome_dir = True
             elif entry not in ours:
                 chrome_dir = True
-    record = {"path": path, "chrome_dir": chrome_dir, "files": files,
+    record = {"path": path, "chrome_dir": chrome_dir, "ext_dir": False, "files": files,
               "prefs_original": prefs_original}
     os.makedirs(os.path.join(sdir, BACKUP_DIR), mode=0o700, exist_ok=True)
     os.mkdir(folder, 0o700)
@@ -3133,6 +5341,40 @@ def prefs_plan_v0(text):
     """Without a v1 state (H2): delete only the lines carrying a value v0 wrote."""
     current = parse_prefs(text)
     return [(p, None) for p in PREFS if current.get(p) in V0_PREF_VALUES[p]]
+
+
+def prefs_plan_lost(text, ours):
+    """Without any record (state.json, pending file and backup all lost),
+    with `ours` ({pref: value} of the managed block taken out of user.js):
+    delete the lines carrying a value v0 wrote or the one the block set
+    (prefs_originals' rule). A pref of the block missing from prefs.js is
+    deleted too: a running browser writes the block's value at exit. The
+    two scope prefs get back a value the block's came from instead
+    (_scope_original), deleted only when the default gives the block's."""
+    current = parse_prefs(text)
+    plan = []
+    for p in PREFS:
+        if current.get(p) in V0_PREF_VALUES[p]:
+            plan.append((p, None))
+        elif p in ours and current.get(p) in (None, ours[p]):
+            plan.append((p, _scope_original(p, ours[p])))
+    return plan
+
+
+def _scope_original(pref, literal):
+    """An original value of a scope pref the block set to `literal`
+    (companion_prefs only flips SCOPE_PROFILE), None (delete the line) when
+    `literal` is the one the default gives, or for any other pref. A guess
+    (lost state only): it takes the browser's own default to be
+    AUTODISABLE_DEFAULT / STARTUP_SCAN_DEFAULT, so a browser whose default
+    differs gets a user value where it had none."""
+    if pref not in (PREF_AUTODISABLE, PREF_STARTUP_SCAN) \
+            or not isinstance(literal, str) or not _SCOPE_LITERAL.fullmatch(literal):
+        return None
+    value = int(literal)
+    if pref == PREF_AUTODISABLE:
+        return None if value == AUTODISABLE_DEFAULT & ~SCOPE_PROFILE else str(value | SCOPE_PROFILE)
+    return None if value == STARTUP_SCAN_DEFAULT | SCOPE_PROFILE else str(value & ~SCOPE_PROFILE)
 
 
 def prefs_plan_record(record, prefs):
@@ -3326,15 +5568,22 @@ def build_parser():
     sub.required = True
 
     p = sub.add_parser("sync", help="apply the glass state to every profile")
-    p.add_argument("--settings", required=True, metavar="JSON",
-                   help="plugin settings as one JSON object")
+    given = p.add_mutually_exclusive_group(required=True)
+    given.add_argument("--settings", metavar="JSON",
+                       help="plugin settings as one JSON object")
+    given.add_argument("--settings-file", metavar="FILE",
+                       help="read the settings JSON from FILE, then delete it (the daemon's"
+                       " way: an argv is public)")
     p.add_argument("--data", metavar="DIR", help="directory holding styles.json and css-mapping.json")
     p.add_argument("--profile", action="append", default=[], metavar="DIR",
                    help="only sync this profile directory (repeatable)")
     p.add_argument("--opacity", type=_opacity_arg, metavar="X", help="force the opacity (0..1)")
     p.add_argument("--off", action="store_true", help="force glass inactive")
     p.add_argument("--if-plugin", metavar="FILE",
-                   help="refuse (nothing written) when FILE, the plugin's plugin.json, is missing")
+                   help="refuse (nothing written) when FILE, the plugin's plugin.json, is missing "
+                        "or DMS has the plugin disabled")
+    p.add_argument("--plugin-dir", type=os.path.abspath, metavar="DIR",
+                   help="plugin folder: install its companion add-on (liveControl)")
 
     p = sub.add_parser("status", help="read-only state of browsers, profiles and glass")
     p.add_argument("--json", action="store_true", required=True, help="JSON output")
@@ -3351,6 +5600,24 @@ def build_parser():
     p = sub.add_parser("sites", help="list the dedicated site styles")
     p.add_argument("--json", action="store_true", required=True, help="JSON output")
     p.add_argument("--data", metavar="DIR", help="directory holding styles.json and css-mapping.json")
+
+    p = sub.add_parser("native-host", help="internal: the companion add-on's native messaging host")
+    p.add_argument("--data", metavar="DIR", help="directory holding public_suffix_list.dat")
+    # What the browser passes: the manifest's path and the add-on's id.
+    p.add_argument("extra", nargs="*", metavar="ARG", help=argparse.SUPPRESS)
+
+    p = sub.add_parser("active-site", help="the site shown in a browser window (read-only)")
+    p.add_argument("--json", action="store_true", required=True, help="JSON output")
+    p.add_argument("--pid", type=int, required=True, metavar="PID",
+                   help="process id of the niri window (the browser's main process)")
+    p.add_argument("--app-id", required=True, metavar="ID", help="app-id of the niri window")
+    which = p.add_mutually_exclusive_group()
+    which.add_argument("--title", metavar="T", help="title of the niri window")
+    # What the daemon passes instead of the title: an argv is readable by
+    # every local user (/proc/PID/cmdline), so the title is asked of niri.
+    which.add_argument("--window-id", type=int, metavar="ID",
+                   help="id of the niri window: its title is read from niri ($NIRI_SOCKET)")
+    p.add_argument("--data", metavar="DIR", help="directory holding " + PSL_FILE)
     return parser
 
 
@@ -3411,6 +5678,314 @@ def _read_profile_texts(path):
     return {name: read_optional(os.path.join(path, rel)) for name, rel in PROFILE_FILES}
 
 
+# ---- live push ----------------------------------------------------------------
+#
+# A running browser re-reads the stylesheets and user.js only when it
+# restarts, except for the exclusion list, which the companion extension
+# applies live. The profile record keeps "live" {instance, restart_hash,
+# excl_hash, mtime}: what the running instance (its lock_instance() key)
+# has, the restart part loaded at its start and the exclusion list loaded
+# then or pushed and acknowledged since, and the newest mtime of the
+# profile's RESTART_FILES right after the writes of the sync that pushed
+# (taken before the push: an edit while the push waits for acks must not
+# end up inside it; one that does makes the record unknown). A closed or restarted
+# browser drops it (_h1_rule_needed; status also checks the key). While it
+# matches the record and none of the RESTART_FILES changed after `mtime`
+# (live_applied), files written after the start need no restart; any later
+# write, ours or the user's (their own rules in userChrome.css or
+# userContent.css, user.js outside our block), asks for one again.
+
+_INSTANCE_KEY = re.compile(r"([0-9]{1,10}):[0-9]+")
+
+
+def live_push(env, domains):
+    """Send the exclusion list `domains` to the native hosts of the running
+    browsers. Returns (delivered, acked): the number of hosts the list was
+    sent to, and the frozenset of browser pids whose host acknowledged that
+    the list is applied.
+
+    Acks are per browser pid, not per profile: one host runs per browser
+    process (it is a child of the process holding the profile's
+    .parentlock), and a profile's lock_instance() key starts with that pid,
+    so an ack covers exactly the profile that process runs (_live_update).
+
+    Every host-<pid>.sock of the runtime folder gets the list (each browser
+    must know it), all at once: one line {"excluded": [...]}, then up to
+    LIVE_ACK_TIMEOUT seconds in all for the {"acked": seq} lines. A socket
+    nobody listens on any more (a host that died) goes, with its pid's
+    active-/ack- files; a starting host renames its socket into place only
+    once it listens (_NativeHost.listen), so a refusal means a dead one."""
+    rdir = runtime_dir(env)
+    if rdir is None or not _runtime_dir_ours(rdir):
+        return 0, frozenset()
+    try:
+        names = os.listdir(rdir)
+    except OSError:
+        return 0, frozenset()
+    pids = sorted(int(m.group(1)) for m in map(_HOST_SOCKET.fullmatch, names) if m)
+    if not pids:
+        return 0, frozenset()
+    import select
+    import socket
+    line = (json.dumps({"excluded": list(domains)}) + "\n").encode("ascii")
+    waiting = {}
+    acked = set()
+    try:
+        for pid in pids:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+            try:
+                sock.settimeout(LIVE_CONNECT_TIMEOUT)
+                sock.connect(runtime_file(rdir, "host", pid))
+                sock.sendall(line)
+            except (ConnectionRefusedError, FileNotFoundError):
+                sock.close()
+                for kind in ("host", "active", "ack"):
+                    try:
+                        os.unlink(runtime_file(rdir, kind, pid))
+                    except OSError:
+                        pass
+                continue
+            except OSError:  # busy or broken: not delivered
+                sock.close()
+                continue
+            waiting[sock] = (pid, b"")
+        delivered = len(waiting)
+        deadline = time.monotonic() + LIVE_ACK_TIMEOUT
+        while waiting:
+            left = deadline - time.monotonic()
+            ready = select.select(list(waiting), [], [], left)[0] if left > 0 else []
+            if not ready:
+                break
+            for sock in ready:
+                pid, buf = waiting.pop(sock)
+                try:
+                    chunk = sock.recv(4096)
+                except OSError:
+                    chunk = b""
+                buf += chunk
+                if chunk and b"\n" not in buf and len(buf) < 4096:
+                    waiting[sock] = (pid, buf)
+                    continue
+                sock.close()
+                try:
+                    reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+                except (UnicodeDecodeError, ValueError, RecursionError):
+                    continue
+                seq = reply.get("acked") if isinstance(reply, dict) else None
+                if isinstance(seq, int) and not isinstance(seq, bool):
+                    acked.add(pid)
+    finally:
+        for sock in waiting:
+            sock.close()
+    return delivered, frozenset(acked)
+
+
+def _live_push_safe(env, domains):
+    """live_push() as (delivered, acked pids), where any failure or unusable
+    result counts as nothing delivered: the push is best effort, and sync
+    must still save its state after it."""
+    try:
+        delivered, acked = live_push(env, list(domains))
+        acked = frozenset(pid for pid in acked if isinstance(pid, int) and not isinstance(pid, bool))
+        if not isinstance(delivered, int) or isinstance(delivered, bool):
+            delivered = 0
+    except Exception:  # a broken push is no acknowledgement
+        return 0, frozenset()
+    return max(delivered, len(acked)), acked
+
+
+def instance_browser_pid(key):
+    """The browser pid of a lock_instance() key, None for "?" or None."""
+    match = _INSTANCE_KEY.fullmatch(key) if isinstance(key, str) else None
+    return int(match.group(1)) if match else None
+
+
+def restart_files_mtime(path):
+    """Newest st_mtime of the RESTART_FILES of the profile folder `path`,
+    0.0 when none of them exists."""
+    newest = 0.0
+    for rel in RESTART_FILES:
+        try:
+            newest = max(newest, os.stat(os.path.join(path, rel)).st_mtime)
+        except OSError:
+            continue
+    return newest
+
+
+def _live_current(path, live, key):
+    """True when the live record `live` is that of the running instance
+    `key` and no RESTART_FILES of `path` changed after it was taken."""
+    return bool(live is not None and key is not None and live["instance"] == key
+                and not files_changed_since(path, live["mtime"]))
+
+
+def instance_loaded(path, record, key):
+    """(restart_hash, excl_hash) that the running instance `key` of the
+    profile folder `path` has, None when it cannot be told: its live record
+    while no file changed after it, else `record`'s last sync when no
+    RESTART_FILES changed since the instance started and the files are
+    still that sync's."""
+    live = record.get("live")
+    if _live_current(path, live, key):
+        return live["restart_hash"], live["excl_hash"]
+    if record.get("restart_hash") is None or record.get("excl_hash") is None:
+        return None
+    start = process_start(key) if instance_browser_pid(key) is not None else None
+    if start is None or files_changed_since(path, start) or not profile_applied(path, record):
+        return None
+    return record["restart_hash"], record["excl_hash"]
+
+
+def live_applied(path, record, key):
+    """True when the running instance `key` of the profile folder `path`
+    has what `record`'s last sync wrote (the restart part since its start,
+    the exclusion list live) and nothing was written after that."""
+    live = record.get("live") if record is not None else None
+    return bool(_live_current(path, live, key)
+                and record.get("applied_hash") is not None
+                and live["restart_hash"] == record.get("restart_hash")
+                and live["excl_hash"] == record.get("excl_hash"))
+
+
+def _live_applied_now(record):
+    """live_applied() for the instance a sync just recorded."""
+    return live_applied(record["path"], record, record["instance"])
+
+
+def _live_update(ctx, acked):
+    """Record, after the writes and the push, what each probed running
+    instance (ctx["instances"], probed before the writes) now has.
+
+    An acknowledged push gives it the exclusion list of this sync on top of
+    what it had loaded. Without an acknowledgement its live record stays
+    only while it records the list this sync wrote: the outcome of a push
+    of another list is unknown (delivered, the ack lost or late), so the
+    record goes. An instance whose loaded files cannot be told gets none
+    (a restart is needed, as in v1.0), and so does one whose RESTART_FILES
+    changed between this sync's writes and the end of the push: that
+    change, not this sync's, may be what it has not loaded."""
+    for pid, (key, loaded, written) in sorted(ctx["instances"].items()):
+        record = ctx["state"]["profiles"][pid]
+        bpid = instance_browser_pid(key)
+        if bpid is None or key != record["instance"]:
+            continue  # unknown, or restarted since the probe
+        live = record["live"]
+        if loaded is None or record["excl_hash"] is None:
+            record["live"] = None
+        elif bpid in acked:
+            if written is None or restart_files_mtime(record["path"]) != written:
+                record["live"] = None
+            else:
+                record["live"] = {"instance": key, "restart_hash": loaded[0],
+                                  "excl_hash": record["excl_hash"], "mtime": written}
+        elif live is not None and live["excl_hash"] != record["excl_hash"]:
+            record["live"] = None
+
+
+# ---- per-profile output -------------------------------------------------------
+#
+# The stylesheets are the same for every profile; the user.js block is
+# rendered per profile (userjs_prefs takes the Profile), and so are its
+# prefs and the hashes. profile_output() is the one seam, and today it
+# gives the same block to every profile. The companion prefs extend it:
+# family and variant come with the Profile; the channel (read from the
+# profile's compatibility.ini through its path), the companion state and
+# the profile's original values (record["prefs_original"], for the scopes
+# derived from them) need the path or the record, which _sync_profile
+# passes to the seam. applied_hash_of() is the one formula of applied_hash,
+# for the seam and for profile_applied() alike.
+#
+# Two fingerprints, besides applied_hash, tell a change a running browser
+# picks up live from one that needs a restart:
+#   restart_hash  every output, the content stylesheet rendered with an
+#                 empty exclusion list (what only a restart applies)
+#   excl_hash     the normalised exclusion list (what a live push applies)
+# The bare stylesheet costs a second site styles build: it is rendered only
+# when a profile's output changed. Unchanged output (same applied_hash and
+# excl_hash) keeps the record's restart_hash, that of the files on disk.
+
+def _render_content(settings, opacity, sites, off, surfaces, problems=None):
+    """content_css() with the site styles of `sites` (sites_load(), None for
+    none) built for `settings`; site style problems go to `problems`."""
+    sites_css = ""
+    if sites is not None:
+        sites_css = sites_build_css(sites, settings["excluded"], settings["disabledStyles"],
+                                    settings["genericStyle"], problems, live_gate(settings))
+    return content_css(settings, opacity, sites_css, off, surfaces, sites)
+
+
+def sync_base(settings, opacity, off, chrome, content, restart_content=None):
+    """The profile-independent part of what sync writes, for profile_output().
+
+    `restart_content` is the content stylesheet rendered with the same
+    inputs but an empty exclusion list, or a function without arguments
+    that renders it (called at most once, only when a profile needs it);
+    None: `content`, which is it when the list is empty. restart_hash is
+    computed from it, so a change of the exclusion list alone never
+    changes restart_hash, whatever the renderers make of the list."""
+    if restart_content is None:
+        restart_content = content
+    return {
+        "settings": settings, "opacity": opacity, "off": off,
+        "chrome": chrome, "content": content,
+        "hash_prefix": _hash_prefix(chrome, content),
+        "restart_content": restart_content, "restart_prefix": None,
+        "excl_hash": _sha256("\n".join(sorted(settings["excluded"])))[:16],
+    }
+
+
+def _hash_prefix(chrome, content):
+    """sha256 state after "chrome\0content\0": a profile only adds its block."""
+    return hashlib.sha256(("%s\0%s\0" % (chrome, content)).encode("utf-8", "surrogateescape"))
+
+
+def _prefix_hash(prefix, text):
+    digest = prefix.copy()
+    digest.update(text.encode("utf-8", "surrogateescape"))
+    return digest.hexdigest()[:16]
+
+
+def applied_hash_of(chrome, content, block, prefix=None):
+    """applied_hash of the stylesheets `chrome`, `content` and the user.js
+    block `block`: sha256 of "chrome\0content\0block", first 16 hex digits.
+    `prefix` is _hash_prefix(chrome, content) when already computed."""
+    return _prefix_hash(prefix if prefix is not None else _hash_prefix(chrome, content), block)
+
+
+def _restart_prefix(base):
+    """_hash_prefix() of the chrome and the bare content stylesheet,
+    rendered on first use."""
+    if base["restart_prefix"] is None:
+        content = base["restart_content"]
+        if callable(content):
+            content = content()
+        base["restart_prefix"] = _hash_prefix(base["chrome"], content)
+    return base["restart_prefix"]
+
+
+def profile_output(base, profile, record=None, companion=None):
+    """What sync writes to `profile` (a Profile) and its fingerprints:
+    {chrome, content, block, block_prefs, block_values, hash, restart_hash,
+    excl_hash}. hash is applied_hash (applied_hash_of), the one
+    profile_applied() finds again on disk. `record` is the profile's state
+    record, None for a new one: an output it already describes keeps its
+    restart_hash. `companion` goes to userjs_prefs()."""
+    prefs = userjs_prefs(base["settings"], base["opacity"], base["off"], profile, companion)
+    block = userjs_block_text(prefs)
+    applied = applied_hash_of(base["chrome"], base["content"], block, base["hash_prefix"])
+    if (record is not None and record.get("restart_hash") is not None
+            and record.get("applied_hash") == applied
+            and record.get("excl_hash") == base["excl_hash"]):
+        restart = record["restart_hash"]
+    else:
+        restart = _prefix_hash(_restart_prefix(base), block)
+    return {
+        "chrome": base["chrome"], "content": base["content"], "block": block,
+        "block_prefs": [p for p, _ in prefs], "block_values": parse_prefs(block),
+        "hash": applied, "restart_hash": restart, "excl_hash": base["excl_hash"],
+    }
+
+
 def _sync_profile(ctx, profile):
     """Sync one profile. Returns True when one of its files changed."""
     sdir, state, warnings = ctx["sdir"], ctx["state"], ctx["warnings"]
@@ -3438,6 +6013,7 @@ def _sync_profile(ctx, profile):
             "owned_prefs": [p for p in PREFS if p in block_prefs(texts[USER_JS])],
             "restore_prefs": [], "applied_hash": None, "instance": None,
             "glass_loaded_since_start": False,
+            "restart_hash": None, "excl_hash": None, "live": None, "companion": None,
         }
         pend = ctx["pending"].get(pid)
         if pend is not None:
@@ -3455,8 +6031,11 @@ def _sync_profile(ctx, profile):
     if pid in ctx["pending"]:
         # Taken back from a deferred uninstall (re-enabled while the
         # browser ran): the record now holds the originals; the pending
-        # file goes once state.json is saved.
+        # file goes once state.json is saved, its state folders kept.
         ctx["taken_back"].add(pid)
+        for folder in ctx["pending"][pid]["created_dirs"]:
+            if folder not in state["created_dirs"]:
+                state["created_dirs"].append(folder)
     record["path"] = path
     if family is not None:
         record["family"] = family
@@ -3464,12 +6043,23 @@ def _sync_profile(ctx, profile):
         record["variant"] = profile.variant
     state["profiles"][pid] = record
 
+    comp_state, comp_originals = _companion_plan(ctx, profile, record, fresh, prefs_text)
+    out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals)
+    # What a running browser has loaded, probed before anything is written
+    # (the writes would make every file newer than its start). Only an
+    # exclusion change can be applied live, and only a live record can
+    # carry over: otherwise any write needs a restart, nothing to probe.
+    if not fresh and (out["excl_hash"] != record["excl_hash"] or record["live"] is not None):
+        lstate, key = lock_instance(path)
+        if lstate != LOCK_FREE:
+            # (key, loaded, RESTART_FILES mtime right after the writes)
+            ctx["instances"][pid] = (key, instance_loaded(path, record, key), None)
     writes = [
-        (chrome_path, ctx["chrome"], None),
-        (content_path, ctx["content"], None),
+        (chrome_path, out["chrome"], None),
+        (content_path, out["content"], None),
     ]
     for name, rel in PROFILE_FILES:
-        writes.append((os.path.join(path, rel), apply_ours(name, texts[name] or "", ctx["block"]),
+        writes.append((os.path.join(path, rel), apply_ours(name, texts[name] or "", out["block"]),
                        0o600 if name == USER_JS else None))
     changed = False
     clean = True
@@ -3492,22 +6082,34 @@ def _sync_profile(ctx, profile):
                                          % (os.path.basename(target), _oserror_text(exc)), family, pid))
         if len(warnings) != before:
             clean = False
-    record["applied_hash"] = ctx["hash"] if clean else None
+    if _companion_files(ctx, profile, record, comp_state):
+        changed = True
+    if pid in ctx["instances"]:
+        # The live record's baseline, taken now and not after the push.
+        ctx["instances"][pid] = ctx["instances"][pid][:2] + (restart_files_mtime(path),)
+    record["applied_hash"] = out["hash"] if clean else None
+    record["restart_hash"] = out["restart_hash"] if clean else None
+    record["excl_hash"] = out["excl_hash"] if clean else None
 
     # H3: prefs that left the block get their original value back in
     # prefs.js, only while the browser is closed (it rewrites the file).
-    owned = ctx["block_prefs"]
+    owned = out["block_prefs"]
     if not fresh:
         # H3: a pref owned again whose original was already put back gets
         # its current value (the user's latest choice) as the new original.
         current = parse_prefs(prefs_text)
+        # A companion pref never owned (a v1.0 install) has no value of ours
+        # in prefs.js: whatever it holds is the user's, even our own value.
         for pref in owned:
             if pref not in record["owned_prefs"] and pref not in record["restore_prefs"]:
                 value = current.get(pref)
-                if value is None or ctx["block_values"].get(pref) == value:
+                if value is None or (out["block_values"].get(pref) == value
+                                     and pref not in COMPANION_PREFS):
                     record["prefs_original"][pref] = {"absent": True}
                 else:
                     record["prefs_original"][pref] = {"value": value}
+    _backup_add_originals(sdir, pid, state["backups"].get(pid), record["prefs_original"], warnings,
+                          family)
     restore = set(record["restore_prefs"]) | (set(record["owned_prefs"]) - set(owned))
     restore -= set(owned)
     record["owned_prefs"] = [p for p in PREFS if p in owned]
@@ -3531,14 +6133,331 @@ def _first_contact_originals(ctx, pid, prefs_text, userjs_text):
     deferred uninstall (prefs.js may still hold our values), else from the
     backup's meta.json (state.json lost or corrupt), else from prefs.js."""
     pend = ctx["pending"].get(pid)
-    if pend is not None:
-        if pend["prefs_original"] is not None:
-            return copy.deepcopy(pend["prefs_original"])
-        return prefs_originals_v0(prefs_text)
     backup = ctx["state"]["backups"].get(pid)
-    if backup is not None and backup["prefs_original"] is not None:
-        return copy.deepcopy(backup["prefs_original"])
-    return prefs_originals(prefs_text, userjs_text)
+    if pend is not None:
+        if pend["prefs_original"] is None:
+            return prefs_originals_v0(prefs_text)
+        out = copy.deepcopy(pend["prefs_original"])
+    elif backup is not None and backup["prefs_original"] is not None:
+        out = copy.deepcopy(backup["prefs_original"])
+    else:
+        return prefs_originals(prefs_text, userjs_text)
+    # A v1.0 pending file or backup lacks the companion prefs, which v1.0
+    # never wrote: prefs.js holds the user's values.
+    for pref, item in prefs_originals(prefs_text, userjs_text).items():
+        out.setdefault(pref, item)
+    return out
+
+
+def _backup_add_originals(sdir, pid, backup, originals, warnings, family=None):
+    """Add to the backup record `backup` (and its meta.json) the original
+    of each pref of `originals` it lacks: a v1.0 backup has no companion
+    prefs, and a lost state.json must still restore them. Never replaces
+    an original already there. A backup whose originals were dropped (kept
+    by an uninstall, its prefs restored) takes all of `originals`."""
+    if backup is None:
+        return
+    if backup["prefs_original"] is None:
+        backup["prefs_original"] = {}
+    missing = {p: v for p, v in originals.items() if p not in backup["prefs_original"]}
+    if not missing:
+        return
+    backup["prefs_original"].update(copy.deepcopy(missing))
+    meta = os.path.join(backup_folder(sdir, pid), BACKUP_META)
+    try:
+        doc = json.loads(read_text(meta))
+        if isinstance(doc, dict) and doc.get("prefs_original") is None:
+            doc["prefs_original"] = {}
+        if isinstance(doc, dict) and isinstance(doc.get("prefs_original"), dict):
+            for pref, item in missing.items():
+                doc["prefs_original"].setdefault(pref, item)
+            write_if_changed(meta, state_text(doc), warnings, mode=0o600, make_dirs=False)
+    except (OSError, ValueError, RecursionError) as exc:
+        reason = _oserror_text(exc) if isinstance(exc, OSError) else "unreadable"
+        warnings.append(make_warning(WARN_BACKUP_FAILED, "%s not updated: %s"
+                                     % (BACKUP_META, reason), family, pid))
+
+
+def _companion_plan(ctx, profile, record, fresh, prefs_text):
+    """(state, originals) of the companion add-on in one profile, before
+    its files are written. `originals` ({pref: JS literal or None}, the
+    original prefs.js values the companion prefs are derived from) is None
+    when the block holds no companion pref. Without --plugin-dir the
+    add-on is left as it is (R15): a deposit of ours keeps its prefs."""
+    path = profile.path
+    comp = record["companion"]
+    compat = compat_values(path)
+    state = companion_state(path, profile.family, profile.variant, comp,
+                            ctx["base"]["settings"]["liveControl"], ctx["xpi"] is not None, compat,
+                            ctx["env"])
+    if state == COMPANION_REFUSED and comp["dropped"] is not None:
+        # Deleted by the browser (signing required): no new deposit until
+        # its build changes.
+        comp["refused"] = compat.get("LastVersion") or ""
+        comp["dropped"] = None
+    elif state == COMPANION_REMOVED:
+        comp["seen"] = True  # the mark outlives the deposit it was read from
+    elif state in COMPANION_DEPOSITED and comp is not None:
+        comp["refused"] = None
+    ctx["companion"][profile.id] = state
+    keep = (state == COMPANION_NO_PLUGIN and comp is not None and comp["dropped"] is not None
+            and os.path.lexists(companion_xpi_path(path)))
+    if state not in COMPANION_DEPOSITED and not keep:
+        return state, None
+    current = parse_prefs(prefs_text)
+    originals = {}
+    for pref in COMPANION_PREFS:
+        if fresh or pref in record["owned_prefs"] or pref in record["restore_prefs"]:
+            originals[pref] = record["prefs_original"].get(pref, {"absent": True}).get("value")
+        else:
+            originals[pref] = current.get(pref)  # what H3 takes as the original
+    return state, originals
+
+
+def companion_remove(profile_path, comp, keep_seen=False):
+    """Remove the companion add-on from the profile folder, and
+    extensions/ when we created it and it is now empty. Updates `comp`
+    (record["companion"], or None; its "seen" mark is cleared unless
+    `keep_seen`). Returns True when the xpi was there. Raises OSError."""
+    target = companion_xpi_path(profile_path)
+    removed = _remove_file(target)
+    if comp is not None:
+        comp["dropped"] = None
+        comp["seen"] = comp["seen"] and keep_seen
+        if comp["ext_dir"]:
+            _rmdir_quiet(os.path.dirname(target))
+            comp["ext_dir"] = os.path.isdir(os.path.dirname(target))
+    return removed
+
+
+def _companion_files(ctx, profile, record, state):
+    """Deposit (or remove) the companion add-on of one profile for its
+    `state`. Returns True when a file changed."""
+    warnings, pid, family, path = ctx["warnings"], profile.id, profile.family, profile.path
+    if state == COMPANION_NO_PLUGIN:
+        return False
+    target = companion_xpi_path(path)
+    folder = os.path.dirname(target)
+    ctx["folders"].add(folder)
+    backup = ctx["state"]["backups"].get(pid)
+    changed = False
+    try:
+        if record["companion"] is None and (state in COMPANION_DEPOSITED
+                                            or _ext_dir_ours(folder, backup)):
+            record["companion"] = {"dropped": None, "build": compat_values(path).get("LastVersion"),
+                                   "refused": None, "ext_dir": _ext_dir_ours(folder, backup),
+                                   "seen": False}
+        if state in COMPANION_DEPOSITED:
+            comp = record["companion"]
+            if make_dirs_tracked(folder):
+                comp["ext_dir"] = True
+            changed = write_bytes_if_changed(target, ctx["xpi"], warnings, family, pid,
+                                             mode=0o644, make_dirs=False)
+            if changed or comp["dropped"] is None:
+                comp["dropped"] = os.stat(target).st_mtime
+                comp["build"] = compat_values(path).get("LastVersion")
+            if state == COMPANION_INSTALLED:
+                comp["seen"] = True
+        else:
+            changed = companion_remove(path, record["companion"],
+                                       keep_seen=state == COMPANION_REMOVED)
+    except OSError as exc:
+        warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
+                                     % (COMPANION_XPI, _oserror_text(exc)), family, pid))
+    comp = record["companion"]
+    if comp is not None and comp == {"dropped": None, "build": comp["build"], "refused": None,
+                                     "ext_dir": False, "seen": False} \
+            and state not in COMPANION_DEPOSITED:
+        record["companion"] = None
+    _backup_mark_ext_dir(ctx["sdir"], pid, backup, comp is not None and comp["ext_dir"], warnings,
+                         family)
+    return changed
+
+
+def _ext_dir_ours(folder, backup):
+    """True when we created the profile's extensions/ `folder`, read when no
+    companion record says it (state.json lost or corrupt): the profile's
+    backup says so, or the folder holds nothing but our add-on."""
+    if backup is not None and backup["ext_dir"]:
+        return True
+    try:
+        return os.listdir(folder) == [COMPANION_XPI]
+    except OSError:
+        return False
+
+
+def _backup_mark_ext_dir(sdir, pid, backup, ext_dir, warnings, family=None):
+    """Keep `ext_dir` (we created extensions/) in the backup record `backup`
+    and its meta.json, where it survives a lost or corrupt state.json."""
+    if backup is None or backup["ext_dir"] == ext_dir:
+        return
+    backup["ext_dir"] = ext_dir
+    meta = os.path.join(backup_folder(sdir, pid), BACKUP_META)
+    try:
+        doc = json.loads(read_text(meta))
+        if isinstance(doc, dict):
+            doc["ext_dir"] = ext_dir
+            write_if_changed(meta, state_text(doc), warnings, mode=0o600, make_dirs=False)
+    except (OSError, ValueError, RecursionError) as exc:
+        reason = _oserror_text(exc) if isinstance(exc, OSError) else "unreadable"
+        warnings.append(make_warning(WARN_BACKUP_FAILED, "%s not updated: %s"
+                                     % (BACKUP_META, reason), family, pid))
+
+
+def native_manifest_path(env=None):
+    """~/.mozilla/native-messaging-hosts/<NATIVE_MANIFEST_NAME>, read by
+    Firefox and LibreWolf alike."""
+    return os.path.join(home_dir(env), NATIVE_MANIFEST_REL, NATIVE_MANIFEST_NAME)
+
+
+def _manifest_is_ours(path):
+    """True when `path` is a native messaging manifest of our host."""
+    try:
+        doc = json.loads(read_text(path, limit=65536))
+    except (OSError, ValueError, RecursionError):
+        return False
+    return (isinstance(doc, dict) and doc.get("name") == NATIVE_HOST_NAME
+            and doc.get("allowed_extensions") == [COMPANION_ID])
+
+
+def native_remove(env, state, sdir, warnings):
+    """Remove the native messaging manifests recorded in `state` (and ours
+    at the default path), the folders made for them and the host wrapper.
+    The wrapper stays while a manifest that names it could not be removed:
+    the next sync or uninstall retries both (uninstall still clears the
+    state folder that holds it). Returns True when a file went."""
+    native = state["native"]
+    _native_dirs_load(sdir, native)
+    paths = list(native["manifests"])
+    default = native_manifest_path(env)
+    if default not in paths:
+        paths.append(default)
+    removed = False
+    kept = []
+    unrecorded = None
+    for path in paths:
+        try:
+            if _manifest_is_ours(path) and _remove_file(path):
+                removed = True
+                if path not in native["manifests"]:
+                    unrecorded = path
+        except OSError as exc:
+            kept.append(path)
+            warnings.append(make_warning(WARN_WRITE_FAILED, "%s not removed: %s"
+                                         % (NATIVE_MANIFEST_NAME, _oserror_text(exc))))
+    for folder in sorted(native["created_dirs"], key=len, reverse=True):
+        _rmdir_quiet(folder)
+    if unrecorded is not None and not native["created_dirs"]:
+        # Ours, but no state.json says it (lost or corrupt) nor which
+        # folders were made for it: they go once empty
+        # (native-messaging-hosts/, then ~/.mozilla/).
+        folder = os.path.dirname(unrecorded)
+        _rmdir_quiet(folder)
+        _rmdir_quiet(os.path.dirname(folder))
+    native["manifests"] = kept
+    native["created_dirs"] = [d for d in native["created_dirs"] if os.path.isdir(d)]
+    _native_dirs_save(sdir, native, warnings)
+    if kept:
+        return removed
+    try:
+        if _remove_file(os.path.join(sdir, HOST_WRAPPER)):
+            removed = True
+    except OSError as exc:
+        warnings.append(make_warning(WARN_WRITE_FAILED, "%s not removed: %s"
+                                     % (HOST_WRAPPER, _oserror_text(exc))))
+    return removed
+
+
+def _native_dirs_load(sdir, native):
+    """Add to native["created_dirs"] the folders kept in NATIVE_DIRS (they
+    survive a lost or corrupt state.json)."""
+    try:
+        doc = json.loads(read_text(os.path.join(sdir, NATIVE_DIRS), limit=65536))
+    except (OSError, ValueError, RecursionError):
+        return
+    for folder in _abs_paths(doc):
+        if folder not in native["created_dirs"]:
+            native["created_dirs"].append(folder)
+
+
+def _native_dirs_save(sdir, native, warnings):
+    """Keep native["created_dirs"] in NATIVE_DIRS, removed once empty."""
+    path = os.path.join(sdir, NATIVE_DIRS)
+    try:
+        if native["created_dirs"]:
+            write_if_changed(path, state_text(sorted(native["created_dirs"])), warnings, mode=0o600,
+                             make_dirs=False)
+        else:
+            _remove_file(path)
+    except OSError as exc:
+        warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
+                                     % (NATIVE_DIRS, _oserror_text(exc))))
+
+
+def _native_dirs_ours(manifest):
+    """The folders holding nothing but our `manifest` (its folder, then
+    the one above), made for it by a sync whose record is lost."""
+    folder = os.path.dirname(manifest)
+    parent = os.path.dirname(folder)
+    try:
+        if os.listdir(folder) != [os.path.basename(manifest)] or not _manifest_is_ours(manifest):
+            return []
+        return [parent, folder] if os.listdir(parent) == [os.path.basename(folder)] else [folder]
+    except OSError:
+        return []
+
+
+def _sync_native(ctx, plugin_dir):
+    """Full syncs: write the native messaging manifest and the host
+    wrapper while a native profile has the add-on deposited, else remove
+    them. With liveControl on and no --plugin-dir they are left as they
+    are (R15); with liveControl off they are removed, --plugin-dir or not."""
+    state, warnings, env, sdir = ctx["state"], ctx["warnings"], ctx["env"], ctx["sdir"]
+    enabled = ctx["base"]["settings"]["liveControl"]
+    if enabled and ctx["xpi"] is None:
+        return False
+    if not (enabled and any(s in COMPANION_DEPOSITED for s in ctx["companion"].values())):
+        return native_remove(env, state, sdir, warnings)
+    native = state["native"]
+    wrapper = os.path.join(sdir, HOST_WRAPPER)
+    manifest = native_manifest_path(env)
+    folder = os.path.dirname(manifest)
+    changed = False
+    try:
+        changed = write_if_changed(wrapper, host_wrapper_text(plugin_dir), warnings, mode=0o755)
+        _native_dirs_load(sdir, native)
+        made = make_dirs_tracked(folder)
+        if manifest not in native["manifests"] and not native["created_dirs"]:
+            # No record of ours (the state folder lost): folders holding
+            # nothing but our manifest are ours.
+            made += _native_dirs_ours(manifest)
+        for folder_made in made:
+            if folder_made not in native["created_dirs"]:
+                native["created_dirs"].append(folder_made)
+        _native_dirs_save(sdir, native, warnings)
+        if manifest not in native["manifests"]:
+            native["manifests"].append(manifest)
+        ctx["folders"].add(folder)
+        if write_if_changed(manifest, native_manifest_text(wrapper), warnings, mode=0o644,
+                            make_dirs=False):
+            changed = True
+    except (OSError, ValueError) as exc:
+        warnings.append(make_warning(WARN_WRITE_FAILED, "native messaging host not written: %s"
+                                     % (getattr(exc, "strerror", None) or exc)))
+    return changed
+
+
+def _sync_xpi(plugin_dir, warnings):
+    """The companion xpi built from <plugin_dir>/extension, None without
+    --plugin-dir or when it cannot be built (a warning)."""
+    if not plugin_dir:
+        return None
+    try:
+        return companion_xpi(os.path.join(plugin_dir, EXTENSION_DIR))
+    except (OSError, ValueError) as exc:
+        warnings.append(make_warning(WARN_DATA_UNAVAILABLE, "companion add-on unavailable: %s"
+                                     % (getattr(exc, "strerror", None) or exc)))
+        return None
 
 
 def _h1_rule_needed(ctx, active):
@@ -3556,7 +6475,10 @@ def _h1_rule_needed(ctx, active):
         if lstate == LOCK_FREE:
             record["instance"] = None
             record["glass_loaded_since_start"] = False
+            record["live"] = None
             continue
+        if record["live"] is not None and record["live"]["instance"] != key:
+            record["live"] = None  # restarted: it loaded the files anew
         if key != record["instance"]:
             disk = ctx["disk_glass"].get(pid)
             if disk is None:
@@ -3632,8 +6554,8 @@ def plugin_gone(manifest, env=None):
 
 
 def _plugin_gone_message():
-    return ("plugin_gone: the plugin folder (--if-plugin) is gone or being removed; "
-            "nothing was written")
+    return ("plugin_gone: the plugin folder (--if-plugin) is gone or being removed, "
+            "or DMS has the plugin disabled; nothing was written")
 
 
 def _dir_ids(paths):
@@ -3682,15 +6604,22 @@ def _undo_state_folder(sdir, before, lock_fd):
 
 
 def cmd_sync(args, env):
+    if args.settings_file is not None:
+        try:
+            text = read_settings_file(args.settings_file)
+        except ValueError as exc:
+            raise UsageError("invalid --settings-file: %s" % exc)
+    else:
+        text = args.settings
     try:
-        settings = settings_from_json(args.settings)
+        settings = settings_from_json(text)
     except ValueError as exc:
         raise UsageError("invalid --settings: %s" % exc)
     # The plugin's uninstall sweep may run while a sync the daemon launched
     # just before the folder was deleted is starting or waiting for the
     # lock: that sync must not write everything back. Checked again under
     # the lock, which the sweep's uninstall holds while it cleans.
-    if args.if_plugin and plugin_gone(args.if_plugin, env):
+    if args.if_plugin and (plugin_gone(args.if_plugin, env) or plugin_disabled(env)):
         return _fail(_plugin_gone_message())
     warnings = []
     sdir = state_dir(env)
@@ -3702,7 +6631,15 @@ def cmd_sync(args, env):
         return _fail(_busy_message())
     except OSError as exc:
         return _fail("state folder unusable: %s" % _oserror_text(exc))
-    if args.if_plugin and plugin_gone(args.if_plugin, env):
+    # Disabling the plugin does not kill a sync the daemon already started
+    # (Proc.release only drops its callback), and the uninstall run from
+    # onDestruction may take the lock first: under the lock, the DMS
+    # settings say whether that uninstall happened. DMS writes
+    # "enabled": false (synchronous atomic write, SettingsData
+    # pluginSettingsFile blockWrites) before it unloads the plugin, so before
+    # onDestruction starts the uninstall: no marker of our own is needed,
+    # and none is left behind.
+    if args.if_plugin and (plugin_gone(args.if_plugin, env) or plugin_disabled(env)):
         _undo_state_folder(sdir, before, lock_fd)
         return _fail(_plugin_gone_message())
     try:
@@ -3720,30 +6657,37 @@ def cmd_sync(args, env):
         active, reason = glass_state(settings, opacity, args.off)
         mode = "light" if settings["isLight"] else "dark"
         colors = dms_colors(env, mode)
-        sites_css = ""
+        sites = None
         if args.data and active and settings["pagesTransparent"]:
             try:
                 sites = sites_load(args.data)
             except (OSError, ValueError, RecursionError) as exc:
                 warnings.append(make_warning(WARN_DATA_UNAVAILABLE, "site styles unavailable: %s"
                                              % (getattr(exc, "strerror", None) or exc)))
-            else:
-                problems = []
-                sites_css = sites_build_css(sites, settings["excluded"], settings["disabledStyles"],
-                                            settings["genericStyle"], problems)
-                for problem in problems:
-                    warnings.append(make_warning(WARN_SITE_STYLE, "site style skipped: %s" % problem))
-        chrome = chrome_css(settings, opacity, colors.surface, mode, args.off)
-        content = content_css(settings, opacity, sites_css, args.off)
-        block = userjs_block(settings, opacity, args.off)
+        surfaces = dms_surfaces(env)
+        chrome = chrome_css(settings, opacity, surfaces, args.off)
+        problems = []
+        content = _render_content(settings, opacity, sites, args.off, surfaces, problems)
+        for problem in problems:
+            warnings.append(make_warning(WARN_SITE_STYLE, "site style skipped: %s" % problem))
+        # restart_hash: the content rendered for real with no exclusion
+        # (everything the exclusion list adds left out, whatever its form).
+        # Rendered only when a profile's output changed (_restart_prefix).
+        restart_content = None
+        if settings["excluded"]:
+            bare = copy.copy(settings)
+            bare["excluded"] = []
+
+            def restart_content():
+                return _render_content(bare, opacity, sites, args.off, surfaces)
+
         ctx = {
             "env": env, "sdir": sdir, "state": state, "warnings": warnings,
-            "chrome": chrome, "content": content, "block": block,
-            "block_prefs": [p for p, _ in userjs_prefs(settings, opacity, args.off)],
-            "hash": _sha256("\0".join((chrome, content, block)))[:16],
-            "disk_glass": {}, "folders": {sdir},
-            "block_values": parse_prefs(block), "pending": pending_load(sdir),
-            "taken_back": set(),
+            "base": sync_base(settings, opacity, args.off, chrome, content, restart_content),
+            "disk_glass": {}, "folders": {sdir}, "instances": {},
+            "pending": pending_load(sdir), "taken_back": set(),
+            "xpi": _sync_xpi(args.plugin_dir, warnings) if settings["liveControl"] else None,
+            "companion": {},
         }
         changed = []
         for profile in _select_profiles(args, env, state, warnings):
@@ -3751,10 +6695,18 @@ def cmd_sync(args, env):
                 changed.append(profile.id)
             if profile.family == "zen" and zen_transparency(profile.path):
                 warnings.append(zen_warning(profile.id))
+        if not args.profile:
+            _sync_native(ctx, args.plugin_dir)
         rule_needed, lock_states = _h1_rule_needed(ctx, active)
         niri_changed = _sync_niri(ctx, rule_needed)
         _remove_v0_cache(env, warnings)
         sweep_stale_tmp(ctx["folders"])
+        # The push follows the writes (a browser that restarts meanwhile
+        # loads the new files) and comes before state.json is saved, under
+        # the lock: its acknowledgements decide what the running browsers
+        # have applied live. A --profile sync (captures, tests) does not
+        # push: its settings are not those of the running browsers. Nor
+        # does a sync with liveControl off (the add-on is not installed).
         if not args.profile:
             # A --profile sync (captures, tests) leaves the global record
             # alone: status keeps describing the real profiles.
@@ -3762,7 +6714,16 @@ def cmd_sync(args, env):
                 ("active", active), ("reason", reason), ("opacity", opacity),
                 ("opacity_source", source), ("surface", colors.surface), ("mode", mode)]),
                 warnings)
-        if state_save(sdir, state, warnings):
+        delivered, acked = 0, frozenset()
+        if not args.profile and settings["liveControl"]:
+            # Saved before the push too: a host starting meanwhile reads its
+            # first list from state.json once its socket is bound, so it
+            # gets this list either way (a failure is reported below).
+            state_save(sdir, state, [])
+            delivered, acked = _live_push_safe(env, settings["excluded"])
+        _live_update(ctx, acked)
+        saved = state_save(sdir, state, warnings)
+        if saved:
             for pid in sorted(ctx["taken_back"]):
                 try:
                     pending_drop(sdir, pid, tidy=False)
@@ -3777,8 +6738,18 @@ def cmd_sync(args, env):
         "first_run": first_run,
         "changed": changed,
         # LOCK_UNKNOWN counts as running, as in H1 and the deferred prefs.
-        "running_changed": [pid for pid in changed if lock_states.get(pid, LOCK_FREE) != LOCK_FREE],
+        # A running profile whose change it has applied live (the exclusion
+        # list, acknowledged by its host) needs no restart, as long as the
+        # state recording it was saved: status reads it back from there.
+        "running_changed": [pid for pid in changed if lock_states.get(pid, LOCK_FREE) != LOCK_FREE
+                            and not (saved and _live_applied_now(state["profiles"][pid]))],
         "niri_changed": bool(niri_changed),
+        # The push: browsers whose host got the list, and of those, the
+        # ones whose add-on acknowledged it.
+        "live": {"hosts": delivered, "acked": len(acked)},
+        # The companion add-on of each synced profile, with --plugin-dir.
+        **({"companion": [{"profile": pid, "state": st} for pid, st in sorted(ctx["companion"].items())]}
+           if args.plugin_dir else {}),
         "warnings": warnings,
     })
     return EXIT_OK
@@ -3871,9 +6842,10 @@ def _uninstall_profile(ctx, pid, path, family, record):
     return removed, restored, done, traces
 
 
-def _uninstall_plan(ctx, pid, path, record, traces):
+def _uninstall_plan(ctx, pid, path, record, traces, userjs_text):
     """(plan, originals) of the prefs.js cleanup of one profile. `plan` is
-    a list, None for the v0 rule applied when the file is written, or []."""
+    a list, None for the v0 rule applied when the file is written, or [].
+    `userjs_text` is user.js as it was before uninstall stripped it."""
     if record is not None:
         return (prefs_plan_record(record, set(record["owned_prefs"]) | set(record["restore_prefs"])),
                 record["prefs_original"])
@@ -3883,9 +6855,112 @@ def _uninstall_plan(ctx, pid, path, record, traces):
     backup = ctx["state"]["backups"].get(pid)
     if backup is not None and backup["prefs_original"] is not None:
         # state.json lost or corrupt: every pref may have been ours.
+        # A pref missing from the originals (a v1.0 backup: the companion
+        # prefs) was never recorded, so it is left alone.
         synth = {"prefs_original": backup["prefs_original"]}
-        return prefs_plan_record(synth, set(PREFS)), backup["prefs_original"]
+        return prefs_plan_record(synth, set(backup["prefs_original"])), backup["prefs_original"]
+    ours = block_prefs(userjs_text)
+    if ours:
+        # Nothing recorded (no backup, or one whose originals an earlier
+        # uninstall dropped), but user.js held our block (read before
+        # it was stripped): its values in prefs.js are ours, the companion
+        # prefs and content-override 2 included (the v0 rule misses them).
+        try:
+            text = read_optional(os.path.join(path, PREFS_JS)) or ""
+        except (OSError, ValueError):
+            text = ""
+        plan = prefs_plan_lost(text, ours)
+        originals = prefs_originals(text, userjs_text)
+        # The guessed scope originals go in the originals too: a sync that
+        # takes the profile back keeps the same guess (_first_contact_originals).
+        originals.update((p, {"value": v}) for p, v in plan if v is not None)
+        return plan, originals
     return (None if traces else []), None
+
+
+PREF_EXT_UUIDS = "extensions.webextensions.uuids"
+PREF_EXT_MIGRATED = "extensions.webextensions.ExtensionStorageIDB.migrated." + COMPANION_ID
+_EXT_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+# The companion's storage folders under <profile>/storage/default/.
+_EXT_STORAGE = ("moz-extension+++%s^userContextId=4294967295", "moz-extension+++%s")
+
+
+def companion_residues(text):
+    """(`text` (prefs.js) without what the browser recorded for the
+    companion add-on, its moz-extension uuid or None). Only our own key
+    leaves extensions.webextensions.uuids: the other add-ons' stay."""
+    current = parse_prefs(text)
+    plan = []
+    uuid = None
+    if PREF_EXT_MIGRATED in current:
+        plan.append((PREF_EXT_MIGRATED, None))
+    raw = current.get(PREF_EXT_UUIDS)
+    if raw is not None:
+        try:
+            inner = json.loads(raw)
+            doc = json.loads(inner, object_pairs_hook=collections.OrderedDict) \
+                if isinstance(inner, str) else None
+        except (ValueError, RecursionError):
+            doc = None
+        if isinstance(doc, dict) and COMPANION_ID in doc:
+            value = doc.pop(COMPANION_ID)
+            if isinstance(value, str) and _EXT_UUID.fullmatch(value):
+                uuid = value
+            literal = json.dumps(json.dumps(doc, separators=(",", ":"), ensure_ascii=False),
+                                 ensure_ascii=False)
+            plan.append((PREF_EXT_UUIDS, literal))
+    return (prefs_restore(text, plan) if plan else text), uuid
+
+
+def companion_residues_in(path):
+    """The prefs.js text of the profile `path` when it holds a record of
+    the companion add-on (companion_residues), else None (unreadable too)."""
+    try:
+        text = read_optional(os.path.join(path, PREFS_JS))
+    except (OSError, ValueError):
+        return None
+    return text if text is not None and companion_residues(text)[0] != text else None
+
+
+def companion_storage_remove(path, uuid):
+    """Remove the companion's storage folders of the profile `path`."""
+    for name in _EXT_STORAGE:
+        folder = os.path.join(path, "storage", "default", name % uuid)
+        if os.path.isdir(folder) and not os.path.islink(folder):
+            shutil.rmtree(folder, ignore_errors=True)
+
+
+_RUNTIME_ENTRY = re.compile(r"host-[0-9]{1,10}\.sock|(?:active|ack)-[0-9]{1,10}\.json")
+RUNTIME_REMOVE_TRIES = 3
+
+
+def runtime_remove(env):
+    """Remove the runtime folder ($XDG_RUNTIME_DIR/<RUNTIME_DIR_NAME>) and
+    the files of ours in it. True when it was there and went."""
+    rdir = runtime_dir(env)
+    if rdir is None or not _runtime_dir_ours(rdir):
+        return False
+    # A live host may write a file between the listing and the rmdir (it
+    # sees its socket gone at its next write and stops): list again.
+    for attempt in range(RUNTIME_REMOVE_TRIES):
+        try:
+            names = os.listdir(rdir)
+        except OSError:
+            return False
+        for name in names:
+            if _RUNTIME_ENTRY.fullmatch(name) or (name.startswith(TMP_PREFIX) and name.endswith(TMP_SUFFIX)):
+                try:
+                    os.unlink(os.path.join(rdir, name))
+                except OSError:
+                    pass
+        try:
+            os.rmdir(rdir)
+        except OSError as exc:
+            if exc.errno != errno.ENOTEMPTY or attempt == RUNTIME_REMOVE_TRIES - 1:
+                return False
+            continue
+        return True
+    return False
 
 
 def _clean_prefs_now(path, plan, warnings=None, family=None, pid=None):
@@ -3897,7 +6972,9 @@ def _clean_prefs_now(path, plan, warnings=None, family=None, pid=None):
         return False, True
     if plan is None:
         plan = prefs_plan_v0(text)
-    new = prefs_restore(text, plan)
+    new, uuid = companion_residues(prefs_restore(text, plan))
+    if uuid is not None:
+        companion_storage_remove(path, uuid)
     if new == text:
         return False, True
     sink = [] if warnings is None else warnings
@@ -3930,19 +7007,29 @@ def _clean_job(sdir, job):
         return "drop"  # taken back by a sync, or done by another cleaner
     if lock_state(path) != LOCK_FREE:
         return "wait"
+    # An uninstall job whose pending file could not be written ("unrecorded")
+    # has no file for a sync to drop: a sync that took the profile back
+    # (plugin enabled again) cancels it through its state.json record.
+    unrecorded = job.get("unrecorded", False)
     fd = None
-    if job["pending"]:
+    if job["pending"] or unrecorded:
         try:
             fd = _cleaner_lock(sdir)
         except OSError:
-            return "drop"
-        if fd is None:
-            return "wait"
+            if job["pending"]:
+                return "drop"
+            # No state folder to lock (none to sync into): read it unlocked.
+        else:
+            if fd is None:
+                return "wait"
     try:
         if job["pending"]:
             record = pending_load(sdir).get(job["pid"])
             if record is None:
                 return "drop"
+        elif unrecorded and _state_stamp(sdir) != job.get("state_stamp") \
+                and _state_has_profile(sdir, job["pid"]):
+            return "drop"
         if lock_state(path) != LOCK_FREE:
             return "wait"  # restarted meanwhile: wait for this run too
         if os.path.isdir(path):
@@ -3960,6 +7047,27 @@ def _clean_job(sdir, job):
             os.close(fd)
 
 
+def _state_stamp(sdir):
+    """(inode, mtime, size) of `sdir`/state.json, None when missing. A sync
+    replaces the file (os.replace), so a new stamp means it wrote it."""
+    try:
+        st = os.stat(os.path.join(sdir, STATE_FILE))
+    except OSError:
+        return None
+    return (st.st_ino, st.st_mtime_ns, st.st_size)
+
+
+def _state_has_profile(sdir, pid):
+    """True when a sync recorded `pid` in `sdir`/state.json (a newer state
+    counts: a newer version synced it). The records an unfinished
+    uninstall keeps are saved with "synced" false and do not count."""
+    try:
+        state, _ = state_load(sdir, [])
+    except StateNewer:
+        return True
+    return pid in state["profiles"] and state["synced"]
+
+
 def _tidy_state_dir(sdir, created_dirs):
     """Remove the state folder once only our lock file is left in it, then
     the folders made for it (deepest first)."""
@@ -3974,22 +7082,69 @@ def _tidy_state_dir(sdir, created_dirs):
         _rmdir_quiet(folder)
 
 
-def _clean_prefs_wait(sdir, jobs, env):
+def _clean_prefs_wait(sdir, jobs, env, wake=None):
     """H6: poll each job ({pid, path, plan, pending}) until its browser is
     closed, re-check right before writing, then clean its prefs.js. A job
     with a pending/<pid>.json file runs under the state lock and removes
     that file once done; when the file is gone (a sync took the profile
-    back) the job is dropped. Gives up after $BG_POLL_MAX seconds, leaving
-    the pending files for a later uninstall or clean-prefs. Needs no file of
-    its own (works from `python3 -I -c`)."""
+    back) the job is dropped; an "unrecorded" job is dropped when a sync
+    wrote state.json since the uninstall and recorded its profile. Gives
+    up after $BG_POLL_MAX seconds, leaving the pending files for a later
+    uninstall or clean-prefs. `wake` is the
+    read end of the signal wakeup pipe of the detached cleaner: on SIGTERM
+    or SIGHUP (logout, shutdown: the browser closes on the same signal) it
+    polls every TERM_POLL_INTERVAL for $BG_TERM_GRACE seconds at most, then
+    exits. Needs no file of its own (works from `python3 -I -c`)."""
     interval = env_seconds(env, ENV_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
     deadline = time.monotonic() + env_seconds(env, ENV_POLL_MAX, DEFAULT_POLL_MAX)
     waiting = list(jobs)
-    while waiting:
+    tidy = next((job["tidy"] for job in jobs if "tidy" in job), None)
+    while waiting or tidy is not None:
         waiting = [job for job in waiting if _clean_job(sdir, job) == "wait"]
-        if not waiting or time.monotonic() >= deadline:
+        if not waiting and tidy is not None and _tidy_after_jobs(sdir, tidy):
+            tidy = None
+        now = time.monotonic()
+        if (not waiting and tidy is None) or now >= deadline:
             break
-        time.sleep(interval)
+        if wake is None:
+            time.sleep(interval)
+        elif _wait_signal(wake, min(interval, deadline - now)):
+            interval = TERM_POLL_INTERVAL
+            grace = env_seconds(env, ENV_TERM_GRACE, DEFAULT_TERM_GRACE)
+            deadline = min(deadline, time.monotonic() + grace)
+
+
+def _wait_signal(fd, timeout):
+    """Wait up to `timeout` seconds for a byte on the non-blocking signal
+    wakeup pipe `fd`; drain it. True when a signal came."""
+    import select
+    if not select.select([fd], [], [], max(timeout, 0))[0]:
+        return False
+    try:
+        while os.read(fd, 64):
+            pass
+    except OSError:
+        pass  # EAGAIN: drained
+    return True
+
+
+def _tidy_after_jobs(sdir, created_dirs):
+    """Under the state lock, remove what an uninstall left for jobs whose
+    pending file could not be written: the empty pending/ folder, then the
+    state folder and `created_dirs` (_tidy_state_dir). False while another
+    command holds the lock."""
+    try:
+        fd = _cleaner_lock(sdir)
+    except OSError:
+        return True  # the state folder is gone: nothing left to tidy
+    if fd is None:
+        return False
+    try:
+        _rmdir_quiet(pending_folder(sdir))
+        _tidy_state_dir(sdir, created_dirs)
+    finally:
+        os.close(fd)
+    return True
 
 
 def _close_inherited_fds():
@@ -4008,6 +7163,21 @@ def _close_inherited_fds():
                 os.close(fd)
             except OSError:
                 pass
+
+
+def _term_wakeup():
+    """Catch SIGTERM and SIGHUP in the detached cleaner: each one writes a
+    byte to a non-blocking pipe instead of killing it. Returns the read end
+    (for _clean_prefs_wait), or None when the pipe cannot be made."""
+    import signal
+    try:
+        rfd, wfd = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError:
+        return None
+    signal.set_wakeup_fd(wfd, warn_on_full_buffer=False)
+    for signum in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(signum, lambda *_: None)
+    return rfd
 
 
 def _spawn_clean_prefs(sdir, jobs, env):
@@ -4032,7 +7202,7 @@ def _spawn_clean_prefs(sdir, jobs, env):
         _close_inherited_fds()
         if os.fork():
             os._exit(0)  # the grandchild is reparented, nothing waits for us
-        _clean_prefs_wait(sdir, jobs, env)
+        _clean_prefs_wait(sdir, jobs, env, _term_wakeup())
     except BaseException:
         code = 1
     finally:
@@ -4049,6 +7219,24 @@ def _clear_state_dir(sdir, keep):
             shutil.rmtree(full)
         else:
             os.unlink(full)
+
+
+def sync_settings_remove(env):
+    """Remove $XDG_RUNTIME_DIR/<SYNC_SETTINGS_NAME> when it is a regular
+    file of this user: the settings of a sync that never ran (the daemon
+    went within the debounce). True when it went."""
+    base = env.get("XDG_RUNTIME_DIR") or ""
+    if not os.path.isabs(base):
+        return False
+    path = os.path.join(os.path.normpath(base), SYNC_SETTINGS_NAME)
+    try:
+        st = os.lstat(path)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid():
+            return False
+        os.unlink(path)
+    except OSError:
+        return False
+    return True
 
 
 def cmd_uninstall(args, env):
@@ -4093,16 +7281,58 @@ def cmd_uninstall(args, env):
             if pid not in targets and path and os.path.isdir(path):
                 targets[pid] = (path, family)
 
-        removed, restored, pending, jobs = [], [], [], []
+        removed, restored, pending, jobs, xpi_removed = [], [], [], [], []
         unfinished = set()
         deferred = {}
         for pid, (path, family) in targets.items():
             record = state["profiles"].get(pid)
             before = len(warnings)
             try:
+                try:
+                    userjs_text = read_optional(os.path.join(path, USER_JS))
+                except (OSError, ValueError):
+                    userjs_text = None
                 r, s, done, traces = _uninstall_profile(ctx, pid, path, family, record)
-                plan, originals = _uninstall_plan(ctx, pid, path, record, traces)
-                if plan != []:
+                try:
+                    comp = record["companion"] if record is not None else None
+                    backup = state["backups"].get(pid)
+                    if companion_remove(path, comp):
+                        xpi_removed.append(pid)
+                        if comp is None:
+                            # No record says who made extensions/: ours
+                            # was in it, so it goes once empty.
+                            _rmdir_quiet(os.path.dirname(companion_xpi_path(path)))
+                    if comp is None and backup is not None and backup["ext_dir"]:
+                        _rmdir_quiet(os.path.dirname(companion_xpi_path(path)))
+                except OSError as exc:
+                    warnings.append(make_warning(WARN_WRITE_FAILED, "%s not removed: %s"
+                                                 % (COMPANION_XPI, _oserror_text(exc)), family, pid))
+                    done = False
+                if record is not None and record["companion"] is not None \
+                        and not record["companion"]["ext_dir"]:
+                    record["companion"] = None
+                plan, originals = _uninstall_plan(ctx, pid, path, record, traces, userjs_text)
+                if plan == []:
+                    # Only the companion's residues, if any: now, or once
+                    # the browser closes (it rewrites prefs.js).
+                    residues = None
+                    if lock_state(path) == LOCK_FREE:
+                        changed, ok = _clean_prefs_now(path, [], warnings, family, pid)
+                        s = s or changed
+                        done = done and ok
+                    else:
+                        residues = companion_residues_in(path)
+                    if residues is not None:
+                        # No pref of ours (no record, no trace): what
+                        # prefs.js holds is the user's, should a sync take
+                        # the profile back meanwhile.
+                        if originals is None:
+                            originals = prefs_originals(residues, None)
+                        deferred[pid] = (path, [], originals)
+                        pending.append(pid)
+                        if not r:
+                            s = True
+                else:
                     if lock_state(path) == LOCK_FREE:
                         changed, ok = _clean_prefs_now(path, plan, warnings, family, pid)
                         s = s or changed
@@ -4140,6 +7370,11 @@ def cmd_uninstall(args, env):
             warnings.append(make_warning(WARN_WRITE_FAILED, "niri config not cleaned: %s"
                                          % _oserror_text(exc)))
         v0_cache_removed = _remove_v0_cache(env, warnings)
+        # The native host goes now, whatever the branch: no manifest is left
+        # to start the wrapper (state.json lists every one we wrote).
+        native_host_removed = native_remove(env, state, sdir, warnings)
+        runtime_removed = runtime_remove(env)
+        sync_settings_remove(env)
 
         # Deferred prefs.js cleanups (H6) are recorded in pending/<pid>.json
         # so their originals outlive the state and a killed cleaner.
@@ -4149,7 +7384,15 @@ def cmd_uninstall(args, env):
                 created = make_dirs_tracked(sdir)
             except OSError:
                 created = []
-        created_dirs = sorted(set(state["created_dirs"]) | set(created))
+        # Every record of the state folders: the state's (or STATE_DIRS'),
+        # the earlier pending files' (a second uninstall, a cleaner that
+        # gave up) and the folders made just now; a state.json saved below
+        # keeps them all.
+        created_dirs = set(state["created_dirs"]) | set(created)
+        for record in ctx["pending"].values():
+            created_dirs.update(record["created_dirs"])
+        created_dirs = sorted(created_dirs)
+        state["created_dirs"] = list(created_dirs)
         for pid, (path, plan, originals) in deferred.items():
             has_file = False
             try:
@@ -4160,7 +7403,18 @@ def cmd_uninstall(args, env):
             except OSError as exc:
                 warnings.append(make_warning(WARN_WRITE_FAILED, "pending prefs.js cleanup not recorded: %s"
                                              % _oserror_text(exc), None, pid))
-            jobs.append({"pid": pid, "path": path, "plan": plan, "pending": has_file})
+            job = {"pid": pid, "path": path, "plan": plan, "pending": has_file}
+            if not has_file:
+                # No record to drop at the end: the cleaner tidies what it
+                # can once its jobs are over, and drops the job if a sync
+                # records the profile again first. The profile stays
+                # unfinished, so state.json keeps its record and backup (a
+                # later uninstall removes them): a sync that takes it back
+                # finds the user's originals there.
+                job["tidy"] = created_dirs
+                job["unrecorded"] = True
+                unfinished.add(pid)
+            jobs.append(job)
         for pid in ctx["pending"]:
             if pid not in deferred and pid not in unfinished:
                 pending_drop(sdir, pid, tidy=False)
@@ -4199,6 +7453,13 @@ def cmd_uninstall(args, env):
                         if folder != sdir:
                             _rmdir_quiet(folder)
         if jobs:
+            # What the uninstall left in state.json (a stale record when the
+            # state folder could not be written): only a later write by a
+            # sync cancels an unrecorded job.
+            stamp = _state_stamp(sdir)
+            for job in jobs:
+                if job.get("unrecorded"):
+                    job["state_stamp"] = stamp
             try:
                 _spawn_clean_prefs(sdir, jobs, env)
             except OSError as exc:
@@ -4214,6 +7475,9 @@ def cmd_uninstall(args, env):
         "niri_changed": niri_changed,
         "state_removed": state_removed,
         "v0_cache_removed": v0_cache_removed,
+        "xpi_removed": xpi_removed,
+        "native_host_removed": native_host_removed,
+        "runtime_removed": runtime_removed,
         "warnings": warnings,
     })
     return EXIT_OK
@@ -4252,7 +7516,7 @@ def cmd_clean_prefs(args, env):
             plan = pendings[pid]["plan"]
         else:
             plan = None
-        if plan != []:
+        if plan != [] or pid in pendings:  # [] still clears the companion's residues
             jobs.append({"pid": pid, "path": path, "plan": plan, "pending": pid in pendings})
     _clean_prefs_wait(sdir, jobs, env)
     return EXIT_OK
@@ -4339,7 +7603,9 @@ def files_changed_since(profile, since):
 
 def profile_applied(path, record):
     """True when the generated files and the user.js block of the profile
-    folder `path` are those of `record`'s last sync (applied_hash)."""
+    folder `path` are those of `record`'s last sync (applied_hash, the
+    profile's own: see profile_output). An exclusion list applied live
+    keeps it true: the files are still those of that sync."""
     if record is None or record["applied_hash"] is None:
         return False
     try:
@@ -4361,7 +7627,7 @@ def profile_applied(path, record):
     block = "".join(lines[start:end])
     if replace_block(userjs, block) != userjs:
         return False
-    return _sha256("\0".join((chrome, content, block)))[:16] == record["applied_hash"]
+    return applied_hash_of(chrome, content, block) == record["applied_hash"]
 
 
 def glass_holders(state):
@@ -4433,17 +7699,25 @@ def collect_status(env):
     # glass uses (an override or a forced value replaces it)
     glass["dms_opacity"] = dms_opacity(env)
     niri = niri_status(env)
+    enabled = settings["liveControl"]
+    rdir = runtime_dir(env)
 
     browsers = []
     by_key = {}
     folders = {}
+    states = []
     for profile in find_profiles(env):
         folders[profile.id] = profile.path
         lstate, key = lock_instance(profile.path)
         running = lstate == LOCK_RUNNING
         start = process_start(key) if running else None
-        restart = start is not None and files_changed_since(profile.path, start)
         record = state["profiles"].get(profile.id)
+        applied = profile_applied(profile.path, record)
+        # Files written after the start that this browser applied live (the
+        # exclusion list, acknowledged by its host, nothing written since)
+        # need no restart.
+        restart = (start is not None and files_changed_since(profile.path, start)
+                   and not (applied and live_applied(profile.path, record, key)))
         group_key = (profile.family, profile.variant, profile.root)
         group = by_key.get(group_key)
         if group is None:
@@ -4454,10 +7728,17 @@ def collect_status(env):
             browsers.append(group)
         group["running"] = group["running"] or running
         group["restart_needed"] = group["restart_needed"] or restart
+        comp = record["companion"] if record is not None else None
+        cstate = companion_state(profile.path, profile.family, profile.variant, comp, enabled,
+                                 comp is not None and comp["dropped"] is not None, env=env)
+        if cstate in COMPANION_DEPOSITED and running \
+                and companion_outdated(rdir, instance_browser_pid(key)):
+            cstate = COMPANION_OUTDATED
+        states.append(cstate)
         group["profiles"].append({
             "id": profile.id, "name": profile.name, "path": tilde_path(profile.path, env),
             "default": bool(profile.default), "running": running, "restart_needed": restart,
-            "applied": profile_applied(profile.path, record),
+            "applied": applied, "companion": cstate,
         })
         if profile.family == "zen" and zen_transparency(profile.path):
             warnings.append(zen_warning(profile.id))
@@ -4473,16 +7754,59 @@ def collect_status(env):
         if lstate != LOCK_RUNNING:
             message += " (its lock state is unknown: it may still be running)"
         warnings.append(make_warning(WARN_RULE_HELD, message, record["family"], pid))
+    live = companion_host_pids(rdir)
+    hosts = len(live)
+    if not enabled:
+        summary = "off"
+    elif any(not companion_outdated(rdir, pid) for pid in live):
+        # A host whose add-on speaks another protocol relays nothing: the
+        # browser needs one more restart (waiting_restart).
+        summary = "connected"
+    elif any(st in COMPANION_DEPOSITED or st == COMPANION_OUTDATED for st in states):
+        summary = "waiting_restart"
+    elif COMPANION_REMOVED in states:
+        summary = "removed"
+    else:
+        summary = "unavailable"
     doc = collections.OrderedDict([
         ("version", VERSION),
         ("glass", glass),
         ("niri", niri),
+        ("companion", collections.OrderedDict([
+            ("enabled", enabled), ("state", summary), ("hosts", hosts),
+            ("manifest", _manifest_is_ours(native_manifest_path(env)))])),
         ("restart_needed", bool(held) or any(b["restart_needed"] for b in browsers)),
         ("browsers", browsers),
         ("warnings", warnings),
     ])
     last = state.get("last_sync")
     return doc, settings, folders, list(last["warning_codes"]) if last else []
+
+
+def companion_host_pids(rdir):
+    """The browser pids whose native host has a socket in the runtime
+    folder `rdir` and a live process (never connected to: status stays
+    read-only)."""
+    if rdir is None or not _runtime_dir_ours(rdir):
+        return []
+    try:
+        names = os.listdir(rdir)
+    except OSError:
+        return []
+    return sorted(int(m.group(1)) for m in map(_HOST_SOCKET.fullmatch, names)
+                  if m and os.path.isdir("/proc/%s" % m.group(1)))
+
+
+def companion_outdated(rdir, bpid):
+    """True when the host of the running browser process `bpid` says the
+    add-on speaks another protocol (active-<pid>.json "outdated")."""
+    if rdir is None or bpid is None or not os.path.isdir("/proc/%d" % bpid):
+        return False
+    try:
+        doc = json.loads(read_text(runtime_file(rdir, "active", bpid), limit=65536))
+    except (OSError, ValueError, RecursionError):
+        return False
+    return isinstance(doc, dict) and doc.get("outdated") is True
 
 
 def cmd_status(args, env):
@@ -4566,6 +7890,10 @@ def report_lines(doc, settings, folders, env, sync_codes=()):
         "niri: config %s, include %s, rule %s%s" % (
             _yes(niri["config"]), _yes(niri["include"]), _yes(niri["rule"]),
             " (held until a browser restarts)" if held else ""),
+        "companion: %s (hosts %d, manifest %s, profiles %s)" % (
+            doc["companion"]["state"], doc["companion"]["hosts"], _yes(doc["companion"]["manifest"]),
+            ", ".join("%s %d" % (st, n) for st, n in sorted(collections.Counter(
+                p["companion"] for p in profiles).items())) or "none"),
         "restart needed: " + _yes(doc["restart_needed"]),
         "applied: %d of %d profiles" % (sum(p["applied"] for p in profiles), len(profiles)),
         "profiles:",
@@ -4606,6 +7934,66 @@ def cmd_sites(args, env):
     return EXIT_OK
 
 
+def cmd_native_host(args, env):
+    """Run by the browser (through the wrapper): native messaging frames on
+    stdin and stdout, never a JSON line (see section native). The browser
+    process is the parent: the wrapper exec()s python3."""
+    return native_host(env, args.data, sys.stdin.buffer.raw, sys.stdout.buffer, os.getppid())
+
+
+NIRI_IPC_TIMEOUT = 1.0          # seconds for niri to list its windows
+NIRI_REPLY_MAX = 16 * 1024 * 1024
+
+
+def niri_window(window_id, env):
+    """The niri window `window_id` (a dict: title, app_id, pid...) as niri's
+    IPC socket ($NIRI_SOCKET) lists it, or None when niri has no such
+    window. Raises OSError or ValueError when niri cannot be asked."""
+    path = env.get("NIRI_SOCKET")
+    if not path:
+        raise OSError(errno.ENOENT, "NIRI_SOCKET is not set")
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.settimeout(NIRI_IPC_TIMEOUT)
+        sock.connect(path)
+        sock.sendall(b'"Windows"\n')
+        line = _socket_line(sock, NIRI_REPLY_MAX, NIRI_IPC_TIMEOUT)
+    if line is None:
+        raise ValueError("no answer from niri")
+    reply = json.loads(line.decode("utf-8"))
+    ok = reply.get("Ok") if isinstance(reply, dict) else None
+    windows = ok.get("Windows") if isinstance(ok, dict) else None
+    if not isinstance(windows, list):
+        raise ValueError("unexpected answer from niri")
+    for w in windows:
+        if isinstance(w, dict) and w.get("id") == window_id and not isinstance(w.get("id"), bool):
+            return w
+    return None
+
+
+def cmd_active_site(args, env):
+    """The answers of the active_site spec, errors included, exit 0; exit 1
+    only when the public suffix list cannot be read, or niri cannot be asked
+    for the title of --window-id."""
+    folder = args.data or os.path.join(xdg_dir("XDG_CONFIG_HOME", env), DATA_DIR_REL)
+    title = args.title
+    if args.window_id is not None:
+        try:
+            window = niri_window(args.window_id, env)
+        except (OSError, ValueError) as exc:  # UnicodeDecodeError, JSONDecodeError included
+            return _fail("niri window list unavailable: %s" % (
+                _oserror_text(exc) if isinstance(exc, OSError) else exc))
+        if window is None:  # closed meanwhile
+            _print_json({"error": "no_browser"})
+            return EXIT_OK
+        title = window.get("title") if isinstance(window.get("title"), str) else None
+    try:
+        doc = active_site(args.pid, args.app_id, title, env, lambda: psl_load(folder))
+    except PslError as exc:
+        return _fail("public suffix list unavailable: %s" % exc)
+    _print_json(doc)
+    return EXIT_OK
+
+
 COMMANDS = {
     "sync": cmd_sync,
     "status": cmd_status,
@@ -4613,6 +8001,8 @@ COMMANDS = {
     "clean-prefs": cmd_clean_prefs,
     "report": cmd_report,
     "sites": cmd_sites,
+    "native-host": cmd_native_host,
+    "active-site": cmd_active_site,
 }
 
 

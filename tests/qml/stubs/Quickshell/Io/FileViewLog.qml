@@ -4,10 +4,12 @@ import QtQuick
 // Test stand-in for the disk under FileView: path -> text, the live views,
 // and every write. A test seeds files with put(), plays an outside edit with
 // change() and reads what the code wrote in `writes` ([[path, text], ...]).
+// The paths in `failing` cannot be written (the view's saveFailed).
 QtObject {
     property var files: ({})
     property var views: []
     property var writes: []
+    property var failing: []
 
     function has(path) {
         return Object.prototype.hasOwnProperty.call(files, path);
@@ -50,5 +52,6 @@ QtObject {
     function reset() {
         files = {};
         writes = [];
+        failing = [];
     }
 }

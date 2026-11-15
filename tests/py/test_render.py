@@ -6,7 +6,9 @@ Run: python3 -B -m unittest discover -s tests/py -v
 
 The golden files are tests/py/golden/{chrome,content,userjs,niri}.txt. The
 matrix is generated below (itertools.product); each distinct output is
-stored once with the list of cases producing it. After an intended change
+stored once with the list of cases producing it. In content.txt the cases
+without "liveControl=1" have liveControl off: the v1.0 output, byte for
+byte. After an intended change
 of the output, regenerate them and review the diff:
 
     BG_REGEN_GOLDEN=1 python3 -B -m unittest discover -s tests/py -p test_render.py
@@ -75,7 +77,9 @@ def split_state(combo):
 CHROME_DIMS = collections.OrderedDict(STATE_DIMS)
 CHROME_DIMS["privateGlass"] = (True, False)
 CHROME_DIMS["surface"] = ("#2a3b4c", "#abc", "bogus", None)
-CHROME_DIMS["mode"] = ("dark", "light")
+CHROME_DIMS["light"] = ("#fafbfc", None)
+# Both DMS surfaces, for the rule tests.
+SURFACES = {"dark": "#101418", "light": "#f7f9ff"}
 
 CONTENT_DIMS = collections.OrderedDict(STATE_DIMS)
 CONTENT_DIMS["pagesTransparent"] = (True, False)
@@ -83,6 +87,12 @@ CONTENT_DIMS["readerOpaque"] = (True, False)
 CONTENT_DIMS["newTabGlass"] = (True, False)
 CONTENT_DIMS["excluded"] = ((), ("example.org", "my-site.net"))
 CONTENT_DIMS["sites"] = (False, True)
+# liveControl on: the same matrix, gated, the site style built by
+# sites_build_css from LIVE_SITES (also given to content_css, for the live
+# section's site blocks); "a.test" excluded gives the live section a site block.
+CONTENT_LIVE_DIMS = collections.OrderedDict(CONTENT_DIMS)
+CONTENT_LIVE_DIMS["excluded"] = ((), ("example.org", "my-site.net"), ("a.test",))
+LIVE_SITES = bg.Sites({"a.test.css": {"glass": "body { background: none !important; }"}}, {})
 
 USERJS_DIMS = collections.OrderedDict(STATE_DIMS)
 USERJS_DIMS["pagesTransparent"] = (True, False)
@@ -92,16 +102,22 @@ USERJS_DIMS["isLight"] = (False, True)
 
 def render_chrome(combo):
     over, opacity, off = split_state(combo)
-    surface = over.pop("surface")
-    mode = over.pop("mode")
-    return bg.chrome_css(settings(**over), opacity, surface, mode, off=off)
+    surfaces = {"dark": over.pop("surface"), "light": over.pop("light")}
+    return bg.chrome_css(settings(**over), opacity, surfaces, off=off)
 
 
-def render_content(combo):
+def render_content(combo, live=False):
     over, opacity, off = split_state(combo)
-    sites = SITES_CSS if over.pop("sites") else ""
+    with_sites = over.pop("sites")
     over["excluded"] = list(over["excluded"])
-    return bg.content_css(settings(**over), opacity, sites, off=off)
+    values = settings(liveControl=live, **over)
+    if not live:
+        return bg.content_css(values, opacity, SITES_CSS if with_sites else "", off=off)
+    sites = LIVE_SITES if with_sites else None
+    sites_css = ""
+    if sites is not None:
+        sites_css = bg.sites_build_css(sites, values["excluded"], gate=bg.live_gate(values))
+    return bg.content_css(values, opacity, sites_css, off=off, sites=sites)
 
 
 def render_userjs(combo):
@@ -121,8 +137,11 @@ class GoldenTest(unittest.TestCase):
             (label, render_chrome(combo)) for label, combo in matrix(CHROME_DIMS)))
 
     def test_content(self):
-        check_golden(self, "content.txt", collections.OrderedDict(
-            (label, render_content(combo)) for label, combo in matrix(CONTENT_DIMS)))
+        results = collections.OrderedDict(
+            (label, render_content(combo)) for label, combo in matrix(CONTENT_DIMS))
+        results.update((label + " liveControl=1", render_content(combo, live=True))
+                       for label, combo in matrix(CONTENT_LIVE_DIMS))
+        check_golden(self, "content.txt", results)
 
     def test_userjs(self):
         check_golden(self, "userjs.txt", collections.OrderedDict(
@@ -156,34 +175,44 @@ class RulesTest(unittest.TestCase):
             (dict(blur=False), False, "blur_disabled"),
         ]
         for over, off, reason in cases:
-            text = bg.chrome_css(settings(**over), 0.85, "#101418", off=off)
+            text = bg.chrome_css(settings(**over), 0.85, SURFACES, off=off)
             self.assertIn("(%s)" % reason, text)
-        self.assertIn("(opaque)", bg.chrome_css(settings(), 1.0, "#101418"))
+        self.assertIn("(opaque)", bg.chrome_css(settings(), 1.0, SURFACES))
 
     def test_chrome_private_rule_only_without_private_glass(self):
         rule = ':root[privatebrowsingmode="temporary"] body'
-        on = bg.chrome_css(settings(privateGlass=True), 0.85, "#101418")
-        off = bg.chrome_css(settings(privateGlass=False), 0.85, "#101418")
+        on = bg.chrome_css(settings(privateGlass=True), 0.85, SURFACES)
+        off = bg.chrome_css(settings(privateGlass=False), 0.85, SURFACES)
         self.assertNotIn("privatebrowsingmode", on)
-        self.assertIn(rule, off)
-        self.assertIn("background: rgba(16, 20, 24, 1) !important;", off)
+        self.assertIn(rule + " {\n  background: rgba(16, 20, 24, 1) !important;\n}", off)
+        self.assertIn("  " + rule + " {\n    background: rgba(247, 249, 255, 1) !important;", off)
         self.assertNotIn("[privatebrowsingmode]", off)
         # After the main rules.
         self.assertGreater(off.index(rule), off.index(".browserContainer"))
 
     def test_chrome_tint(self):
-        text = bg.chrome_css(settings(), 0.85, "#2A3B4C")
+        text = bg.chrome_css(settings(), 0.85, {"dark": "#2A3B4C", "light": "#FAFBFC"})
         self.assertIn("body {\n  background: rgba(42, 59, 76, 0.85) !important;\n}", text)
+        # The light tint applies while the browser's own theme is light.
+        self.assertIn("@media (prefers-color-scheme: light) {\n  body {\n"
+                      "    background: rgba(250, 251, 252, 0.85) !important;\n  }\n}", text)
         for selector in ("#main-window", "#navigator-toolbox", "#tabbrowser-tabpanels",
                          ".browserStack", "browser {"):
             self.assertIn(selector, text)
 
+    def test_chrome_same_whatever_the_mode(self):
+        """Switching DMS mode must not rewrite the file (no restart needed)."""
+        dark = bg.chrome_css(settings(isLight=False), 0.85, SURFACES)
+        self.assertEqual(bg.chrome_css(settings(isLight=True), 0.85, SURFACES), dark)
+
     def test_surface_fallback_by_mode(self):
-        dark = bg.chrome_css(settings(), 0.5, None, "dark")
-        light = bg.chrome_css(settings(), 0.5, "nope", "light")
-        self.assertIn("rgba(16, 20, 24, 0.5)", dark)
-        self.assertIn("rgba(247, 249, 255, 0.5)", light)
-        self.assertIn("rgba(170, 187, 204, 0.5)", bg.chrome_css(settings(), 0.5, "#abc"))
+        for surfaces in (None, {}, {"dark": None, "light": "nope"}):
+            text = bg.chrome_css(settings(), 0.5, surfaces)
+            self.assertIn("rgba(16, 20, 24, 0.5)", text)
+            self.assertIn("rgba(247, 249, 255, 0.5)", text)
+        text = bg.chrome_css(settings(), 0.5, {"dark": "#abc", "light": "#def"})
+        self.assertIn("rgba(170, 187, 204, 0.5)", text)
+        self.assertIn("rgba(221, 238, 255, 0.5)", text)
 
     def test_content_order(self):
         text = bg.content_css(settings(readerOpaque=True, newTabGlass=True), 0.85, SITES_CSS)
@@ -204,7 +233,7 @@ class RulesTest(unittest.TestCase):
         self.assertIn('@-moz-document url-prefix("about:reader") {\n'
                       "  :root, body { background: transparent !important; }\n"
                       "  body { --main-background: transparent !important; }\n}", text)
-        self.assertNotIn("outerContainer", text)
+        self.assertNotIn("body:has(> #outerContainer", text)
         self.assertNotIn(".toolbar", text)
 
     def test_content_newtab(self):
@@ -234,8 +263,9 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(lines[-1], bg.V1_USERJS_END)
         self.assertIn('user_pref("%s", true);' % bg.PREF_STYLESHEETS, lines)
         self.assertIn('user_pref("%s", true);' % bg.PREF_TRANSPARENT, lines)
-        self.assertIn('user_pref("%s", 0);' % bg.PREF_COLOR_SCHEME, lines)
-        self.assertIn('user_pref("%s", 1);' % bg.PREF_COLOR_SCHEME, prefs(isLight=True).splitlines())
+        # "follow": sites follow the browser's theme (live), whatever the DMS mode.
+        self.assertIn('user_pref("%s", 2);' % bg.PREF_COLOR_SCHEME, lines)
+        self.assertEqual(prefs(isLight=True), block)
         self.assertIn('user_pref("%s", 0);' % bg.PREF_COLOR_SCHEME,
                       prefs(isLight=True, siteTheme="dark").splitlines())
         self.assertNotIn(bg.PREF_COLOR_SCHEME, prefs(siteTheme="none"))
@@ -244,7 +274,7 @@ class RulesTest(unittest.TestCase):
         off = bg.userjs_block(settings(), 0.85, off=True).splitlines()
         self.assertIn('user_pref("%s", true);' % bg.PREF_STYLESHEETS, off)
         self.assertIn('user_pref("%s", false);' % bg.PREF_TRANSPARENT, off)
-        self.assertIn('user_pref("%s", 0);' % bg.PREF_COLOR_SCHEME, off)
+        self.assertIn('user_pref("%s", 2);' % bg.PREF_COLOR_SCHEME, off)
 
     def test_niri(self):
         text = bg.niri_kdl(True)

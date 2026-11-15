@@ -44,7 +44,7 @@ def repo_texts():
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
         for name in sorted(files):
             path = os.path.join(folder, name)
-            if os.path.islink(path):
+            if os.path.islink(path) or name == ".git":  # a worktree's .git is a file
                 continue
             with open(path, "rb") as f:
                 data = f.read()

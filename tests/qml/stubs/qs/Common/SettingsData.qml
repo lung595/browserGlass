@@ -7,6 +7,7 @@ QtObject {
     id: root
 
     property bool blurEnabled: true
+    property bool syncModeWithPortal: true
     property bool reduceMotion: false
     property var barConfigs: []
     property string pluginSettingsPath: "/tmp/fakehome/.config/dms/plugin_settings.json"
@@ -42,6 +43,7 @@ QtObject {
     }
     function reset() {
         blurEnabled = true;
+        syncModeWithPortal = true;
         pluginSettings = {};
         pluginSettingsWrites = [];
     }

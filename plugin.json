@@ -3,16 +3,18 @@
     "id": "browserGlass",
     "name": "Browser Glass",
     "description": "Translucent glass for Firefox-family browsers under niri, in step with DMS: opacity, blur and colours follow the shell, while video, images and text stay opaque",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "lung595",
     "license": "MIT",
     "icon": "blur_on",
     "type": "composite",
-    "capabilities": ["daemon", "dankbar-widget", "theming"],
+    "capabilities": ["daemon", "dankbar-widget", "theming", "launcher"],
     "components": {
         "daemon": "./BrowserGlassDaemon.qml",
-        "widget": "./BrowserGlassWidget.qml"
+        "widget": "./BrowserGlassWidget.qml",
+        "launcher": "./BrowserGlassLauncher.qml"
     },
+    "trigger": "glass",
     "settings": "./BrowserGlassSettings.qml",
     "requires_dms": ">=2.0.0",
     "permissions": ["settings_read", "settings_write", "process"]

@@ -1,0 +1,10 @@
+/* browserGlass: the message body is an iframe that takes the page's dark
+   colour scheme, so text the email leaves unstyled turns white while the
+   email keeps its own white boxes. Show every message on a light card
+   with a light colour scheme: its text stays dark and readable. */
+iframe[data-testid="content-iframe"],
+.message-content iframe {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  border-radius: 8px !important;
+}
