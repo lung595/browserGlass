@@ -9,6 +9,7 @@ Run: python3 -B -m unittest discover -s tests/py -v
 """
 
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -386,8 +387,8 @@ class ChoiceTest(SignedCase):
         self.assertEqual(self.unusable(doc), [])
         cached = self.state()["signed_xpi"]
         st = os.stat(str(path))
-        self.assertEqual((cached["mtime_ns"], cached["size"], cached["problem"]),
-                         (st.st_mtime_ns, st.st_size, None))
+        self.assertEqual((cached["mtime_ns"], cached["size"], cached["sha256"], cached["problem"]),
+                         (st.st_mtime_ns, st.st_size, hashlib.sha256(self.signed).hexdigest(), None))
         snap = self.fh.snapshot(".")
         doc, built, opened = run()
         self.assertEqual((built, opened), (0, 0), "nothing changed: no zip work")
@@ -412,16 +413,41 @@ class ChoiceTest(SignedCase):
         self.assertEqual((built, opened, len(self.unusable(doc))), (1, 0, 1))
         self.assertEqual(self.fh.snapshot("."), snap)
 
+    def test_same_size_same_mtime_swap_checked_again(self):
+        # A signed file replaced by another of the same size, given back
+        # the same mtime: its bytes differ (sha256), so it is checked again
+        # and the bad one is not deposited.
+        self.profile(LIBREWOLF)
+        path = self.put_signed()
+        self.sync_here()
+        st = os.stat(str(path))
+        bad = bytearray(self.signed)
+        bad[len(bad) // 2] ^= 0xff
+        path.write_bytes(bytes(bad))
+        os.utime(str(path), ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.assertEqual((os.stat(str(path)).st_size, os.stat(str(path)).st_mtime_ns),
+                         (st.st_size, st.st_mtime_ns))
+        with mock.patch.object(bg, "companion_signed_problem",
+                               wraps=bg.companion_signed_problem) as check:
+            doc = self.sync_here()
+        self.assertEqual(check.call_count, 1)
+        self.assertEqual(self.state()["signed_xpi"]["sha256"], hashlib.sha256(bytes(bad)).hexdigest())
+        self.assertNotEqual(self.fh.resolve(LIBREWOLF + XPI_REL).read_bytes(), bytes(bad))
+        self.assertEqual(len(self.unusable(doc)), 1)
+
     def test_state_record_normalized(self):
-        for value in ({"mtime_ns": "1", "size": 2, "sources": "x", "problem": None},
-                      {"mtime_ns": 1, "size": True, "sources": "x", "problem": None},
-                      {"mtime_ns": 1, "size": 2, "sources": None, "problem": None},
-                      {"mtime_ns": 1, "size": 2, "sources": "x", "problem": 3}, [], "x"):
+        for value in ({"mtime_ns": "1", "size": 2, "sha256": "h", "sources": "x", "problem": None},
+                      {"mtime_ns": 1, "size": True, "sha256": "h", "sources": "x", "problem": None},
+                      {"mtime_ns": 1, "size": 2, "sha256": "h", "sources": None, "problem": None},
+                      {"mtime_ns": 1, "size": 2, "sources": "x", "problem": None},
+                      {"mtime_ns": 1, "size": 2, "sha256": 3, "sources": "x", "problem": None},
+                      {"mtime_ns": 1, "size": 2, "sha256": "h", "sources": "x", "problem": 3},
+                      [], "x"):
             with self.subTest(value=value):
                 self.assertIsNone(bg._norm_signed_xpi(value))
-        good = {"mtime_ns": 1, "size": 2, "sources": "x", "problem": "bad", "extra": 1}
+        good = {"mtime_ns": 1, "size": 2, "sha256": "h", "sources": "x", "problem": "bad", "extra": 1}
         self.assertEqual(bg._norm_signed_xpi(good),
-                         {"mtime_ns": 1, "size": 2, "sources": "x", "problem": "bad"})
+                         {"mtime_ns": 1, "size": 2, "sha256": "h", "sources": "x", "problem": "bad"})
 
 
 class SignedStatesTest(SignedCase):

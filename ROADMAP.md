@@ -4,6 +4,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 ## Planned
 
+- **Signed companion add-on** (1.3.1): have Mozilla sign the companion and ship it as `companion/browserglass@companion.xpi`, so *Live control* works on Firefox release, ESR and Beta builds, LibreWolf shows it as verified, and `xpinstall.signatures.required` is no longer written. 1.3.0 supports it but ships the unsigned add-on.
 - **New screenshots**: a GIF of the launcher, and the *Sites* settings with the new page layers.
 - **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
 - **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
@@ -32,7 +33,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 - **A manual restart is needed.** Firefox reads its CSS only when it starts. After a change (a new wallpaper, the opacity, a setting), a running browser shows the new look only after a restart. When the glass turns on, niri applies the plugin's rule at once, so a running browser stays opaque until its restart. The exceptions: the light or dark switch (with DMS's *Sync with portal* on), and site exclusions with Live control.
 - **`gs on` and `gs off` are not live**: the browser's own bars are read at start-up, so they follow at the next restart; the niri rule changes at once.
-- **Development checkouts use the unsigned add-on.** Without a signed `companion/browserglass@companion.xpi` that matches `extension/` (a repository clone, or `extension/` changed after signing), Browser Glass falls back to the unsigned companion, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*. Released versions ship the signed add-on.
+- **Live control needs an add-on that loads unsigned** (until 1.3.1). Without a signed `companion/browserglass@companion.xpi` that matches `extension/` (1.3.0 ships none), Browser Glass places the unsigned companion and sets `xpinstall.signatures.required` to `false`, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*.
 - **Private windows have no live control**: the companion does not run there and their site cannot be read, so `gs blist` refuses in a private window, and a private window shows exclusion changes after a restart.
 - **Frames follow at the next restart**: the companion switches the main page only (no `all_frames`).
 - **Shadow trees follow at the next restart**: a live exclusion leaves the parts a site draws in its shadow DOM styled until the browser restarts, since they do not see the page's `data-browserglass-off` mark.

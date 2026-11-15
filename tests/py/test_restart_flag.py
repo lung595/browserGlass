@@ -271,45 +271,35 @@ class LiveTest(RestartCase):
         self.assertTrue(doc["restart_needed"])
         self.assertTrue(self.profile_status(doc, FF)["restart_needed"])
 
-    def test_dark_pages_off_applied_live(self):
-        # Dark pages turned off is applied live once acknowledged (the push
-        # carries darken: false; the colour variables left in the loaded
-        # style file do nothing without it); without an ack it needs a
-        # restart, and so does turning it on (the colours come with the
-        # file) or any other change with it.
+    def test_dark_pages_change_needs_a_restart_even_acked(self):
+        # A darkPages change is never applied live: the add-on that
+        # acknowledges the push (darken: false) may be a 1.2.0 one that
+        # ignores darken, so turned off or on it needs a restart, acked
+        # or not, while an exclusion change alone stays live.
         self.sync("--data", DATA)
         holder = self.browser(FF)
         self.browser(LW)
         acked = {holder.child.pid}
         out = self.sync("--data", DATA, acked=acked, darkPages=False)
         self.assertEqual(sorted(out["changed"]), sorted([self.pid(FF), self.pid(LW)]))
-        self.assertEqual(out["running_changed"], [self.pid(LW)])
+        self.assertEqual(sorted(out["running_changed"]), sorted([self.pid(FF), self.pid(LW)]))
         doc = self.status()
-        self.assertFalse(self.profile_status(doc, FF)["restart_needed"])
+        self.assertTrue(self.profile_status(doc, FF)["restart_needed"])
         self.assertTrue(self.profile_status(doc, LW)["restart_needed"])
-        record = self.record(FF)
-        self.assertEqual(record["live"]["restart_hash"], record["restart_hash"])
-        self.assertIsNone(self.record(LW)["live"])
-        # Nothing changed since: the live record carries over.
-        out = self.sync("--data", DATA, darkPages=False)
+        self.assertTrue(doc["restart_needed"])
+        live = self.record(FF)["live"]
+        self.assertTrue(live is None or live["restart_hash"] != self.record(FF)["restart_hash"])
+        # Nothing changed since: still a restart to do.
+        out = self.sync("--data", DATA, acked=acked, darkPages=False)
         self.assertEqual(out["changed"], [])
-        self.assertFalse(self.profile_status(self.status(), FF)["restart_needed"])
-        # Back on: the running browser has no colours to darken with.
+        self.assertTrue(self.profile_status(self.status(), FF)["restart_needed"])
+        # Back on: the same.
         out = self.sync("--data", DATA, acked=acked)
         self.assertIn(self.pid(FF), out["running_changed"])
         self.assertTrue(self.profile_status(self.status(), FF)["restart_needed"])
-        holder.release()
-        holder.stop()
-        self.sync("--data", DATA)
-        holder = self.browser(FF)
-        out = self.sync("--data", DATA, acked={holder.child.pid}, darkPages=False,
-                        opacityOverride=True, opacity=0.5)
-        self.assertEqual(sorted(out["running_changed"]), sorted([self.pid(FF), self.pid(LW)]))
-        self.assertTrue(self.profile_status(self.status(), FF)["restart_needed"])
 
-    def test_dark_pages_on_variant_rendered_only_when_needed(self):
-        # The content with Dark pages on is rendered only with darkPages
-        # off, for a running browser that has not loaded the files.
+    def test_dark_pages_renders_no_variant(self):
+        # The content is rendered with this sync's darkPages only.
         real = bg._render_content
         calls = []
 
@@ -318,12 +308,9 @@ class LiveTest(RestartCase):
             return real(*args, **kwargs)
 
         self.sync()
+        holder = self.browser(FF)
         with mock.patch.object(bg, "_render_content", counting):
-            self.sync(darkPages=False)
-            self.assertEqual(calls, [False])
-            calls.clear()
-            holder = self.browser(FF)
-            self.sync(darkPages=False)
+            self.sync(acked={holder.child.pid}, darkPages=False)
             self.assertEqual(calls, [False])
             calls.clear()
             self.sync(acked={holder.child.pid}, darkPages=False, excluded=["example.org"])

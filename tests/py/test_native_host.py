@@ -619,6 +619,43 @@ class SyncPushTest(HostCase):
             f.write("{nope\n")
         self.host_started_with([], False)
 
+    def test_darken_only_with_the_darkening_colours(self):
+        # darken is darkPages only when the style file holds the darkening
+        # colours (_CONTENT_DARKEN): glass active and pagesTransparent on.
+        # The push and a starting host (last_sync["darken"]) agree.
+        self.result(self.sync(darkPages=True))
+        host = self.host_started_with([], True)
+        for over in ({"pagesTransparent": False}, {"glassEnabled": False}):
+            with self.subTest(over=over):
+                proc = self.sync(darkPages=True, **over)
+                msg = host.recv(60)
+                self.assertIs(msg["darken"], False)
+                host.send({"type": "applied", "seq": msg["seq"]})
+                self.result(proc)
+                css = (self.profile / "chrome" / "dms-glass-content.css").read_text(encoding="utf-8")
+                self.assertNotIn("--browserglass-darken-bg", css)
+                state = self.read_json(os.path.join(bg.state_dir(self.env()), bg.STATE_FILE))
+                self.assertIs(state["last_sync"]["darken"], False)
+                later = Host(self)
+                self.assertIs(later.start()["darken"], False)
+                self.assertEqual(later.finish(), (0, b""))
+        self.assertEqual(host.finish(), (0, b""))
+
+    def test_startup_darken_of_an_older_state(self):
+        # A last_sync without "darken" (an older state): derived from its
+        # settings and glass, the same condition.
+        self.result(self.sync(darkPages=True))
+        path = os.path.join(bg.state_dir(self.env()), bg.STATE_FILE)
+        state = self.read_json(path)
+        del state["last_sync"]["darken"]
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f)
+        self.assertEqual(self.host_started_with([], True).finish(), (0, b""))
+        state["last_sync"]["settings"]["pagesTransparent"] = False
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f)
+        self.assertEqual(self.host_started_with([], False).finish(), (0, b""))
+
     def test_no_push(self):
         host = self.host()
         self.assertEqual(self.result(self.sync(excluded=["example.org"], liveControl=False))["live"],

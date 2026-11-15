@@ -5,19 +5,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-15
+
 ### Added
 
 - **Signing tool** (`tools/sign_companion.py`, for releases): has Mozilla sign the companion add-on in the unlisted channel through the AMO API v5, with the standard library only. `pack` builds the xpi exactly as the helper does, `sign` uploads it, waits for the signature and downloads it, `fetch` downloads a version signed later, and `verify` checks that a signed xpi holds the same files as `extension/` plus a Mozilla signature. It never uploads the same version twice and keeps the API keys out of every message. The companion's manifest now declares `data_collection_permissions` (none: the add-on talks only to the local helper).
-- **Signed companion add-on**: the plugin ships the companion signed by Mozilla (`companion/browserglass@companion.xpi`), so *Live control* now works on Firefox release, ESR and Beta builds, and LibreWolf shows the add-on as verified. A sync places it only when it holds exactly the files of `extension/` and a Mozilla signature; otherwise (a development checkout, or a damaged file, which gives a warning) it places the unsigned add-on as in 1.2.
+- **Support for a signed companion add-on**: when the plugin holds the companion signed by Mozilla (`companion/browserglass@companion.xpi`), a sync places it, so *Live control* works on Firefox release, ESR and Beta builds and LibreWolf shows the add-on as verified. It does so only when the file holds exactly the files of `extension/` and a Mozilla signature; otherwise (no file, or a damaged one, which gives a warning) it places the unsigned add-on as in 1.2. 1.3.0 ships without the signed file and places the unsigned add-on; the signed build is planned for 1.3.1.
 - **Companion state `disabled`**: a profile whose companion is disabled in `about:addons` shows it (`status --json`, `sync`), and when no profile runs it, *Status* says *Live control: the add-on is disabled in the browser; enable it in about:addons* (`companion.state` `disabled`). The add-on stays in the profile; enable it again there.
 
 ### Changed
 
-- **Add-on signature preference**: with the signed companion, the plugin no longer writes `xpinstall.signatures.required` in any profile, only the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes`. On update, the preference leaves the `user.js` block and its original value is put back in `prefs.js` once the browser is closed; until then `user.js` holds the original value (or the browser default).
+- **Add-on signature preference**: when the signed companion is used (from 1.3.1), the plugin no longer writes `xpinstall.signatures.required`, only the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes`; the preference then leaves the `user.js` block and its original value is put back in `prefs.js` once the browser is closed (until then `user.js` holds the original value, or the browser default). With the unsigned add-on, as in 1.3.0, it is still set to `false` as in 1.2.
 
-- **Live control description** (*Advanced & help*): says the add-on is signed by Mozilla, and that `xpinstall.signatures.required` is set only without the signed add-on.
+- **Live control description** (*Advanced & help*): says that `xpinstall.signatures.required` is set to `false` unless the add-on is signed by Mozilla.
 - **A signed companion that cannot be used** gives its own warning text (*The signed companion add-on could not be used: the unsigned one is used instead*).
-- **Dark pages decided by the helper**: the helper now sends the *Dark pages* setting to the companion add-on with the excluded sites (`darken` in the `excluded` message and in the line a sync pushes; the native protocol version stays 1, and a message without it means off), and the add-on darkens a light page only when it says so. The style file's colour variables only give the colours. Turning *Dark pages* off gives darkened pages back at once in a running browser, and once its add-on has answered no restart is asked for it; turning it on still applies after a restart.
+- **Dark pages decided by the helper**: the helper now sends the *Dark pages* setting to the companion add-on with the excluded sites (`darken` in the `excluded` message and in the line a sync pushes; the native protocol version stays 1, and a message without it means off), and the add-on darkens a light page only when it says so. The style file's colour variables only give the colours. Turning *Dark pages* on or off still applies after a restart for the style file, but a running 1.3 add-on stops darkening at once when it is turned off.
 
 ### Fixed
 
@@ -133,7 +135,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/lung595/browserGlass/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lung595/browserGlass/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lung595/browserGlass/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lung595/browserGlass/releases/tag/v1.0.0

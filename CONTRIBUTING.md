@@ -144,7 +144,7 @@ browserGlass/
 │   ├── WidgetPill.qml           # bar icon + restart dot
 │   └── GlassPopout.qml          # widget menu
 ├── extension/                   # companion add-on: manifest.json, background.js, content.js, vendor/ (Dark Reader)
-├── companion/                   # browserglass@companion.xpi, the same add-on signed by Mozilla (committed at release)
+├── companion/                   # browserglass@companion.xpi, the same add-on signed by Mozilla (committed at a signed release)
 ├── data/                        # styles.json, css-mapping.json, MY-INTERNET-LICENSE (my-internet)
 │   ├── public_suffix_list.dat   # Mozilla Public Suffix List (PSL-LICENSE, MPL-2.0)
 │   └── sites/                   # our own site fixes, one CSS file per site
@@ -247,10 +247,10 @@ Browser Glass must cost nothing while nothing changes:
 ## Releasing a version
 
 1. Freeze `extension/`: the signed add-on is made from it, so any change after signing needs a new version. Bump `version` in `plugin.json` ([Semantic Versioning](https://semver.org/)), together with `version` in `extension/manifest.json` (`tests/py/test_companion.py` checks the two agree), `VERSION` in `browserglass.py`, `version` in `tests/fixtures/contract/status.json` and the `version:` line of `tests/fixtures/contract/report.txt`. `tests/py/test_contract.py` checks that the last two agree. Nothing checks `plugin.json` against them, so compare it by eye.
-2. Have Mozilla sign the companion add-on (see *Signing the companion* below). Commit the signed xpi as `companion/browserglass@companion.xpi`, outside `extension/`.
+2. When the AMO API keys are at hand, have Mozilla sign the companion add-on (see *Signing the companion* below) and commit the signed xpi as `companion/browserglass@companion.xpi`, outside `extension/`. Without them the release ships the unsigned add-on (as 1.3.0 does), and the docs must say so.
 3. Move the `Unreleased` entries of `CHANGELOG.md` under the new version and date, and add its link at the bottom.
 4. Refresh the screenshots if the look changed (see [Screenshots](#screenshots)).
-5. Run every test, commit, then tag and publish. Attach the signed xpi to the release:
+5. Run every test, commit, then tag and publish. Attach the signed xpi to the release only when it is signed (otherwise drop it from the command):
 
    ```sh
    git tag v1.0.1 && git push origin main v1.0.1

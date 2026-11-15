@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -2316,6 +2316,14 @@ def live_gate(settings):
     return GATE_NORMAL_ROOT if settings["liveControl"] else None
 
 
+def live_darken(settings, active):
+    """The darken flag a sync pushes: darkPages, only when content_css()
+    writes the darkening colours (_CONTENT_DARKEN): glass `active`,
+    pagesTransparent and liveControl on."""
+    return bool(active and settings["pagesTransparent"] and settings["liveControl"]
+                and settings["darkPages"])
+
+
 def _css_head(note):
     return "%s\n/* %s */\n" % (V1_CSS_HEADER, note)
 
@@ -4319,8 +4327,9 @@ def host_wrapper_text(plugin_dir):
 # exits quietly when the folder disappears (uninstall).
 #
 # The add-on gets {"type": "excluded", "seq", "domains", "darken"}: the
-# excluded sites and the darkPages setting of the last sync (false before
-# any sync). darken is the one switch of the darkening: the colour
+# excluded sites and the darken flag of the last sync (live_darken():
+# darkPages, only when the style file holds the darkening colours; false
+# before any sync). darken is the one switch of the darkening: the colour
 # variables of the style file (--browserglass-darken-*) only give the
 # colours, since a page can set them itself. A socket line without a
 # boolean darken (an older sync) means false. Adding the key keeps
@@ -4597,7 +4606,7 @@ class _NativeHost:
         return self.seq
 
     def startup_list(self):
-        """(exclusion list, darkPages) of the last full sync (state.json,
+        """(exclusion list, darken flag) of the last full sync (state.json,
         read without the lock: sync saves it before it pushes); ([], False)
         before any sync."""
         try:
@@ -4607,7 +4616,7 @@ class _NativeHost:
         last = state.get("last_sync")
         if not last:
             return [], False
-        return live_domains(last["settings"].get("excluded")), last["settings"].get("darkPages") is True
+        return live_domains(last["settings"].get("excluded")), last.get("darken") is True
 
     def domain_of(self, host):
         """registrable_domain() of `host`; the host itself when the public
@@ -4822,9 +4831,9 @@ def native_host(env, data_dir, stdin, stdout, bpid):
 #                     (explicit paths, uninstall never globs); the folders
 #                     are also kept in native-dirs.json
 #     synced          a sync ran since the last uninstall (first_run)
-#     signed_xpi      None, or {mtime_ns, size, sources, problem}: the check
+#     signed_xpi      None, or {mtime_ns, size, sha256, sources, problem}: the check
 #                     of <plugin>/companion/<COMPANION_XPI> (_sync_xpi), for
-#                     the file of that mtime_ns and size and the extension
+#                     the file of that mtime_ns, size and sha256 and the extension
 #                     sources of that companion_sources_key(); problem None
 #                     when it holds exactly them, signed, else why not
 #   native-dirs.json
@@ -5025,16 +5034,21 @@ _WARNING_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 OPACITY_SOURCES = ("dms", "override", "forced")
 
 
-def last_sync_record(settings, glass, warnings):
+def last_sync_record(settings, glass, warnings, darken=None):
     """state.json "last_sync": what the last FULL sync (no --profile)
     decided, shown by status and report so that they describe what is on
     disk: the settings that change the output (minus _LAST_SYNC_SKIP), the
     status.glass document and the warning codes of that sync. A sync whose
     settings differ but whose output is the same still rewrites state.json
-    when one of the recorded settings (excluded, disabledStyles...) changed."""
+    when one of the recorded settings (excluded, disabledStyles...) changed.
+    "darken" is the flag that sync pushed (live_darken(); None: derived
+    from `settings` and glass["active"]), read back by a starting host."""
+    if darken is None:
+        darken = live_darken(settings, glass["active"])
     return {"settings": {k: v for k, v in settings.items() if k not in _LAST_SYNC_SKIP},
             "glass": dict(glass),
-            "warning_codes": _unique(w["code"] for w in warnings)}
+            "warning_codes": _unique(w["code"] for w in warnings),
+            "darken": darken is True}
 
 
 def _norm_glass(value):
@@ -5065,10 +5079,15 @@ def _norm_last_sync(value):
     settings = settings_from_json(value["settings"])
     codes = value.get("warning_codes")
     codes = codes if isinstance(codes, list) else []
+    darken = value.get("darken")
+    if not isinstance(darken, bool):
+        # an older state: the same condition, from what it recorded
+        darken = live_darken(settings, glass["active"])
     return {"settings": {k: v for k, v in settings.items() if k not in _LAST_SYNC_SKIP},
             "glass": glass,
             "warning_codes": _unique(c for c in codes
-                                     if isinstance(c, str) and _WARNING_CODE.fullmatch(c))[:32]}
+                                     if isinstance(c, str) and _WARNING_CODE.fullmatch(c))[:32],
+            "darken": darken}
 
 
 def _norm_prefs_original(value):
@@ -5165,11 +5184,13 @@ def _norm_signed_xpi(value):
         if isinstance(item, bool) or not isinstance(item, int):
             return None
         out[key] = item
-    if not isinstance(value.get("sources"), str):
-        return None
+    for key in ("sha256", "sources"):
+        if not isinstance(value.get(key), str):
+            return None
     problem = value.get("problem")
     if problem is not None and not isinstance(problem, str):
         return None
+    out["sha256"] = value["sha256"]
     out["sources"] = value["sources"]
     out["problem"] = problem
     return out
@@ -6143,13 +6164,10 @@ def _live_update(ctx, acked):
     changed between this sync's writes and the end of the push: that
     change, not this sync's, may be what it has not loaded.
 
-    With darkPages off, an instance that loaded the same files with Dark
-    pages on (ctx["dark_restart"], the restart_hash those would have) has
-    nothing left to restart for once its add-on acknowledged the push: the
-    push carried darken: false, and the colour variables still in its
-    style file do nothing without it (content.js darkens only when the
-    helper says so). It is recorded with this sync's restart_hash."""
-    dark_restart = ctx.get("dark_restart", {})
+    A darkPages change keeps needing a restart, whichever way it goes and
+    even when acknowledged: the add-on that acknowledges may be one that
+    ignores darken (1.2.0), so the live record keeps the restart_hash the
+    instance loaded."""
     for pid, (key, loaded, written) in sorted(ctx["instances"].items()):
         record = ctx["state"]["profiles"][pid]
         bpid = instance_browser_pid(key)
@@ -6162,10 +6180,7 @@ def _live_update(ctx, acked):
             if written is None or restart_files_mtime(record["path"]) != written:
                 record["live"] = None
             else:
-                restart = loaded[0]
-                if restart is not None and restart == dark_restart.get(pid):
-                    restart = record["restart_hash"]
-                record["live"] = {"instance": key, "restart_hash": restart,
+                record["live"] = {"instance": key, "restart_hash": loaded[0],
                                   "excl_hash": record["excl_hash"], "mtime": written}
         elif live is not None and live["excl_hash"] != record["excl_hash"]:
             record["live"] = None
@@ -6203,8 +6218,7 @@ def _render_content(settings, opacity, sites, off, surfaces, problems=None):
     return content_css(settings, opacity, sites_css, off, surfaces, sites)
 
 
-def sync_base(settings, opacity, off, chrome, content, restart_content=None,
-              dark_restart_content=None):
+def sync_base(settings, opacity, off, chrome, content, restart_content=None):
     """The profile-independent part of what sync writes, for profile_output().
 
     `restart_content` is the content stylesheet rendered with the same
@@ -6212,12 +6226,7 @@ def sync_base(settings, opacity, off, chrome, content, restart_content=None,
     that renders it (called at most once, only when a profile needs it);
     None: `content`, which is it when the list is empty. restart_hash is
     computed from it, so a change of the exclusion list alone never
-    changes restart_hash, whatever the renderers make of the list.
-
-    `dark_restart_content` is, with darkPages off (and liveControl on),
-    the same as `restart_content` rendered with darkPages on, as such a
-    function (None otherwise): what a browser started with Dark pages on
-    loaded, which an acknowledged push makes current (_live_update)."""
+    changes restart_hash, whatever the renderers make of the list."""
     if restart_content is None:
         restart_content = content
     return {
@@ -6225,7 +6234,6 @@ def sync_base(settings, opacity, off, chrome, content, restart_content=None,
         "chrome": chrome, "content": content,
         "hash_prefix": _hash_prefix(chrome, content),
         "restart_content": restart_content, "restart_prefix": None,
-        "dark_restart_content": dark_restart_content, "dark_restart_prefix": None,
         "excl_hash": _sha256("\n".join(sorted(settings["excluded"])))[:16],
     }
 
@@ -6257,15 +6265,6 @@ def _restart_prefix(base):
             content = content()
         base["restart_prefix"] = _hash_prefix(base["chrome"], content)
     return base["restart_prefix"]
-
-
-def _dark_restart_prefix(base):
-    """_hash_prefix() of the chrome and the bare content stylesheet with
-    darkPages on (base["dark_restart_content"], not None), rendered on
-    first use."""
-    if base["dark_restart_prefix"] is None:
-        base["dark_restart_prefix"] = _hash_prefix(base["chrome"], base["dark_restart_content"]())
-    return base["dark_restart_prefix"]
 
 
 def profile_output(base, profile, record=None, companion=None, guard=(), signed=False):
@@ -6365,11 +6364,9 @@ def _sync_profile(ctx, profile):
                          signed=comp_signed)
     # What a running browser has loaded, probed before anything is written
     # (the writes would make every file newer than its start). Only an
-    # exclusion change, or Dark pages turned off, can be applied live, and
-    # only a live record can carry over: otherwise any write needs a
-    # restart, nothing to probe.
-    if not fresh and (out["excl_hash"] != record["excl_hash"] or record["live"] is not None
-                      or ctx["base"]["dark_restart_content"] is not None):
+    # exclusion change can be applied live, and only a live record can
+    # carry over: otherwise any write needs a restart, nothing to probe.
+    if not fresh and (out["excl_hash"] != record["excl_hash"] or record["live"] is not None):
         lstate, key = lock_instance(path)
         if lstate != LOCK_FREE:
             # (key, loaded, RESTART_FILES mtime right after the writes)
@@ -6469,14 +6466,6 @@ def _sync_profile(ctx, profile):
     if pid in ctx["instances"]:
         # The live record's baseline, taken now and not after the push.
         ctx["instances"][pid] = ctx["instances"][pid][:2] + (restart_files_mtime(path),)
-        # With darkPages off, the restart_hash of these files with Dark
-        # pages on, only for an instance that has not loaded these
-        # (rendered once per sync, see _live_update).
-        loaded = ctx["instances"][pid][1]
-        if (clean and ctx["base"]["dark_restart_content"] is not None and loaded is not None
-                and loaded[0] != out["restart_hash"]):
-            ctx.setdefault("dark_restart", {})[pid] = _prefix_hash(_dark_restart_prefix(ctx["base"]),
-                                                                   out["block"])
     record["applied_hash"] = out["hash"] if clean else None
     record["restart_hash"] = out["restart_hash"] if clean else None
     record["excl_hash"] = out["excl_hash"] if clean else None
@@ -6830,8 +6819,10 @@ def _sync_xpi(plugin_dir, state, warnings):
     from <plugin_dir>/extension. (None, False) without --plugin-dir or
     when neither can be had (a warning). A signed xpi that is unusable is
     a warning too. The check is kept in state["signed_xpi"], keyed by the
-    file's (mtime_ns, size) and the sources' companion_sources_key(): a
-    sync where neither changed does no zip work."""
+    file's (mtime_ns, size, sha256 of its bytes) and the sources'
+    companion_sources_key(): a sync where neither changed does no zip
+    work, and a file swapped for another of the same size and mtime is
+    checked again."""
     if not plugin_dir:
         return None, False
     ext_dir = os.path.join(plugin_dir, EXTENSION_DIR)
@@ -6862,7 +6853,8 @@ def _sync_xpi(plugin_dir, state, warnings):
         sources = companion_sources_key(ext_dir)
     except OSError:
         return unsigned(), False  # its warning tells why
-    key = {"mtime_ns": mtime_ns, "size": size, "sources": sources}
+    key = {"mtime_ns": mtime_ns, "size": size, "sha256": hashlib.sha256(data).hexdigest(),
+           "sources": sources}
     cached = state["signed_xpi"]
     plain = None
     if cached is not None and all(cached[k] == v for k, v in key.items()):
@@ -7123,22 +7115,9 @@ def cmd_sync(args, env):
             def restart_content():
                 return _render_content(bare, opacity, sites, args.off, surfaces)
 
-        # With Dark pages off, the same with it on: what a browser started
-        # before it was turned off loaded, made current by an acknowledged
-        # push (_live_update). Rendered only for such a browser.
-        dark_restart_content = None
-        if settings["liveControl"] and not settings["darkPages"]:
-            dark = copy.copy(settings)
-            dark["excluded"] = []
-            dark["darkPages"] = True
-
-            def dark_restart_content():
-                return _render_content(dark, opacity, sites, args.off, surfaces)
-
         ctx = {
             "env": env, "sdir": sdir, "state": state, "warnings": warnings,
-            "base": sync_base(settings, opacity, args.off, chrome, content, restart_content,
-                              dark_restart_content),
+            "base": sync_base(settings, opacity, args.off, chrome, content, restart_content),
             "disk_glass": {}, "folders": {sdir}, "instances": {},
             "pending": pending_load(sdir), "taken_back": set(),
             "xpi": None, "xpi_signed": False,
@@ -7165,25 +7144,27 @@ def cmd_sync(args, env):
         # push: its settings are not those of the running browsers. Nor
         # does a sync with liveControl off (the add-on is not installed).
         # Every other sync pushes, whatever changed: the line also carries
-        # darkPages, which the add-on obeys at once (turned off, a darkened
-        # page is given back without a restart). darkPages is part of the
-        # style file (restart_hash) too: an acknowledgement covers the
-        # exclusion list (excl_hash), and Dark pages turned off
-        # (_live_update), not turned on (the colours come with the file).
+        # the darken flag (live_darken: darkPages, only when the style file
+        # holds the darkening colours), which a 1.3 add-on obeys at once.
+        # darkPages is part of the style file (restart_hash) too: an
+        # acknowledgement covers the exclusion list (excl_hash) only, a
+        # darkPages change still needs a restart (_live_update: a 1.2.0
+        # add-on acknowledges and ignores darken).
+        darken = live_darken(settings, active)
         if not args.profile:
             # A --profile sync (captures, tests) leaves the global record
             # alone: status keeps describing the real profiles.
             state["last_sync"] = last_sync_record(settings, collections.OrderedDict([
                 ("active", active), ("reason", reason), ("opacity", opacity),
                 ("opacity_source", source), ("surface", colors.surface), ("mode", mode)]),
-                warnings)
+                warnings, darken)
         delivered, acked = 0, frozenset()
         if not args.profile and settings["liveControl"]:
             # Saved before the push too: a host starting meanwhile reads its
             # first list from state.json once its socket is bound, so it
             # gets this list either way (a failure is reported below).
             state_save(sdir, state, [])
-            delivered, acked = _live_push_safe(env, settings["excluded"], settings["darkPages"])
+            delivered, acked = _live_push_safe(env, settings["excluded"], darken)
         _live_update(ctx, acked)
         saved = state_save(sdir, state, warnings)
         if saved:
