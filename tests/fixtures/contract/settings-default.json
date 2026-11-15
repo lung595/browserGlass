@@ -12,5 +12,6 @@
   "newTabGlass": true,
   "readerOpaque": true,
   "privateGlass": true,
-  "liveControl": true
+  "liveControl": true,
+  "darkPages": true
 }

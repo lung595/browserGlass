@@ -45,6 +45,7 @@
 //   disabledStyles   [name] (or [{name}]) -> disabledStyles[]
 //   newTabGlass, readerOpaque, privateGlass   bool, defaults true
 //   liveControl      bool, default true (companion add-on, live exclusions)
+//   darkPages        bool, default true (companion add-on darkens light pages)
 //   blur <- SettingsData.blurEnabled, isLight <- SessionData.isLightMode
 
 var PLUGIN_ID = "browserGlass";
@@ -87,11 +88,12 @@ var DEFAULTS = {
     "newTabGlass": true,
     "readerOpaque": true,
     "privateGlass": true,
-    "liveControl": true
+    "liveControl": true,
+    "darkPages": true
 };
 var SITE_THEMES = ["follow", "dark", "none"];
 var BOOL_KEYS = ["glassEnabled", "opacityOverride", "pagesTransparent", "genericStyle",
-    "newTabGlass", "readerOpaque", "privateGlass", "liveControl"];
+    "newTabGlass", "readerOpaque", "privateGlass", "liveControl", "darkPages"];
 
 // ---------------------------------------------------------------------------
 // Settings and command lines
@@ -160,7 +162,7 @@ function buildSettings(pluginData, blurEnabled, isLightMode) {
     var ordered = {};
     var order = ["blur", "isLight", "glassEnabled", "opacityOverride", "opacity", "siteTheme",
         "pagesTransparent", "genericStyle", "excluded", "disabledStyles", "newTabGlass",
-        "readerOpaque", "privateGlass", "liveControl"];
+        "readerOpaque", "privateGlass", "liveControl", "darkPages"];
     for (var j = 0; j < order.length; j++)
         ordered[order[j]] = s[order[j]];
     return ordered;

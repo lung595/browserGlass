@@ -533,17 +533,18 @@ class ToneTest(unittest.TestCase):
         self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_NORMAL_ROOT), css)
         self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_LIVE_ROOT), css)
         tint = bg._content_block("https?://.*", bg._CONTENT_TONE.format(
-            a="0.72", bar="0.8", **self.rgb(surfaces)), bg.GATE_NORMAL_ROOT)
+            a="0.88", bar="0.8", **self.rgb(surfaces)), bg.GATE_NORMAL_ROOT)
         self.assertEqual(css.count(tint), 1)
         # after the site styles, before the live section
         self.assertLess(css.rindex("/* a.test.css */", 0, css.index(bg._CONTENT_LIVE_COMMENT)),
                         css.index(tint))
         self.assertLess(css.index(tint), css.index(bg._CONTENT_LIVE_COMMENT))
-        self.assertIn(normal.open + 'html:root[%s="light"]:where(&,& *) {\n'
-                      "      background: rgba(244, 240, 232, 0.72) !important;\n"
-                      "      --browserglass-bar: rgba(244, 240, 232, 0.8);" % bg.ATTR_TONE, css)
+        self.assertIn(normal.open + 'html:root[%s="light"]:not(%s):where(&,& *) {\n'
+                      "      background: rgba(244, 240, 232, 0.88) !important;\n"
+                      "      --browserglass-bar: rgba(244, 240, 232, 0.8);"
+                      % (bg.ATTR_TONE, bg._DARK_PAGE_WHERE), css)
         self.assertIn(normal.open + 'html:root[%s="dark"]:where(&,& *) {\n'
-                      "      background: rgba(16, 20, 24, 0.72) !important;" % bg.ATTR_TONE, css)
+                      "      background: rgba(16, 20, 24, 0.88) !important;" % bg.ATTR_TONE, css)
         light = tint.index('[%s="light"]' % bg.ATTR_TONE)
         self.assertLess(tint.rindex("@media (prefers-color-scheme: dark)", 0, light), light)
         dark = tint.index('[%s="dark"]' % bg.ATTR_TONE)
@@ -558,10 +559,73 @@ class ToneTest(unittest.TestCase):
 
     def test_specificity(self):
         """The tint beats the "html" and ":root" backgrounds of the site
-        styles: (0,2,1) against (0,0,1) and (0,1,0), the gate adding none."""
+        styles: (0,2,1) against (0,0,1) and (0,1,0), the gate adding none,
+        nor the :not(:where(...)) of the pages declaring a dark version."""
         tone = bg._CONTENT_TONE.format(a="1", bar="1", light="1, 1, 1", dark="0, 0, 0")
-        self.assertIn('    html:root[%s="light"] {' % bg.ATTR_TONE, tone)
+        self.assertIn('    html:root[%s="light"]:not(%s) {' % (bg.ATTR_TONE, bg._DARK_PAGE_WHERE), tone)
+        self.assertTrue(bg._DARK_PAGE_WHERE.startswith(":where("))
         self.assertIn('    html:root[%s="dark"] {' % bg.ATTR_TONE, tone)
+
+
+class DarkPagesTest(unittest.TestCase):
+    """darkPages (with liveControl): under a dark theme, the root of a page
+    without a dark version carries the colours the add-on darkens it with,
+    and the elements it marks as the page's canvas are glass."""
+
+    def test_block(self):
+        surfaces = {"dark": "#101418", "light": "#f4f0e8"}
+        css = bg._render_content(settings(liveControl=True), 0.8, None, False, surfaces)
+        normal = bg._Nest(bg.GATE_NORMAL_ROOT)
+        block = bg._content_block("https?://.*", bg._CONTENT_DARKEN.format(
+            dark_hex="#101418", light_hex="#f4f0e8"), bg.GATE_NORMAL_ROOT)
+        self.assertEqual(css.count(block), 1)
+        self.assertIn(normal.open + "html:root:not(%s):where(&,& *) {\n"
+                      "      --browserglass-darken-bg: #101418;\n"
+                      "      --browserglass-darken-fg: #f4f0e8;" % bg._DARK_PAGE_WHERE, css)
+        # under a dark theme only, after the tone tint
+        self.assertLess(block.index("@media (prefers-color-scheme: dark)"), block.index("--browserglass"))
+        self.assertNotIn("not (prefers-color-scheme: dark)", block)
+        self.assertLess(css.index('[%s="light"]' % bg.ATTR_TONE), css.index(block))
+        self.assertEqual(bg.sites_validate(css), [])
+
+    def test_off(self):
+        for over in ({"liveControl": True, "darkPages": False},
+                     {"liveControl": False, "darkPages": True}):
+            css = bg.content_css(settings(**over), 0.8, sites=None)
+            self.assertNotIn("--browserglass-darken", css, over)
+
+
+class LayersTest(unittest.TestCase):
+    """With liveControl, the layers the add-on marks: the page's own
+    background is glass, a navigation bar the DMS surface at
+    NAV_BAR_OPACITY, blurred (by the page's tone, else the theme), over the
+    generic style's transparency (which reaches (1,1,2) with ids)."""
+
+    def test_block(self):
+        css = bg._render_content(settings(liveControl=True, darkPages=False), 0.8, None, False, None)
+        rgb = {mode: "%d, %d, %d" % bg.surface_rgb(None, mode) for mode in bg.MODES}
+        block = bg._content_block("https?://.*", bg._CONTENT_LAYERS.format(
+            nav="0.9", **rgb), bg.GATE_NORMAL_ROOT)
+        self.assertEqual(css.count(block), 1)
+        bar = "[%s]:not(#browserglass-a):not(#browserglass-b)" % bg.ATTR_BAR
+        self.assertIn("[%s]:where(&,& *) { background-color: transparent !important; }"
+                      % bg.ATTR_CANVAS, block)
+        self.assertEqual(bg.NAV_BAR_OPACITY, 0.9)
+        self.assertIn("%s:where(&,& *) {\n    background: rgba(%s, 0.9) !important;\n"
+                      "    backdrop-filter: blur(24px) saturate(1.5) !important;"
+                      % (bar, rgb["dark"]), block)
+        for tone in bg.MODES:
+            self.assertIn('html:root[%s="%s"] %s:where(&,& *) { background: rgba(%s, 0.9) !important; }'
+                          % (bg.ATTR_TONE, tone, bar, rgb[tone]), block)
+        # the tone wins over the theme: last
+        self.assertLess(block.index("not (prefers-color-scheme: dark)"), block.index(bg.ATTR_TONE))
+        self.assertLess(css.index('[%s="light"]' % bg.ATTR_TONE), css.index(block))
+        self.assertEqual(bg.sites_validate(css), [])
+
+    def test_off(self):
+        css = bg.content_css(settings(liveControl=False), 0.8, sites=None)
+        self.assertNotIn(bg.ATTR_BAR, css)
+        self.assertNotIn(bg.ATTR_CANVAS, css)
 
 
 class ContentTest(unittest.TestCase):
@@ -578,11 +642,17 @@ class ContentTest(unittest.TestCase):
     def test_on_is_off_gated(self):
         """With liveControl, the file minus the live section is the
         liveControl-off file with what the gating inserted, the tone
-        condition of the generic rule and the tone tint."""
+        condition of the generic rule, the tone tint, the page layers and
+        the dark pages block (darkPages)."""
         sites = real_sites()
         rgb = {mode: "%d, %d, %d" % bg.surface_rgb(None, mode) for mode in bg.MODES}
         tint = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
-                % bg._CONTENT_TONE.format(a="0.72", bar="0.8", **rgb))
+                % bg._CONTENT_TONE.format(a="0.88", bar="0.8", **rgb))
+        bars = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
+                % bg._CONTENT_LAYERS.format(nav="0.9", **rgb))
+        hexes = {mode + "_hex": "#%02x%02x%02x" % bg.surface_rgb(None, mode) for mode in bg.MODES}
+        darken = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
+                  % bg._CONTENT_DARKEN.format(**hexes))
         for excluded in ((), EXCLUDED):
             for reader in (True, False):
                 over = {"excluded": list(excluded), "readerOpaque": reader}
@@ -595,8 +665,10 @@ class ContentTest(unittest.TestCase):
                     on = on.replace("\n" + live, "")
                 plain = ungate_scheme(on, bg.GATE_NORMAL_ROOT)
                 self.assertEqual(plain.count(tint), 1)
+                self.assertEqual(plain.count(darken), 1)
+                self.assertEqual(plain.count(bars), 1)
                 self.assertEqual(plain.count(bg._CONTENT_GENERIC_TONE), 1)
-                plain = plain.replace(tint, "").replace(bg._CONTENT_GENERIC_TONE, bg._CONTENT_GENERIC)
+                plain = plain.replace(tint, "").replace(bars, "").replace(darken, "").replace(bg._CONTENT_GENERIC_TONE, bg._CONTENT_GENERIC)
                 self.assertEqual(plain, ungate_scheme(off, None))
                 self.assertEqual(bg.sites_validate(on), [])
 

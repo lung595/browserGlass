@@ -1766,15 +1766,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -1825,15 +1847,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -1865,15 +1909,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -1935,15 +2001,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -1986,15 +2074,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2056,15 +2166,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2112,15 +2244,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2166,15 +2320,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2201,15 +2377,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2266,15 +2464,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2312,15 +2532,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2377,15 +2619,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2443,15 +2707,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2503,15 +2789,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2544,15 +2852,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2615,15 +2945,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2667,15 +3019,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2738,15 +3112,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2795,15 +3191,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2850,15 +3268,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2886,15 +3326,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2952,15 +3414,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -2999,15 +3483,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }
@@ -3065,15 +3571,37 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 
 @-moz-document regexp("https?://.*") {
   @media (prefers-color-scheme: dark) {
-    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:where(&,& *) {
-      background: rgba(247, 249, 255, 0.72) !important;
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="light"]:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      background: rgba(247, 249, 255, 0.88) !important;
       --browserglass-bar: rgba(247, 249, 255, 0.8);
     }}
   }
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"]:where(&,& *) {
-      background: rgba(16, 20, 24, 0.72) !important;
+      background: rgba(16, 20, 24, 0.88) !important;
       --browserglass-bar: rgba(16, 20, 24, 0.8);
+    }}
+  }
+}
+
+@-moz-document regexp("https?://.*") {
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
+  [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
+    background: rgba(16, 20, 24, 0.9) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+  }}
+  @media not (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+  }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root[data-browserglass-tone="dark"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(16, 20, 24, 0.9) !important; }
+  html:root[data-browserglass-tone="light"] [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { background: rgba(247, 249, 255, 0.9) !important; }}
+}
+
+@-moz-document regexp("https?://.*") {
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:root:not(:where(:has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer))):where(&,& *) {
+      --browserglass-darken-bg: #101418;
+      --browserglass-darken-fg: #f7f9ff;
     }}
   }
 }

@@ -151,6 +151,12 @@ RUNTIME_DIR_NAME = "browserGlass"
 ATTR_OFF = "data-browserglass-off"
 ATTR_LIVE = "data-browserglass-live"
 ATTR_TONE = "data-browserglass-tone"
+# The add-on also sets CANVAS on the large elements that paint the page's
+# background once it turned a light page dark (darkPages): they become glass.
+ATTR_CANVAS = "data-browserglass-canvas"
+# ... and BAR on a bar stuck to the top or bottom of the window (a sticky or
+# fixed header) left see-through, often by the generic style: glass tint.
+ATTR_BAR = "data-browserglass-bar"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -404,6 +410,7 @@ SETTINGS_DEFAULTS = collections.OrderedDict([
     ("readerOpaque", True),
     ("privateGlass", True),
     ("liveControl", True),
+    ("darkPages", True),
 ])
 # The largest `sync --settings-file` the script reads (bytes)
 SETTINGS_FILE_MAX = 4 * 1024 * 1024
@@ -1701,7 +1708,8 @@ _DARK_PAGE_MARKERS = (
     ':has(> body > #outerContainer #viewerContainer)',  # pdf.js: light-dark() colours
 )
 # :where(): no added specificity, so the opaque PDF rule still wins.
-_DARK_PAGE_ROOT = ":root:where(%s)" % ", ".join(_DARK_PAGE_MARKERS)
+_DARK_PAGE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS)
+_DARK_PAGE_ROOT = ":root" + _DARK_PAGE_WHERE
 # With liveControl a page the companion add-on measured (ATTR_TONE) counts
 # as one with a dark version: the tone tint (_CONTENT_TONE) makes it legible.
 _DARK_PAGE_TONE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS + ("[%s]" % ATTR_TONE,))
@@ -1730,10 +1738,13 @@ _CONTENT_GENERIC_TONE = _content_generic(_DARK_PAGE_TONE_ROOT)  # liveControl
 # dark theme gets a light glass, a dark page under a light theme a dark one.
 # "html:root[...]" (0,2,1) beats the "html" and ":root" backgrounds of the
 # site styles (html { background: transparent !important }).
-SITES_TONE_OPACITY = 0.72
+# A page that declares a dark version (_DARK_PAGE_MARKERS) never gets the
+# light glass, whatever was measured: a single-page app (YouTube) may show
+# little text when the add-on first measures it.
+SITES_TONE_OPACITY = 0.88
 _CONTENT_TONE = (
     "  @media (prefers-color-scheme: dark) {{\n"
-    "    html:root[" + ATTR_TONE + "=\"light\"] {{\n"
+    "    html:root[" + ATTR_TONE + "=\"light\"]:not(" + _DARK_PAGE_WHERE + ") {{\n"
     "      background: rgba({light}, {a}) !important;\n"
     "      --browserglass-bar: rgba({light}, {bar});\n"
     "    }}\n"
@@ -1744,6 +1755,51 @@ _CONTENT_TONE = (
     "      --browserglass-bar: rgba({dark}, {bar});\n"
     "    }}\n"
     "  }}\n"
+)
+# Dark pages (darkPages, with liveControl; a block with the regexp
+# "https?://.*", after the tone tint): under a dark theme, the root of a page
+# without a dark version carries the two colours the companion add-on turns
+# it dark with (its Dark Reader engine, extension/vendor/), the DMS dark
+# surface and the light one for the text. The add-on reads them: a page
+# without them (an excluded one, a light theme, a page with a dark version)
+# is left as it is. The large elements that paint the page's background,
+# which the add-on marks once the page is dark, become glass (_CONTENT_LAYERS).
+_CONTENT_DARKEN = (
+    "  @media (prefers-color-scheme: dark) {{\n"
+    "    html:root:not(" + _DARK_PAGE_WHERE + ") {{\n"
+    "      --browserglass-darken-bg: {dark_hex};\n"
+    "      --browserglass-darken-fg: {light_hex};\n"
+    "    }}\n"
+    "  }}\n"
+)
+# Page layers (with liveControl, a block with the regexp "https?://.*"),
+# which the companion add-on marks:
+# - the page's own background (ATTR_CANVAS): with the root and the body
+#   see-through, the lowest layer that paints an opaque background colour
+#   over most of the window (a fixed full-window container, a wrapper):
+#   glass;
+# - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
+#   window (a header, a bottom bar, a sidebar), whatever its own colours.
+#   Every site gets the same: the DMS surface at NAV_BAR_OPACITY, blurred,
+#   the dark one on a dark (or darkened) page, the light one on a light
+#   page, by the theme otherwise.
+# Two ids in :not() outweigh the selectors of the generic and site styles
+# (user !important rules too, so specificity decides).
+NAV_BAR_OPACITY = 0.9
+_BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
+_CONTENT_LAYERS = (
+    "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
+    "  " + _BAR_SELECTOR + " {{\n"
+    "    background: rgba({dark}, {nav}) !important;\n"
+    "    backdrop-filter: blur(24px) saturate(1.5) !important;\n"
+    "  }}\n"
+    "  @media not (prefers-color-scheme: dark) {{\n"
+    "    " + _BAR_SELECTOR + " {{ background: rgba({light}, {nav}) !important; }}\n"
+    "  }}\n"
+    "  html:root[" + ATTR_TONE + "=\"dark\"] " + _BAR_SELECTOR
+    + " {{ background: rgba({dark}, {nav}) !important; }}\n"
+    "  html:root[" + ATTR_TONE + "=\"light\"] " + _BAR_SELECTOR
+    + " {{ background: rgba({light}, {nav}) !important; }}\n"
 )
 # --browserglass-bar: the DMS surface (the tint's colour) at SITES_BAR_OPACITY,
 # for site parts that float over the page (data/sites/), with the light
@@ -2343,6 +2399,11 @@ def content_css(settings, opacity, sites_css="", off=False, surfaces=None, sites
         # also sets ATTR_OFF on an excluded page (see "live gating")
         parts.append(_content_block("https?://.*", _CONTENT_TONE.format(
             a=format_number(SITES_TONE_OPACITY), bar=bar, **rgb), gate))
+        parts.append(_content_block("https?://.*", _CONTENT_LAYERS.format(nav=format_number(NAV_BAR_OPACITY), **rgb), gate))
+        if settings["darkPages"]:
+            hexes = {mode + "_hex": "#%02x%02x%02x" % surface_rgb(surfaces.get(mode), mode)
+                     for mode in MODES}
+            parts.append(_content_block("https?://.*", _CONTENT_DARKEN.format(**hexes), gate))
         live = content_live_section(settings, sites)
         if live:
             parts.append(live)
@@ -2471,7 +2532,8 @@ def niri_kdl(rule_needed):
 # Differences with v0 (see tests/py/test_sites.py): hyphens are not escaped
 # (css_rx_escape), keys are normalised and invalid mapping targets dropped
 # (sites_load), the alternations are ordered deterministically, the comments
-# are in English, and disabled or broken styles only lose their own block.
+# are in English, disabled or broken styles only lose their own block, and
+# the generic style keeps background images (_GENERIC_NO_BACKGROUND).
 # data/styles.json is the upstream file minus the keys hitting the
 # project's name denylist (tests/py/test_leaks.py); the data updater must
 # keep applying it.
@@ -2587,6 +2649,13 @@ def _sites_feature_css(features):
     return "\n".join(css for name, css in features.items() if SITES_KEEP.search(name))
 
 
+# The generic style's own "background: none" also wipes the background
+# images of the elements it lists (a photo behind a <section> hero): the
+# generic style only loses its background colours (its background-color
+# rule stays), images keep showing.
+_GENERIC_NO_BACKGROUND = re.compile(r"^[ \t]*background:[ \t]*none[ \t]*!important;[ \t]*\n", re.M)
+
+
 def _sites_index(sites, generic=True):
     """The _SitesIndex of `sites` (the generic style left out when not `generic`)."""
     suffix = {}
@@ -2596,6 +2665,8 @@ def _sites_index(sites, generic=True):
         if key == SITES_GENERIC_KEY and not generic:
             continue
         text = _sites_feature_css(features)
+        if key == SITES_GENERIC_KEY:
+            text = _GENERIC_NO_BACKGROUND.sub("", text)
         if not text.strip():
             continue
         css[key] = text

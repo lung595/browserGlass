@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Browser Glass companion",
   "version": "1.1.0",
-  "description": "Applies the Browser Glass site exclusions at once and tells the DMS launcher which site is open. Talks only to the local Browser Glass helper.",
+  "description": "Applies the Browser Glass site exclusions at once, darkens light pages under a dark theme (Dark Reader engine) and tells the DMS launcher which site is open. Talks only to the local Browser Glass helper.",
   "browser_specific_settings": {
     "gecko": {
       "id": "browserglass@companion",
@@ -17,7 +17,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": ["vendor/darkreader.js", "content.js"],
       "run_at": "document_start"
     }
   ]

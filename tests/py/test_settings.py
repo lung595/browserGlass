@@ -45,7 +45,7 @@ class DefaultsTest(unittest.TestCase):
                "opacity": 0.4, "siteTheme": "none", "pagesTransparent": False,
                "genericStyle": False, "excluded": ["a.org"], "disabledStyles": ["-google.com"],
                "newTabGlass": False, "readerOpaque": False, "privateGlass": False,
-               "liveControl": False}
+               "liveControl": False, "darkPages": False}
         self.assertEqual(dict(parse(doc)), doc)
 
 

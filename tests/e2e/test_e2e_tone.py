@@ -28,7 +28,8 @@ declared) and dark.test (light text on a dark background). Checked:
   - the add-on's content.js (run in the page with a stand-in `browser`)
     measures the tone of both pages, again when the page switches its theme
     (a class on <html>) and when the colour scheme changes; text coloured
-    in oklch() or color(display-p3) too;
+    in oklch() or color(display-p3) too; a page whose body keeps the default
+    black and whose text shown is white through classes (YouTube) is dark;
   - a site style that makes the text white (white.test.css) on a light
     page: under a dark theme the tone is that of the text shown, "dark"
     (the site style applies once the tone is set), so the page is glass
@@ -89,6 +90,13 @@ OKLCH_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html{background:rgb(250,250,250)} body{color:oklch(0.21 0.034 264.665);margin:0}
 html.p3{background:rgb(18,18,18)} html.p3 body{color:color(display-p3 0.92 0.92 0.92)}
 </style></head><body><p>Readable text</p></body></html>"""
+# YouTube's dark theme: the body keeps the default (black) text colour, the
+# text shown is white through classes; a hidden block of dark text must not
+# count.
+CLASSES_PAGE = """<!doctype html><html dark><head><meta charset="utf-8"><style>
+html{background:rgb(15,15,15)} body{margin:0} .t{color:rgb(241,241,241)}
+</style></head><body><div class="t"><h1>Video title</h1><p>Channel name</p></div>
+<div style="display:none">""" + "Hidden dark text " * 50 + """</div></body></html>"""
 # A light page with a web component: a light section in a shadow root.
 SHADOW_PAGE = LIGHT_PAGE.replace("<p>Readable text</p>", """<p>Readable text</p><div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML =
@@ -235,6 +243,12 @@ class ToneE2E(unittest.TestCase):
             self.assertEqual(html, self.tint["light"])
             self.assertEqual(body, "rgba(0, 0, 0, 0)")
             self.readable(text, html)
+            # a page declaring its dark version never gets the light tint,
+            # even measured light (a single-page app measured too early)
+            b.js("document.documentElement.setAttribute('dark', '');")
+            self.assertEqual(colors(b)[1:], ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
+            b.js("document.documentElement.removeAttribute('dark');")
+            self.assertEqual(colors(b)[1], self.tint["light"])
             # under a light theme the light page is glass, untinted
             set_scheme(b, False)
             self.assertEqual(colors(b)[1:], ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
@@ -269,7 +283,8 @@ class ToneE2E(unittest.TestCase):
     def check_content_js(self, binary):
         routes = {"/p.html": ("text/html; charset=utf-8", LIGHT_PAGE.encode("utf-8")),
                   "/d.html": ("text/html; charset=utf-8", DARK_PAGE.encode("utf-8")),
-                  "/o.html": ("text/html; charset=utf-8", OKLCH_PAGE.encode("utf-8"))}
+                  "/o.html": ("text/html; charset=utf-8", OKLCH_PAGE.encode("utf-8")),
+                  "/c.html": ("text/html; charset=utf-8", CLASSES_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -298,6 +313,10 @@ class ToneE2E(unittest.TestCase):
             b.js(RUN_CONTENT, self.content_js)
             self.tone_is(b, "light")
             b.js("document.documentElement.classList.add('p3');")
+            self.tone_is(b, "dark")
+            # the body's colour unset, the text shown white through classes
+            b.navigate(srv.url("/c.html", "dark.test"))
+            b.js(RUN_CONTENT, self.content_js)
             self.tone_is(b, "dark")
             # a site style making the text white: the tone of the text shown
             b.navigate(srv.url("/p.html", "white.test"))

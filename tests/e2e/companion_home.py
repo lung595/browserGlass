@@ -54,6 +54,7 @@ SETTINGS = {
     "opacity": 0.85, "siteTheme": "follow", "pagesTransparent": True,
     "genericStyle": True, "excluded": [], "disabledStyles": [], "newTabGlass": True,
     "readerOpaque": True, "privateGlass": False, "liveControl": True,
+    "darkPages": False,
 }
 
 SCOPE_PROFILE = 1  # AddonManager.SCOPE_PROFILE: the profile's extensions/ folder

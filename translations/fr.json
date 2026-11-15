@@ -395,6 +395,12 @@
   "Sites without a dedicated style get a see-through background too.": {
     "Sites without a dedicated style get a see-through background too.": "Les sites sans style dédié reçoivent eux aussi un fond transparent."
   },
+  "Dark pages": {
+    "Dark pages": "Pages sombres"
+  },
+  "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": {
+    "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": "Sous un thème sombre, le module compagnon assombrit les pages claires avec le moteur Dark Reader intégré, et leur fond devient du verre. Nécessite le contrôle en direct."
+  },
   "Status": {
     "Status": "État"
   },

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Checks that every user-visible string of the plugin has a French entry.
 
-Scans the plugin's .qml and .js files (tests/, tools/, docs and dot folders
-left out) for the English source strings that reach I18n, then compares them
+Scans the plugin's .qml and .js files (tests/, tools/, docs, dot folders and
+extension/vendor/ left out) for the English source strings that reach I18n, then compares them
 with translations/fr.json, the DMS plugin catalog format
 ({"context": {"term": "translation"}}, the term as its own context).
 
@@ -36,6 +36,8 @@ import re
 import sys
 
 SKIP_DIRS = {"tests", "tools", "docs", "screenshots", "node_modules", "__pycache__"}
+# Third-party code bundled as is (the companion add-on's Dark Reader)
+SKIP_PATHS = {os.path.join("extension", "vendor")}
 CATALOG = os.path.join("translations", "fr.json")
 # logic.js and launcher.js functions that return source strings for trFor
 TEXT_FUNCTIONS = ("reasonText", "warningText", "liveStatusText", "launcherText")
@@ -161,7 +163,8 @@ def source_files(root):
     out = []
     for folder, dirs, files in os.walk(root):
         rel_folder = os.path.relpath(folder, root)
-        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and not (rel_folder == "." and d in SKIP_DIRS) and d != "__pycache__")
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and not (rel_folder == "." and d in SKIP_DIRS) and d != "__pycache__"
+                         and os.path.normpath(os.path.join(rel_folder, d)) not in SKIP_PATHS)
         for name in sorted(files):
             if name.endswith((".qml", ".js")):
                 out.append(os.path.normpath(os.path.join(rel_folder, name)))

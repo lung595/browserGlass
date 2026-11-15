@@ -185,6 +185,8 @@ Item {
                 t.check("DMS opacity read-only line", control("dmsOpacity").text, "DMS window opacity: 85% (the first global window rule)");
                 t.check("the live control toggle, on by default", [control("liveControl").label, control("liveControl").value], ["Live control", true]);
                 t.ok("it says what it changes", control("liveControl").description.indexOf("xpinstall.signatures.required") >= 0);
+                t.check("the dark pages toggle, on by default", [control("darkPages").label, control("darkPages").value], ["Dark pages", true]);
+                t.ok("it names the engine it bundles", control("darkPages").description.indexOf("Dark Reader") >= 0);
                 t.ok("files written lists the native manifest", control("filesWritten").text.indexOf("native-messaging-hosts/browserglass.json") >= 0);
                 t.check("a live control line only with a status that has it", control("statusLive").visible, json("contract/status.json").companion !== undefined);
                 PluginService.saves = [];

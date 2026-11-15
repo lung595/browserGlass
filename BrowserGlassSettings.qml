@@ -272,6 +272,14 @@ PluginSettings {
         defaultValue: true
     }
 
+    ToggleSetting {
+        objectName: "darkPages"
+        settingKey: "darkPages"
+        label: I18n.trFor("browserGlass", "Dark pages")
+        description: I18n.trFor("browserGlass", "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.")
+        defaultValue: true
+    }
+
     ListSettingWithInput {
         objectName: "excludedSites"
         settingKey: "excludedSites"

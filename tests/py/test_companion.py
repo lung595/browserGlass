@@ -51,12 +51,25 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertEqual(self.manifest["incognito"], "not_allowed")
         scripts = self.manifest["content_scripts"]
         self.assertEqual(len(scripts), 1)
-        self.assertEqual(scripts[0]["js"], ["content.js"])
+        # Dark Reader first: content.js uses its global
+        self.assertEqual(scripts[0]["js"], ["vendor/darkreader.js", "content.js"])
         self.assertEqual(scripts[0]["run_at"], "document_start")
         self.assertNotIn("all_frames", scripts[0])  # main document only (v1.1)
         self.assertEqual(self.manifest["background"]["scripts"], ["background.js"])
         self.assertEqual(sorted(p.name for p in EXT.iterdir()),
-                         ["background.js", "content.js", "manifest.json"])
+                         ["background.js", "content.js", "manifest.json", "vendor"])
+        self.assertEqual(sorted(p.name for p in (EXT / "vendor").iterdir()),
+                         ["darkreader-LICENSE.txt", "darkreader.js"])
+
+    def test_vendored_dark_reader(self):
+        # The npm build of Dark Reader, unmodified, with its MIT licence.
+        js = read("vendor/darkreader.js")
+        self.assertTrue(js.startswith("/**\n * Dark Reader v4.9.135\n * https://darkreader.org/\n"))
+        self.assertIn("exports.enable = enable;", js)
+        self.assertIn("exports.setFetchMethod = setFetchMethod;", js)
+        lic = read("vendor/darkreader-LICENSE.txt")
+        self.assertTrue(lic.startswith("MIT License"))
+        self.assertIn("Dark Reader Ltd.", lic)
 
     def test_content_watches_only_the_root_attributes(self):
         # Fix F: no subtree observer (it would wake on every DOM insertion);
@@ -67,7 +80,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         observes = re.findall(r"\.observe\(([^;]*)\);", js)
         self.assertEqual(sorted(observes), sorted([
             "document, {childList: true}",
+            # the body's size (not its DOM), while the tone is unsettled
+            "document.body",
             "root, {attributes: true}",
+            # the layers: the size of the document, the body, its children
+            # and the marked elements; the body's children (not its subtree)
+            "document.documentElement",
+            "document.body",
+            "el",
+            "el",
+            "el",
+            "document.body, {childList: true}",
         ]))
         self.assertIn('const LIVE = "%s";' % bg.ATTR_LIVE, js)
         self.assertIn('const OFF = "%s";' % bg.ATTR_OFF, js)
@@ -93,7 +116,19 @@ class ExtensionSourcesTest(unittest.TestCase):
         for space in ("rgb", "oklch", "oklab", "lab", "lch", "srgb", "display-p3", "xyz"):
             self.assertIn('case "%s":' % space, lum)
         self.assertIn('m[1] === "color"', lum)
-        self.assertIn("luminance(getComputedStyle(el).color)", measure)
+        # the visible text votes (not the body's colour alone: YouTube),
+        # the body's colour only without visible text
+        self.assertIn("createTreeWalker(document.body, NodeFilter.SHOW_TEXT)", measure)
+        self.assertIn("i < SAMPLE_NODES", measure)
+        self.assertIn("checkVisibility(", measure)
+        self.assertIn("isLight(getComputedStyle(p).color)", measure)
+        self.assertIn("sampled ? dark > light : isLight(getComputedStyle(el).color)", measure)
+        # a page still rendering: each resize of the body measures again,
+        # until the text settles the tone or RESIZE_MEASURES
+        upd = js[js.index("const sizes = new ResizeObserver"):js.index("function paint()")]
+        self.assertIn("++resizeMeasures > RESIZE_MEASURES", upd)
+        self.assertIn("sampled >= ENOUGH_TEXT || resizeMeasures >= RESIZE_MEASURES", upd)
+        self.assertIn("sizes.observe(document.body)", upd)
         observer = js[js.index("new MutationObserver"):js.index("function watch()")]
         self.assertIn('r.attributeName !== "style" && !r.attributeName.startsWith(OWN)', observer)
         self.assertIn("measure()", observer)
@@ -113,6 +148,87 @@ class ExtensionSourcesTest(unittest.TestCase):
         paint = js[js.index("function paint()"):js.index("function apply(")]
         self.assertLess(paint.index("off === null"), paint.index("setAttribute(TONE"))
         self.assertEqual(js.count("setAttribute(TONE"), 1)
+
+    def test_content_marks_page_layers(self):
+        # navigation bars along a window edge get ATTR_BAR, the page's own
+        # background ATTR_CANVAS (_CONTENT_LAYERS), looked for again as the
+        # page changes, without a subtree observer nor a timer
+        js = strip_comments(read("content.js"))
+        self.assertIn('const BAR = "%s";' % bg.ATTR_BAR, js)
+        self.assertTrue(bg.ATTR_BAR.startswith("data-browserglass-"))
+        self.assertIn("[" + bg.ATTR_BAR + "]", bg._CONTENT_LAYERS)
+        self.assertIn("[" + bg.ATTR_CANVAS + "]", bg._CONTENT_LAYERS)
+        bars = js[js.index("function markBars()"):js.index("let layerFrame")]
+        self.assertIn("off !== false", bars)
+        self.assertIn('style.position !== "fixed" && style.position !== "sticky"', bars)
+        # headers and bottom bars, sidebars, on all four edges
+        self.assertIn("r.top <= EDGE || r.bottom >= h - EDGE", bars)
+        self.assertIn("r.left <= EDGE || r.right >= w - EDGE", bars)
+        self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]", bars)
+        self.assertIn("removeAttribute(BAR)", bars)
+        self.assertIn("mark(el, BAR)", bars)
+        self.assertNotIn("backgroundColor", bars)
+        mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
+        self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= SOLID", mark)
+        self.assertIn("const SOLID = 0.99;", js)
+        watch = js[js.index("let layerFrame"):js.index("function apply(")]
+        self.assertIn("requestAnimationFrame(", watch)
+        self.assertIn("for (const el of document.body.children)", watch)
+        self.assertIn("bodyKids.observe(document.body, {childList: true})", watch)
+        self.assertIn("const SETTLE_MS = [100, 500, 1500, 3000];", watch)
+        for line in ('for (const type of ["scroll", "transitionend"])',
+                     'for (const type of ["scrollend", "resize", "load"])',
+                     'for (const type of ["click", "submit"])',
+                     'for (const type of ["popstate", "hashchange"])'):
+            self.assertIn(line, js)
+        for fn in ("function update()", "function apply("):
+            body = js[js.index(fn):]
+            body = body[:body.index("\n}")]
+            self.assertIn("watchLayers();", body)
+            self.assertIn("markBars();", body)
+
+    def test_content_darkens_light_pages(self):
+        # darkPages: the glass styles hand the colours over on the root
+        # (_CONTENT_DARKEN), the add-on darkens a light page with them,
+        # stickily, and marks its large background elements (ATTR_CANVAS).
+        js = strip_comments(read("content.js"))
+        self.assertIn('const CANVAS = "%s";' % bg.ATTR_CANVAS, js)
+        self.assertTrue(bg.ATTR_CANVAS.startswith("data-browserglass-"))
+        for var in ("--browserglass-darken-bg", "--browserglass-darken-fg"):
+            self.assertIn('"%s"' % var, js)
+            self.assertIn(var + ":", bg._CONTENT_DARKEN)
+        self.assertIn("[" + bg.ATTR_CANVAS + "]", bg._CONTENT_LAYERS)
+        theme = js[js.index("function darkTheme()"):js.index("function darken()")]
+        # never before the list is known, nor on an excluded page
+        self.assertIn("off !== false", theme)
+        self.assertIn('typeof DarkReader === "undefined"', theme)
+        self.assertIn("darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg", theme)
+        darken = js[js.index("function darken()"):js.index("const GRID")]
+        self.assertIn("darkened && !theme", darken)
+        self.assertIn('tone === "light"', darken)
+        self.assertIn('sampled >= ENOUGH_TEXT || document.readyState === "complete"', darken)
+        self.assertIn("DarkReader.setFetchMethod(fetch)", darken)
+        self.assertEqual(js.count("DarkReader.enable("), 1)
+        self.assertIn("DarkReader.disable()", darken)
+        self.assertIn("removeAttribute(CANVAS)", darken)
+        # a darkened page shows light text: tone "dark", not measured
+        measure = js[js.index("function measure()"):js.index("function update()")]
+        self.assertLess(measure.index("if (darkened)"), measure.index("readyState"))
+        mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
+        # the lowest opaque large layer once the root and body are clear;
+        # every large non-fixed one on a darkened page
+        self.assertIn("off !== false", mark)
+        self.assertIn("clear(root) && clear(document.body)", mark)
+        self.assertIn("stack.length - 1", mark)
+        self.assertIn("if (!darkened)", mark)
+        self.assertIn('position !== "fixed"', mark)
+        self.assertIn("elementsFromPoint(", mark)
+        self.assertIn("new Set([root, document.body])", mark)
+        # decided before the tone attribute is painted (no flash of tint)
+        upd = js[js.index("function update()"):js.index("function paint()")]
+        self.assertLess(upd.index("darken()"), upd.index("paint()"))
+        apply_ = js[js.index("function apply("):js.index("function load()")]
+        self.assertLess(apply_.index("darken()"), apply_.index("paint()"))
 
     def test_content_sets_live_with_off(self):
         # Fixes A and E: nothing is set before the list is known, then OFF
@@ -176,10 +292,11 @@ class XpiTest(unittest.TestCase):
         self.assertEqual(one, bg.companion_xpi(str(EXT)))
         # Another folder with other dates and modes gives the same bytes.
         other = self.copy_ext()
-        for name in os.listdir(other):
-            path = os.path.join(other, name)
-            os.utime(path, (1234567890, 1234567890))
-            os.chmod(path, 0o600)
+        for top, _dirs, files in os.walk(other):
+            for name in files:
+                path = os.path.join(top, name)
+                os.utime(path, (1234567890, 1234567890))
+                os.chmod(path, 0o600)
         self.assertEqual(bg.companion_xpi(other), one)
 
     def test_layout(self):
@@ -187,7 +304,8 @@ class XpiTest(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
             self.assertIsNone(zf.testzip())
             names = zf.namelist()
-            self.assertEqual(names, ["background.js", "content.js", "manifest.json"])
+            self.assertEqual(names, ["background.js", "content.js", "manifest.json",
+                                     "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
             self.assertIn("manifest.json", names)  # at the root, no folder prefix
             for info in zf.infolist():
                 self.assertEqual(info.compress_type, zipfile.ZIP_STORED)
@@ -206,7 +324,8 @@ class XpiTest(unittest.TestCase):
         os.symlink(os.path.join(ext, "icons"), os.path.join(ext, "linked-dir"))
         with zipfile.ZipFile(io.BytesIO(bg.companion_xpi(ext))) as zf:
             self.assertEqual(zf.namelist(), ["a.txt", "background.js", "content.js",
-                                             "icons/a.svg", "icons/b.svg", "manifest.json"])
+                                             "icons/a.svg", "icons/b.svg", "manifest.json",
+                                             "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
 
     def test_missing_manifest(self):
         ext = self.copy_ext()

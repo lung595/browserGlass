@@ -185,6 +185,7 @@ Open **Settings → Plugins → Browser Glass**.
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Generic style for other sites** | On | Adds see-through backgrounds to the inner parts of sites without a dedicated style (the page background is see-through either way) |
+| **Dark pages** | On | Under a dark theme, the companion add-on turns light pages dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass. Needs *Live control* |
 | **Excluded sites** | Empty | These sites keep their normal background. Type a domain and press **Add**, or use **Exclude copied URL**. Subdomains included |
 | **Dedicated site styles** | All on | The my-internet styles, searchable. Switch one off and that site loses its tailored style |
 
@@ -373,7 +374,7 @@ Click **Copy report** in **Settings → Plugins → Browser Glass → Status** a
 
 ## Credits
 
-The dedicated site styles and the generic style come from [my-internet](https://github.com/sameerasw/my-internet) by sameerasw, under the MIT license ([data/MY-INTERNET-LICENSE](data/MY-INTERNET-LICENSE)); Browser Glass keeps only their transparency features. The bundled [Public Suffix List](https://publicsuffix.org) is Mozilla's, under the MPL-2.0 ([data/PSL-LICENSE](data/PSL-LICENSE)), with some whole lines removed. Built on [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), [Quickshell](https://quickshell.org) and [niri](https://github.com/YaLTeR/niri).
+The dedicated site styles and the generic style come from [my-internet](https://github.com/sameerasw/my-internet) by sameerasw, under the MIT license ([data/MY-INTERNET-LICENSE](data/MY-INTERNET-LICENSE)); Browser Glass keeps only their transparency features. The companion add-on bundles the [Dark Reader](https://github.com/darkreader/darkreader) engine (v4.9.135, from its npm package, unmodified) by Dark Reader Ltd., under the MIT license ([extension/vendor/darkreader-LICENSE.txt](extension/vendor/darkreader-LICENSE.txt)). The bundled [Public Suffix List](https://publicsuffix.org) is Mozilla's, under the MPL-2.0 ([data/PSL-LICENSE](data/PSL-LICENSE)), with some whole lines removed. Built on [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), [Quickshell](https://quickshell.org) and [niri](https://github.com/YaLTeR/niri).
 
 ## License
 

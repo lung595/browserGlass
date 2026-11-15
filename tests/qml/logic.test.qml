@@ -58,7 +58,8 @@ Item {
                         "newTabGlass": false,
                         "readerOpaque": false,
                         "privateGlass": false,
-                        "liveControl": false
+                        "liveControl": false,
+                        "darkPages": false
                     }, false, true);
                     t.check("every key is mapped", s, {
                         "blur": false,
@@ -74,7 +75,8 @@ Item {
                         "newTabGlass": false,
                         "readerOpaque": false,
                         "privateGlass": false,
-                        "liveControl": false
+                        "liveControl": false,
+                        "darkPages": false
                     });
                     t.check("blur and isLight come from DMS, not pluginData", [Logic.buildSettings({
                             "blur": false,

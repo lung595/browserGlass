@@ -35,6 +35,8 @@ Documented differences with v0 (normalised away by v0_normalize()):
      is under a light theme, only on pages declaring a dark version under a
      dark one (bg._scheme_gated), so light-only pages stay legible.
   8. browserGlass's own site css (data/sites/) ends its style's blocks.
+  9. The generic style loses its "background: none" line: background images
+     (a photo behind a <section>) stay, background colours still go.
 
 Exclusions keep "www." as entered, like v0: "www.x" refuses www.x and its
 subdomains, not x (the parity golden uses such an exclusion).
@@ -126,6 +128,15 @@ def v0_normalize(css):
             end = block.rindex("\n}")
             parts[i] = parts[i][:end] + "\n" + fix + parts[i][end:]
         css = ("/* %s" % key).join(parts)
+    # v1's generic style keeps background images (no "background: none"),
+    # in all its blocks: example.com's own, the mapping, the other sites.
+    parts = css.split("\n\n/* ")
+    for i, part in enumerate(parts):
+        if ("/* " + part).startswith((bg.SITES_GENERIC_COMMENT, "/* %s */" % bg.SITES_GENERIC_KEY,
+                                   "/* %s (mapping)" % bg.SITES_GENERIC_KEY)):
+            head, sep, rest = part.partition("\n")
+            parts[i] = head + sep + bg._GENERIC_NO_BACKGROUND.sub("", rest)
+    css = "\n\n/* ".join(parts)
     # v1 gates every style on the colour scheme (bg._scheme_gated).
     pieces = []
     for piece in css.split("\n\n/* "):
@@ -323,6 +334,17 @@ class BuildTest(unittest.TestCase):
             self.assertEqual(matching(css, url), [], url)
         self.assertNotIn("example.com.css", css)
         self.assertEqual(matching(css, "https://a.test/"), ["a.test.css"])
+
+    def test_generic_keeps_images(self):
+        # the generic style drops background colours, not background images
+        # (a photo behind a <section>); a dedicated style is left as it is
+        rule = "section {\n  background-color: transparent !important;\n  background: none !important;\n}"
+        sites = bg.Sites({"example.com.css": {"transparency": rule}, "a.test.css": {"glass": rule}}, {})
+        css = bg.sites_build_css(sites)
+        generic = css[css.index(bg.SITES_GENERIC_COMMENT):]
+        self.assertIn("background-color: transparent !important;", generic)
+        self.assertNotIn("background: none", generic)
+        self.assertIn("background: none !important;", css[:css.index(bg.SITES_GENERIC_COMMENT)])
 
     def test_empty(self):
         self.assertEqual(bg.sites_build_css(bg.Sites({}, {})), "")
