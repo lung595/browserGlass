@@ -103,6 +103,34 @@ class StateFileTest(StateCase):
         self.assertEqual(loaded["created_dirs"], ["/x/a"])
         self.assertEqual(json.loads(bg.state_text(loaded))["version"], bg.STATE_VERSION)
 
+    def test_invalid_pref_literals_are_dropped(self):
+        # A literal read back from state.json, a pending file or a backup is
+        # written to prefs.js as is: one that could add a line is refused.
+        good = ("true", "false", "0", "-2147483648", '""', '"a b"', '"say \\"hi\\""', '"c:\\\\x"')
+        bad = ('1); user_pref("x", 2', "1\nuser_pref(\"x\", 2);", '"a\nb"', '"a\rb"', '"a\\\nb"',
+               '"a\\\rb"', '"open', "TRUE", "1.5", "12345678901", "", " 1", "1 ", "0x1", '"a"b"')
+        for literal in good:
+            originals = bg._norm_prefs_original({PREF_SCHEME: {"value": literal}})
+            self.assertEqual(originals, {PREF_SCHEME: {"value": literal}}, literal)
+            self.assertEqual(bg._norm_plan([[PREF_SCHEME, literal]]), [(PREF_SCHEME, literal)])
+        for literal in bad:
+            originals = bg._norm_prefs_original({PREF_SCHEME: {"value": literal}})
+            self.assertEqual(originals, {PREF_SCHEME: {"absent": True}}, repr(literal))
+            self.assertEqual(bg._norm_plan([[PREF_SCHEME, literal], [PREF_TRANSPARENT, None]]),
+                             [(PREF_TRANSPARENT, None)], repr(literal))
+        # Every reader of stored originals goes through the check.
+        evil = {PREF_SCHEME: {"value": '1);\nuser_pref("x", 2'}}
+        record = bg._norm_record({"path": "/x/profile", "prefs_original": evil})
+        pending = bg._norm_pending({"version": bg.STATE_VERSION, "path": "/x/profile",
+                                    "prefs_original": evil, "plan": [[PREF_SCHEME, "1);\nx"]]})
+        backup = bg._norm_backup({"path": "/x/profile", "files": {}, "prefs_original": evil})
+        for originals in (record["prefs_original"], pending["prefs_original"],
+                          backup["prefs_original"]):
+            self.assertEqual(originals, {PREF_SCHEME: {"absent": True}})
+        self.assertEqual(pending["plan"], [])
+        plan = bg.prefs_plan_record(record, {PREF_SCHEME})
+        self.assertEqual(bg.prefs_restore('user_pref("%s", 0);\n' % PREF_SCHEME, plan), "")
+
     def test_save_is_deterministic(self):
         os.makedirs(self.sdir)
         state = bg.new_state()

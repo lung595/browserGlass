@@ -908,11 +908,19 @@ function normDomain(text) {
 var _SUFFIX_LABELS = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "ltd",
     "mil", "ne", "net", "nhs", "nic", "or", "org", "plc", "police", "sch"];
 
-// No Public Suffix List here: a single label, or "gov.uk"-like names, are
-// treated as public suffixes
+// Common private suffixes (Public Suffix List, private section) where each
+// subdomain belongs to someone else: "www.github.io" stays as is, never
+// "github.io", which would cover every user's site
+var _PRIVATE_SUFFIXES = ["blogspot.com", "github.io", "gitlab.io", "herokuapp.com", "netlify.app",
+    "pages.dev", "vercel.app"];
+
+// No Public Suffix List here: a single label, "gov.uk"-like names and the
+// few private suffixes above are treated as public suffixes
 function _looksLikeSuffix(host) {
     var labels = host.split(".");
     if (labels.length < 2)
+        return true;
+    if (_PRIVATE_SUFFIXES.indexOf(host) >= 0)
         return true;
     return labels.length === 2 && /^[a-z]{2}$/.test(labels[1]) && _SUFFIX_LABELS.indexOf(labels[0]) >= 0;
 }

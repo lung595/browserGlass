@@ -205,14 +205,28 @@ class ExtensionSourcesTest(unittest.TestCase):
             self.assertIn(var + ":", bg._CONTENT_DARKEN)
         self.assertIn("[" + bg.ATTR_CANVAS + "]", bg._CONTENT_LAYERS)
         theme = js[js.index("function darkTheme()"):js.index("function darken()")]
-        # never before the list is known, nor on an excluded page
+        # never before the list is known, nor on an excluded page, nor
+        # unless the helper says so: the variables alone (which a page can
+        # set itself) never darken
         self.assertIn("off !== false", theme)
+        self.assertIn("|| !helperDark ||", theme)
+        self.assertIn("let helperDark = false;", js)
+        apply_ = js[js.index("function apply("):js.index("function load()")]
+        self.assertIn("helperDark = dark === true;", apply_)
+        self.assertLess(apply_.index("helperDark ="), apply_.index("darken()"))
+        load = js[js.index("function load()"):js.index("let watched")]
+        self.assertIn('browser.storage.local.get(["excluded", "darken"])', load)
+        self.assertIn("apply(s.excluded, s.darken)", load)
+        self.assertIn("apply(msg.domains, msg.darken)", js)
         self.assertIn('typeof DarkReader === "undefined"', theme)
         self.assertIn("darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg", theme)
         # a page can set the colours itself: never under a light theme
         self.assertIn('!window.matchMedia("(prefers-color-scheme: dark)").matches', theme)
         darken = js[js.index("function darken()"):js.index("const GRID")]
         self.assertIn("darkened && !theme", darken)
+        # the darkening stopped by the helper takes the page's own dark
+        # theme marks back too
+        self.assertIn("native && (off !== false || !helperDark ||", darken)
         self.assertIn('tone === "light"', darken)
         self.assertIn('sampled >= ENOUGH_TEXT || document.readyState === "complete"', darken)
         # the add-on's fetch, which the page can read through Dark Reader's
@@ -270,7 +284,8 @@ class ExtensionSourcesTest(unittest.TestCase):
                       '.replace(/\\.$/, ""), domains)', js)
         bjs = strip_comments(read("background.js"))
         self.assertIn("stored = Array.isArray(s.excluded);", bjs)
-        self.assertIn("if (!same || !stored)", bjs)
+        self.assertIn("const first = !stored;", bjs)
+        self.assertIn("if (!same || first)", bjs)
 
     def test_background_protocol(self):
         js = strip_comments(read("background.js"))
@@ -283,7 +298,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         wait = int(re.search(r"const TAB_WAIT_MS = (\d+);", js).group(1))
         self.assertLess(wait / 1000.0, bg.LIVE_ACK_TIMEOUT / 2)
         self.assertRegex(js, r"Promise\.race\(\[\s*browser\.tabs\.sendMessage\(tab\.id, "
-                             r"\{type: \"excluded\", domains\}\)\.catch\(\(\) => \{\}\),\s*"
+                             r"\{type: \"excluded\", domains, darken: dark\}\)\.catch\(\(\) => \{\}\),\s*"
                              r"new Promise\(\(resolve\) => setTimeout\(resolve, TAB_WAIT_MS\)\)")
         # Fix B: lists are applied one at a time.
         self.assertIn("queue = queue.then(job)", js)
@@ -292,8 +307,22 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("const gen = ++reportGen;\n  const tabs = await browser.tabs.query", js)
         self.assertEqual(js.count("++reportGen"), 1)
         # "applied" goes back only on the port the list came on.
-        self.assertIn("applyList(cleanList(msg.domains), msg.seq, self)", js)
+        self.assertIn("applyList(cleanList(msg.domains), msg.darken === true, msg.seq, self)", js)
         self.assertIn("&& from === port)", js)
+        # darken (the darkPages setting) is stored with the list and read
+        # back at startup: only true counts.
+        self.assertIn("browser.storage.local.set({excluded: domains, darken: dark})", js)
+        self.assertIn('browser.storage.local.get(["excluded", "darken"])', js)
+        self.assertIn("darken = s.darken === true;", js)
+        # a failed write is retried by the next list, even an identical one:
+        # storage must not keep an old darken the helper switched off
+        self.assertIn("let saved = false;", js)
+        self.assertIn("if (changed || !saved)", js)
+        self.assertIn("saved = await browser.storage.local.set({excluded: domains, darken: dark})"
+                      ".then(() => true, () => false);", js)
+        self.assertIn("stored = stored || saved;", js)
+        self.assertIn("saved = stored;", js)
+        self.assertNotIn("() => stored)", js)
         self.assertNotIn("all_frames", js)
 
 

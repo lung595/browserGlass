@@ -8,8 +8,10 @@
 // styles then treat the page as one with a dark version, and tint a light
 // page under a dark theme (and a dark one under a light theme). Under a
 // dark theme, the glass styles give the root of a page without a dark
-// version two colours (--browserglass-darken-*, the darkPages setting): a
-// light page first gets the usual dark-theme marks on <html> (a "dark"
+// version two colours (--browserglass-darken-*). When the helper says so
+// (darken: true with the exclusion list, the darkPages setting; never the
+// variables alone, which a page can set itself), a light page first gets
+// the usual dark-theme marks on <html> (a "dark"
 // class, data-theme="dark"...), kept if its own dark theme then shows,
 // and is otherwise turned dark with those colours by Dark Reader (vendor/,
 // loaded before this script), and the large elements that paint its background
@@ -41,6 +43,9 @@ function hostExcluded(host, domains) {
 // arrives (a flash of glass).
 let off = null;
 let fromMessage = false;
+// Whether the helper darkens light pages (darken, sent and stored with the
+// list): false until it says true, and anything but true is false.
+let helperDark = false;
 // null until measured (once the document is parsed).
 let tone = null;
 // true while Dark Reader darkens the page: sticky until the glass styles
@@ -193,7 +198,7 @@ function paint() {
 // theme, which it cannot fake here, is checked as well.
 function darkTheme() {
   const root = document.documentElement;
-  if (!root || off !== false || typeof DarkReader === "undefined"
+  if (!root || off !== false || !helperDark || typeof DarkReader === "undefined"
       || !window.matchMedia("(prefers-color-scheme: dark)").matches)
     return null;
   const style = getComputedStyle(root);
@@ -259,15 +264,16 @@ function nativeDark() {
 // A light page is darkened once its tone is settled (enough text, or the
 // page loaded): a single-page app still rendering may show little text.
 // Its own dark theme is tried first; the marks are taken back with a light
-// theme or once the page is excluded.
+// theme, once the page is excluded or once the helper stops the darkening.
 function darken() {
-  // a light theme, an excluded page, or the page took its dark theme back
-  if (native && (off !== false || tone === "light"
+  // a light theme, an excluded page, the darkening stopped, or the page
+  // took its dark theme back
+  if (native && (off !== false || !helperDark || tone === "light"
       || !window.matchMedia("(prefers-color-scheme: dark)").matches)) {
     nativeRestore();
     measure();
   }
-  if (off !== false || !window.matchMedia("(prefers-color-scheme: dark)").matches)
+  if (off !== false || !helperDark || !window.matchMedia("(prefers-color-scheme: dark)").matches)
     nativeTried = false;
   const theme = darkTheme();
   if (darkened && !theme) {
@@ -518,7 +524,8 @@ function settleTick(now) {
     settleFrame = requestAnimationFrame(settleTick);
 }
 
-function apply(domains) {
+function apply(domains, dark) {
+  helperDark = dark === true;
   off = Array.isArray(domains) && hostExcluded(location.hostname.toLowerCase().replace(/\.$/, ""), domains);
   darken();
   paint();
@@ -529,11 +536,12 @@ function apply(domains) {
 
 // Storage has no list until the helper sent its first one (a fresh
 // install): off then stays null, so LIVE waits for that first list instead
-// of turning on the live styles of a site excluded at sync.
+// of turning on the live styles of a site excluded at sync. darken is
+// stored with it (no darken stored: an older add-on's list, false).
 function load() {
-  browser.storage.local.get("excluded").then((s) => {
+  browser.storage.local.get(["excluded", "darken"]).then((s) => {
     if (!fromMessage && Array.isArray(s.excluded))
-      apply(s.excluded);
+      apply(s.excluded, s.darken);
   }, () => {});
 }
 
@@ -572,7 +580,7 @@ watch();
 browser.runtime.onMessage.addListener((msg) => {
   if (msg && msg.type === "excluded") {
     fromMessage = true;
-    apply(msg.domains);
+    apply(msg.domains, msg.darken);
   }
 });
 

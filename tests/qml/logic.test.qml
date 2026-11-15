@@ -457,6 +457,13 @@ Item {
                         }]);
                     t.check("example.org listed, www.example.org copied: already", e.reason, "already");
                     t.check("www. is kept when dropping it would leave a public suffix", ["https://www.gov.uk/", "https://www.example.org/", "https://www.bbc.co.uk/", "https://www.co.jp/", "https://www.example.co/"].map(Logic.hostFromText), ["www.gov.uk", "example.org", "bbc.co.uk", "www.co.jp", "example.co"]);
+                    t.check("www. is kept before a private suffix; a user's site keeps its full host", ["https://www.github.io/", "https://www.netlify.app/", "https://www.blogspot.com/", "https://user.github.io/x", "https://www.user.github.io/", "https://www.github.com/"].map(Logic.hostFromText), ["www.github.io", "www.netlify.app", "www.blogspot.com", "user.github.io", "user.github.io", "github.com"]);
+                    e = Logic.excludeFromClipboard("https://user.github.io/repo", [{
+                            "domain": "other.github.io"
+                        }]);
+                    t.check("user.github.io copied: added as the full host", [e.reason, e.domain], ["added", "user.github.io"]);
+                    e = Logic.excludeFromClipboard("https://www.github.io/", []);
+                    t.check("www.github.io copied: saved as is, not the suffix", [e.reason, e.domain], ["added", "www.github.io"]);
                     e = Logic.excludeFromClipboard("https://www.gov.uk/", []);
                     t.check("www.gov.uk copied: saved as is, not the suffix", [e.reason, e.domain], ["added", "www.gov.uk"]);
                     e = Logic.excludeFromClipboard("https://example.com/", [{

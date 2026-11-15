@@ -176,7 +176,7 @@ class SignedCase(CompanionCase):
         """sync in-process (to count calls), live_push left out."""
         argv = ["sync", "--settings", settings_json(**over), "--plugin-dir", str(self.plugin)]
         out = io.StringIO()
-        with mock.patch.object(bg, "live_push", lambda env, domains: (0, frozenset())), \
+        with mock.patch.object(bg, "live_push", lambda env, domains, darken=False: (0, frozenset())), \
                 contextlib.redirect_stdout(out):
             code = bg.main(argv, env=self.fh.env(FAST))
         self.assertEqual(code, bg.EXIT_OK, out.getvalue())

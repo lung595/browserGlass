@@ -10,11 +10,15 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Live control in frames** (`all_frames`): today only the main page switches at once; frames follow at the next restart.
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
-- **Dark pages decided by the helper**: send the *Dark pages* setting with the excluded sites, so the companion darkens only when the helper says so. Today, under a dark theme, a page can set the colour variables itself and switch the darkening on while *Dark pages* is off (what Dark Reader then fetches is limited to stylesheets, without cookies).
 - **Dark Reader and local addresses**: its stylesheet fetch runs with the add-on's access, so a page that links a stylesheet on the local network or on `localhost` gets its text copied in. Refuse loopback and private targets (and redirects to them).
-- **Exclude copied URL and private suffixes**: `www.` is kept before country suffixes such as `gov.uk`, but not yet before private ones such as `github.io`; the helper, which has the Public Suffix List, could reduce the host instead.
+- **Hosts written with a final dot** (`example.org.`): live exclusions and per-site blocks do not match them yet; the URL lookaheads should accept an optional final dot.
+- **Waterfox's own defaults for the add-on signature guard**: the guard assumes Firefox's defaults for every family; use per-family defaults once Waterfox's are confirmed in its source.
+- **Unreadable `prefs.js`**: a read error is taken as an empty file today; warn and skip the profile instead, so no original value is recorded as absent by mistake.
+- **Contract `report.txt` fixture**: regenerate it from a real run and list every line in `schema.json` (`report_lines`); describe the daemon's real triggers and its 10 s poll in CONTRIBUTING.
+- **Lighter companion script**: handle `scroll` once per frame at most and group the tone checks that follow changes on `<html>`; load Dark Reader only in the pages it darkens.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.
+- **Site theme presets** (later version): for sites with their own theme menu that show their light theme to visitors (Proton, for example), pick their dark theme for you under a dark theme, rather than darkening the page. Not done in 1.3: the choice lives in the page's storage, and Proton answers a stored choice by writing a cookie of its own, while Browser Glass writes no cookie; a stored choice of the default also cannot be told from no choice at all, and a signed-in account's theme comes from the server. Until then, see *Sites with their own theme menu* in the [user guide](docs/GUIDE.md#light-pages-under-a-dark-theme).
 - **The DMS plugin registry**: submit the plugin once it has had wider use.
 
 ## Not planned

@@ -2,7 +2,13 @@
 // Browser Glass helper (native messaging host "browserglass", run from the
 // DMS plugin). Protocol version PROTO; only these messages cross it:
 //   helper -> browser  {type: "hello", proto}
-//                      {type: "excluded", seq, domains: [host]}  the excluded sites
+//                      {type: "excluded", seq, domains: [host], darken}
+//                       the excluded sites, and whether light pages are
+//                       darkened (the darkPages setting; anything but true,
+//                       or no darken at all, is false). darken is the only
+//                       switch of the darkening: content.js takes just the
+//                       colours from the style file, whose variables a page
+//                       could set itself.
 //   browser -> helper  {type: "hello", proto, version}          on connect
 //                      {type: "active", host, title_hash}         the site in the
 //                       focused window (host only, "" for a non-web page) and
@@ -28,10 +34,16 @@ const TAB_WAIT_MS = 200;
 const PLAIN_HOST = /^[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})*$/;
 
 let excluded = [];
+let darken = false;
 // Whether storage holds a list: the first list from the helper is written
 // even when it is empty, so that content.js, which waits for a stored list,
 // finds one.
 let stored = false;
+// Whether storage holds `excluded` and `darken` as they are here. A failed
+// write leaves the previous ones there (or none) while this side already
+// moved on: the next list then writes again even when it changes nothing,
+// or new tabs would keep reading, say, an old darken: true.
+let saved = false;
 let registered = null;
 let port = null;
 let retryMs = RETRY_MIN_MS;
@@ -85,20 +97,27 @@ function enqueue(job) {
 
 // `from` is the port the list came on: "applied" is only sent back on it.
 // Each connection runs a new helper whose seq starts over, so a list of a
-// dropped connection must never confirm one of the next.
-async function applyList(domains, seq, from) {
+// dropped connection must never confirm one of the next. darken is stored
+// with the list (content.js reads both back), and a change of darken
+// alone needs no new registration.
+async function applyList(domains, dark, seq, from) {
   const same = domains.length === excluded.length && domains.every((d, i) => d === excluded[i]);
+  const first = !stored;
+  const changed = !same || dark !== darken;
   excluded = domains;
-  if (!same || !stored) {
-    stored = await browser.storage.local.set({excluded: domains}).then(() => true, () => stored);
-    await replaceRegistration(domains);
+  darken = dark;
+  if (changed || !saved) {
+    saved = await browser.storage.local.set({excluded: domains, darken: dark}).then(() => true, () => false);
+    stored = stored || saved;
   }
+  if (!same || first)
+    await replaceRegistration(domains);
   // Each tab gets TAB_WAIT_MS to answer: one busy tab must not hold the ack
   // past the helper's wait, which would report a live change as "applies
   // after a restart" (the message still reaches that tab later).
   const tabs = await browser.tabs.query({url: ["http://*/*", "https://*/*"]}).catch(() => []);
   await Promise.all(tabs.map((tab) => Promise.race([
-    browser.tabs.sendMessage(tab.id, {type: "excluded", domains}).catch(() => {}),
+    browser.tabs.sendMessage(tab.id, {type: "excluded", domains, darken: dark}).catch(() => {}),
     new Promise((resolve) => setTimeout(resolve, TAB_WAIT_MS)),
   ])));
   if (Number.isInteger(seq) && from === port)
@@ -176,7 +195,7 @@ function connect() {
   const self = port;
   port.onMessage.addListener((msg) => {
     if (msg && msg.type === "excluded")
-      enqueue(() => applyList(cleanList(msg.domains), msg.seq, self));
+      enqueue(() => applyList(cleanList(msg.domains), msg.darken === true, msg.seq, self));
   });
   port.onDisconnect.addListener(() => {
     if (port === self)
@@ -196,8 +215,10 @@ browser.tabs.onUpdated.addListener((tabId, change, tab) => {
     reportFocused();
 }, {properties: ["url", "title"]});
 
-browser.storage.local.get("excluded").then((s) => {
+browser.storage.local.get(["excluded", "darken"]).then((s) => {
   stored = Array.isArray(s.excluded);
+  saved = stored;
   excluded = cleanList(s.excluded);
+  darken = s.darken === true;
   return enqueue(() => replaceRegistration(excluded));
 }).catch(() => {}).then(connect);

@@ -143,17 +143,19 @@ class Host:
 
 
 class Pusher(threading.Thread):
-    """live_push(env, domains) in a thread: the test answers as the add-on."""
+    """live_push(env, domains, darken) in a thread: the test answers as the
+    add-on."""
 
-    def __init__(self, env, domains):
+    def __init__(self, env, domains, darken=False):
         super().__init__(daemon=True)
         self.env = env
         self.domains = domains
+        self.darken = darken
         self.result = None
         self.start()
 
     def run(self):
-        self.result = bg.live_push(self.env, self.domains)
+        self.result = bg.live_push(self.env, self.domains, self.darken)
 
     def get(self):
         self.join(TIMEOUT)
@@ -180,7 +182,7 @@ class HostCase(unittest.TestCase):
 
     def host(self, wrap=True):
         host = Host(self, wrap)
-        self.assertEqual(host.start(), {"type": "excluded", "seq": 1, "domains": []})
+        self.assertEqual(host.start(), {"type": "excluded", "seq": 1, "domains": [], "darken": False})
         self.assertEqual(host.hello, {"type": "hello", "proto": bg.NM_PROTO})
         return host
 
@@ -197,11 +199,13 @@ class FramesTest(unittest.TestCase):
 
     def test_round_trip(self):
         out = io.BytesIO()
-        bg.nm_write(out, {"type": "excluded", "seq": 3, "domains": ["xn--bcher-kva.example"]})
+        bg.nm_write(out, {"type": "excluded", "seq": 3, "domains": ["xn--bcher-kva.example"],
+                          "darken": True})
         data = out.getvalue()
         self.assertEqual(struct.unpack("=I", data[:4])[0], len(data) - 4)
         self.assertEqual(bg.nm_read(io.BytesIO(data)),
-                         {"type": "excluded", "seq": 3, "domains": ["xn--bcher-kva.example"]})
+                         {"type": "excluded", "seq": 3, "domains": ["xn--bcher-kva.example"],
+                          "darken": True})
 
     def test_end_and_bad_frames(self):
         self.assertIsNone(bg.nm_read(io.BytesIO(b"")))
@@ -269,7 +273,7 @@ class NativeHostTest(HostCase):
         host = self.host()
         push = Pusher(self.env(), ["example.org", "news.example.net"])
         self.assertEqual(host.recv(), {"type": "excluded", "seq": 2,
-                                       "domains": ["example.org", "news.example.net"]})
+                                       "domains": ["example.org", "news.example.net"], "darken": False})
         host.send({"type": "applied", "seq": 2})
         self.assertEqual(push.get(), (1, frozenset({host.bpid})))
         ack = self.read_json(host.path("ack"))
@@ -277,13 +281,55 @@ class NativeHostTest(HostCase):
         self.assertEqual(stat.S_IMODE(os.stat(host.path("ack")).st_mode), 0o600)
         # A list the add-on does not apply in time: delivered, not acked.
         push = Pusher(self.env(), [])
-        self.assertEqual(host.recv(), {"type": "excluded", "seq": 3, "domains": []})
+        self.assertEqual(host.recv(), {"type": "excluded", "seq": 3, "domains": [], "darken": False})
         host.send({"type": "applied", "seq": 9})  # not a list it was sent
         self.assertEqual(push.get(), (1, frozenset()))
         self.assertEqual(self.read_json(host.path("ack"))["seq"], 2)
         # The add-on reconnects (hello again): it gets the current list.
         host.send({"type": "hello", "proto": bg.NM_PROTO, "version": "1.1.0"})
-        self.assertEqual(host.recv(), {"type": "excluded", "seq": 4, "domains": []})
+        self.assertEqual(host.recv(), {"type": "excluded", "seq": 4, "domains": [], "darken": False})
+
+    def test_push_darken(self):
+        host = self.host()
+        push = Pusher(self.env(), ["example.org"], True)
+        self.assertEqual(host.recv(), {"type": "excluded", "seq": 2, "domains": ["example.org"],
+                                       "darken": True})
+        host.send({"type": "applied", "seq": 2})
+        self.assertEqual(push.get(), (1, frozenset({host.bpid})))
+        # A reconnecting add-on gets the flag back with the list.
+        host.send({"type": "hello", "proto": bg.NM_PROTO, "version": "1.1.0"})
+        self.assertEqual(host.recv(), {"type": "excluded", "seq": 3, "domains": ["example.org"],
+                                       "darken": True})
+        # Turned off live: the next push carries false.
+        push = Pusher(self.env(), ["example.org"], False)
+        self.assertEqual(host.recv()["darken"], False)
+        host.send({"type": "applied", "seq": 4})
+        self.assertEqual(push.get(), (1, frozenset({host.bpid})))
+
+    def test_socket_darken_only_true(self):
+        # The line a sync sends: darken must be the boolean true, anything
+        # else (missing in an older sync's line, a string, a number, null)
+        # is false, and the list still goes through.
+        host = self.host()
+        lines = [({"excluded": ["example.org"], "darken": True}, True),
+                 ({"excluded": ["example.org"]}, False),
+                 ({"excluded": ["example.org"], "darken": "true"}, False),
+                 ({"excluded": ["example.org"], "darken": 1}, False),
+                 ({"excluded": ["example.org"], "darken": None}, False),
+                 ({"excluded": ["example.org"], "darken": [True]}, False),
+                 ({"excluded": ["example.org"], "darken": {"x": True}}, False)]
+        for seq, (doc, darken) in enumerate(lines, 2):
+            with self.subTest(doc=doc), \
+                    socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.settimeout(TIMEOUT)
+                sock.connect(host.path("host"))
+                sock.sendall((json.dumps(doc) + "\n").encode("ascii"))
+                self.assertEqual(host.recv(), {"type": "excluded", "seq": seq,
+                                               "domains": ["example.org"], "darken": darken})
+                host.send({"type": "applied", "seq": seq})
+                self.assertEqual(json.loads(sock.recv(100).decode("ascii")), {"acked": seq})
+        self.assertEqual(host.finish(), (0, b""))
+        self.assertEqual(host.stderr, "")
 
     def test_push_reaches_every_host(self):
         first, second = self.host(), self.host()
@@ -426,6 +472,23 @@ class NativeHostTest(HostCase):
         self.assertEqual(self.read_json(new.path("active"))["host"], "example.net")
         self.assertEqual(self.folder(), ["active-%d.json" % new.bpid, "host-%d.sock" % new.bpid])
 
+    def test_runtime_file_symlink_replaced(self):
+        # A symlink planted at active-/ack-<pid>.json is replaced by the
+        # host's own file: the file it points to is never written.
+        outside = self.fh.write("outside.txt", "keep\n", mode=0o644)
+        host = bg._NativeHost(self.env(), DATA, None, None, os.getpid())
+        host.listen()
+        self.addCleanup(host.cleanup)
+        for kind in ("active", "ack"):
+            path = bg.runtime_file(self.rdir, kind, os.getpid())
+            os.symlink(str(outside), path)
+            host.write_runtime(kind, {"seq": 1})
+            self.assertFalse(os.path.islink(path))
+            self.assertEqual(stat.S_IMODE(os.lstat(path).st_mode), 0o600)
+            self.assertEqual(self.read_json(path), {"seq": 1})
+        self.assertEqual(outside.read_text(), "keep\n")
+        self.assertEqual(stat.S_IMODE(os.stat(str(outside)).st_mode), 0o644)
+
     def test_no_runtime_folder(self):
         # No XDG_RUNTIME_DIR, no /run/user/<uid> under a fake root: the
         # add-on still gets its hello and lists, without live control.
@@ -436,7 +499,7 @@ class NativeHostTest(HostCase):
                                      stderr=subprocess.PIPE, env=env)
         host.buf = b""
         self.addCleanup(host.stop)
-        self.assertEqual(host.start(), {"type": "excluded", "seq": 1, "domains": []})
+        self.assertEqual(host.start(), {"type": "excluded", "seq": 1, "domains": [], "darken": False})
         self.assertEqual(host.finish(), (0, b""))
         self.assertIn("no live control", host.stderr)
         self.assertFalse(os.path.exists(os.path.join(self.run_base, "missing")))
@@ -499,9 +562,62 @@ class SyncPushTest(HostCase):
         host.send({"type": "applied", "seq": msg["seq"]})
         self.assertEqual(self.result(proc)["live"], {"hosts": 1, "acked": 1})
         self.assertEqual(self.read_json(host.path("ack"))["seq"], msg["seq"])
+        self.assertIs(msg["darken"], True)  # darkPages, on by default
         # A browser started later gets the list of the last sync at once.
         later = Host(self)
-        self.assertEqual(later.start(), {"type": "excluded", "seq": 1, "domains": ["example.org"]})
+        self.assertEqual(later.start(), {"type": "excluded", "seq": 1, "domains": ["example.org"],
+                                         "darken": True})
+
+    def test_sync_pushes_when_only_dark_pages_changes(self):
+        self.result(self.sync(excluded=["example.org"], darkPages=True))
+        host = self.host_started_with(["example.org"], True)
+        # The same settings but darkPages: still pushed, the flag turned
+        # off live, acknowledged like any list.
+        proc = self.sync(excluded=["example.org"], darkPages=False)
+        msg = host.recv(60)
+        self.assertEqual(msg, {"type": "excluded", "seq": 2, "domains": ["example.org"],
+                               "darken": False})
+        host.send({"type": "applied", "seq": msg["seq"]})
+        self.assertEqual(self.result(proc)["live"], {"hosts": 1, "acked": 1})
+        # And back on.
+        proc = self.sync(excluded=["example.org"], darkPages=True)
+        msg = host.recv(60)
+        self.assertEqual((msg["domains"], msg["darken"]), (["example.org"], True))
+        host.send({"type": "applied", "seq": msg["seq"]})
+        self.assertEqual(self.result(proc)["live"], {"hosts": 1, "acked": 1})
+
+    def test_docs_describe_the_push_with_dark_pages(self):
+        # The push carries darkPages on every sync: the architecture diagram
+        # and the guide's "How it works" say so.
+        contributing = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
+        self.assertIn("live_push(excluded, darkPages), on every sync,", contributing)
+        self.assertNotIn("live_push(excluded) ", contributing)
+        guide = (REPO / "docs" / "GUIDE.md").read_text(encoding="utf-8")
+        self.assertIn("4. Every sync sends the list of excluded domains, with the **Dark pages** "
+                      "setting", guide)
+
+    def host_started_with(self, domains, darken):
+        host = Host(self)
+        self.assertEqual(host.start(), {"type": "excluded", "seq": 1, "domains": domains,
+                                        "darken": darken})
+        return host
+
+    def test_startup_dark_pages(self):
+        # A host reads darkPages from the last full sync: on, off; a
+        # --profile sync records no last_sync (none before it: false).
+        # Each host is closed before the next sync, which then pushes to
+        # nobody.
+        self.result(self.sync("--profile", str(self.profile), darkPages=True))
+        self.assertEqual(self.host_started_with([], False).finish(), (0, b""))
+        self.result(self.sync(excluded=["example.org"], darkPages=False))
+        self.assertEqual(self.host_started_with(["example.org"], False).finish(), (0, b""))
+        self.result(self.sync(darkPages=True))
+        self.assertEqual(self.host_started_with([], True).finish(), (0, b""))
+        # An unreadable state.json: no list, no darkening.
+        state = os.path.join(bg.state_dir(self.env()), bg.STATE_FILE)
+        with open(state, "w", encoding="utf-8") as f:
+            f.write("{nope\n")
+        self.host_started_with([], False)
 
     def test_no_push(self):
         host = self.host()

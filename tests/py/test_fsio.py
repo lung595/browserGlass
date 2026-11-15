@@ -89,6 +89,25 @@ class WriteTest(unittest.TestCase):
         self.assertTrue(os.path.islink(str(link)))
         self.assertEqual((self.fh.home / "real" / "user.js").read_text(), "x\n")
 
+    def test_symlink_not_followed(self):
+        target = self.fh.write("dotfiles/x.json", "same\n", mode=0o644)
+        link = self.fh.home / "run" / "x.json"
+        link.parent.mkdir()
+        os.symlink(str(target), str(link))
+        # Same content behind the link: still replaced (never read through).
+        self.assertTrue(bg.write_if_changed(str(link), "same\n", mode=0o600, follow_links=False))
+        self.assertFalse(os.path.islink(str(link)))
+        self.assertEqual(link.read_text(), "same\n")
+        self.assertEqual(mode_of(link), 0o600)
+        self.assertEqual(mode_of(target), 0o644)
+        self.assertFalse(bg.write_if_changed(str(link), "same\n", follow_links=False))
+        os.unlink(str(link))
+        os.symlink("missing/x.json", str(link))  # dangling: no folder made
+        self.assertTrue(bg.write_if_changed(str(link), "new\n", follow_links=False))
+        self.assertEqual(link.read_text(), "new\n")
+        self.assertFalse((link.parent / "missing").exists())
+        self.assertEqual(sorted(os.listdir(str(link.parent))), ["x.json"])
+
     @unittest.skipIf(os.geteuid() == 0, "root ignores file permissions")
     def test_read_only_file_skipped(self):
         path = self.fh.write("user.js", "old\n", mode=0o444)

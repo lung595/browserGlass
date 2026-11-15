@@ -17,11 +17,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - **Live control description** (*Advanced & help*): says the add-on is signed by Mozilla, and that `xpinstall.signatures.required` is set only without the signed add-on.
 - **A signed companion that cannot be used** gives its own warning text (*The signed companion add-on could not be used: the unsigned one is used instead*).
+- **Dark pages decided by the helper**: the helper now sends the *Dark pages* setting to the companion add-on with the excluded sites (`darken` in the `excluded` message and in the line a sync pushes; the native protocol version stays 1, and a message without it means off), and the add-on darkens a light page only when it says so. The style file's colour variables only give the colours. Turning *Dark pages* off gives darkened pages back at once in a running browser, and once its add-on has answered no restart is asked for it; turning it on still applies after a restart.
 
 ### Fixed
 
 - **A companion disabled in `about:addons`** is no longer shown as installed.
 - **The add-on signature guard** (the original values kept in the `user.js` block until `prefs.js` is restored) is now written even when restoring `prefs.js` fails with the browser closed.
+- **Exclude copied URL** keeps `www.` before a common private suffix (`github.io`, `gitlab.io`, `pages.dev`, `netlify.app`, `vercel.app`, `herokuapp.com`, `blogspot.com`): `www.github.io` is no longer saved as `github.io`, which covered every user's site.
+- **Uninstall through a `chrome/` link that broke after a sync** now warns (`dangling_link`) and keeps the profile's record and backup for a retry; it used to report the profile done and drop the backup while its files stayed out of reach.
+
+### Security
+
+- **A page can no longer force the darkening** by setting the `--browserglass-darken-bg` and `-fg` variables on its root itself: under a dark theme it used to switch Dark Reader on even with *Dark pages* off. The add-on now darkens only when the helper's `darken` flag is true.
+- **Stored preference values** (`state.json`, a pending uninstall, a backup's `meta.json`) are checked before being written back to `prefs.js`: a value that is not a plain boolean, integer or one-line string is ignored, so a damaged or edited file can no longer add lines to `prefs.js`.
+- **Runtime files of the native host** (`active-<pid>.json`, `ack-<pid>.json`): a symlink found at their name is now replaced, never followed, so the file it points to is left untouched.
 
 ## [1.2.0] - 2026-11-15
 

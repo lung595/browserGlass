@@ -76,7 +76,7 @@ class RestartCase(unittest.TestCase):
 
     def sync(self, *extra, acked=(), **over):
         """sync in-process; the fake host acknowledges for the pids `acked`."""
-        def fake_push(env, domains):
+        def fake_push(env, domains, darken=False):
             self.pushes.append(list(domains))
             return len(acked), frozenset(acked)
 
@@ -271,6 +271,64 @@ class LiveTest(RestartCase):
         self.assertTrue(doc["restart_needed"])
         self.assertTrue(self.profile_status(doc, FF)["restart_needed"])
 
+    def test_dark_pages_off_applied_live(self):
+        # Dark pages turned off is applied live once acknowledged (the push
+        # carries darken: false; the colour variables left in the loaded
+        # style file do nothing without it); without an ack it needs a
+        # restart, and so does turning it on (the colours come with the
+        # file) or any other change with it.
+        self.sync("--data", DATA)
+        holder = self.browser(FF)
+        self.browser(LW)
+        acked = {holder.child.pid}
+        out = self.sync("--data", DATA, acked=acked, darkPages=False)
+        self.assertEqual(sorted(out["changed"]), sorted([self.pid(FF), self.pid(LW)]))
+        self.assertEqual(out["running_changed"], [self.pid(LW)])
+        doc = self.status()
+        self.assertFalse(self.profile_status(doc, FF)["restart_needed"])
+        self.assertTrue(self.profile_status(doc, LW)["restart_needed"])
+        record = self.record(FF)
+        self.assertEqual(record["live"]["restart_hash"], record["restart_hash"])
+        self.assertIsNone(self.record(LW)["live"])
+        # Nothing changed since: the live record carries over.
+        out = self.sync("--data", DATA, darkPages=False)
+        self.assertEqual(out["changed"], [])
+        self.assertFalse(self.profile_status(self.status(), FF)["restart_needed"])
+        # Back on: the running browser has no colours to darken with.
+        out = self.sync("--data", DATA, acked=acked)
+        self.assertIn(self.pid(FF), out["running_changed"])
+        self.assertTrue(self.profile_status(self.status(), FF)["restart_needed"])
+        holder.release()
+        holder.stop()
+        self.sync("--data", DATA)
+        holder = self.browser(FF)
+        out = self.sync("--data", DATA, acked={holder.child.pid}, darkPages=False,
+                        opacityOverride=True, opacity=0.5)
+        self.assertEqual(sorted(out["running_changed"]), sorted([self.pid(FF), self.pid(LW)]))
+        self.assertTrue(self.profile_status(self.status(), FF)["restart_needed"])
+
+    def test_dark_pages_on_variant_rendered_only_when_needed(self):
+        # The content with Dark pages on is rendered only with darkPages
+        # off, for a running browser that has not loaded the files.
+        real = bg._render_content
+        calls = []
+
+        def counting(*args, **kwargs):
+            calls.append(args[0]["darkPages"])
+            return real(*args, **kwargs)
+
+        self.sync()
+        with mock.patch.object(bg, "_render_content", counting):
+            self.sync(darkPages=False)
+            self.assertEqual(calls, [False])
+            calls.clear()
+            holder = self.browser(FF)
+            self.sync(darkPages=False)
+            self.assertEqual(calls, [False])
+            calls.clear()
+            self.sync(acked={holder.child.pid}, darkPages=False, excluded=["example.org"])
+            self.assertEqual(calls, [False, False])
+
     def test_deeper_domain_excluded_live(self):
         self.sync("--data", DATA)
         holder = self.browser(FF)
@@ -306,7 +364,7 @@ class LiveTest(RestartCase):
         holder = self.browser(FF)
         pid = holder.child.pid
 
-        def editing_push(env, domains):
+        def editing_push(env, domains, darken=False):
             self.edit_later(FF + "/chrome/userChrome.css", "#nav-bar { color: red; }\n")
             return 1, frozenset({pid})
 
@@ -439,14 +497,15 @@ class LiveTest(RestartCase):
         pid = holder.child.pid
 
         def raising(exc):
-            def push(env, domains):
+            def push(env, domains, darken=False):
                 raise exc
             return push
 
         pushes = [raising(OSError("no socket")), raising(TypeError("bad reply")),
-                  raising(KeyError("ack")), lambda env, domains: None,
-                  lambda env, domains: 1, lambda env, domains: (1, None),
-                  lambda env, domains: (1, 2, 3)]
+                  raising(KeyError("ack")), lambda env, domains, darken=False: None,
+                  lambda env, domains, darken=False: 1,
+                  lambda env, domains, darken=False: (1, None),
+                  lambda env, domains, darken=False: (1, 2, 3)]
         for number, push in enumerate(pushes):
             with self.subTest(number=number):
                 excluded = ["n%d.example.org" % number]
@@ -461,7 +520,7 @@ class LiveTest(RestartCase):
                 self.assertEqual(doc["running_changed"], [self.pid(FF)])
         self.assertEqual(bg._live_push_safe(self.fh.env(), []), (0, frozenset()))
         # An unusable count with usable acks: only the pids count.
-        with mock.patch.object(bg, "live_push", lambda env, domains: ("1", [pid, True, "7"])):
+        with mock.patch.object(bg, "live_push", lambda env, domains, darken=False: ("1", [pid, True, "7"])):
             self.assertEqual(bg._live_push_safe(self.fh.env(), []), (1, frozenset({pid})))
 
     def test_unsaved_state_is_no_live_change(self):

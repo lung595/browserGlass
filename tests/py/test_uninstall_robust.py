@@ -302,6 +302,32 @@ class SyncEdgeTest(RobustCase):
         self.assertEqual(os.listdir(str(outside)), [])
         self.assertEqual(self.fh.snapshot("."), before)
 
+    def test_chrome_link_broken_after_sync_keeps_the_backup(self):
+        # chrome/ links to a folder that goes away after the sync (an
+        # unmounted drive): uninstall cannot reach our files behind it.
+        target = self.fh.root / "outside" / "chrome"
+        target.mkdir(parents=True)
+        (target / "userChrome.css").write_text("/* mine */\n")
+        os.symlink(str(target), str(self.fh.resolve(PROFILE + "/chrome")))
+        self.sync()
+        self.assertIn("dms-glass-chrome.css", os.listdir(str(target)))
+        moved = self.fh.root / "outside" / "away"
+        target.rename(moved)
+        out = self.uninstall()
+        mine = [w for w in out["warnings"] if w["code"] == "dangling_link"]
+        self.assertEqual([w.get("profile") for w in mine], [self.pid()], out["warnings"])
+        self.assertFalse(out["state_removed"])
+        backup = STATE + "/backup/%s/userChrome.css" % self.pid()
+        self.assertEqual(self.fh.read(backup), "/* mine */\n")
+        self.assertIn(self.pid(), self.state()["backups"])
+        # The drive is back: a second uninstall finishes the job.
+        moved.rename(target)
+        out = self.uninstall()
+        self.assertNotIn("dangling_link", [w["code"] for w in out["warnings"]])
+        self.assertEqual((target / "userChrome.css").read_text(), "/* mine */\n")
+        self.assertEqual(sorted(os.listdir(str(target))), ["userChrome.css"])
+        self.assertFalse(self.fh.exists(STATE))
+
     def test_bad_backup_mode_is_ignored(self):
         css = PROFILE + "/chrome/userChrome.css"
         for bad in (-1, 2 ** 40):
