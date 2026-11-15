@@ -2,6 +2,13 @@
 
 These are ideas, not promises, and they have no dates. Anything that would need the network while the plugin runs, or would send data somewhere, is out of scope.
 
+## Next: 1.2.0
+
+- **A full clean-up**: dead code and duplicates out, clearer names and comments, a bug hunt over the backend, the shell components and the add-on, and a security review of the native helper, the files Browser Glass writes, the preferences it sets and the add-on's permissions.
+- **Clipboard exclusion**: copying `example.org` no longer says *already excluded* when only `www.example.org` is in the list.
+- **A removed add-on stays removed**: when you remove the companion add-on yourself, Browser Glass does not put it back, even after its state file is lost.
+- **New screenshots**: a GIF of the launcher, and the *Sites* settings.
+
 ## Planned
 
 - **A signed companion add-on for Firefox release**: have Mozilla sign the add-on as unlisted (`web-ext sign --channel=unlisted`), so that Live control works on Firefox release and ESR builds too. The manifest will then need `browser_specific_settings.gecko.data_collection_permissions`.

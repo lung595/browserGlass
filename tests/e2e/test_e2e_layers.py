@@ -2,7 +2,7 @@
 lowest layer that paints the background of a page whose root and body are
 see-through (a fixed full-window container, as in Jellyfin) becomes glass;
 a navigation bar fixed or stuck along an edge of the window (a header, a
-sidebar), whatever its own colours, gets the DMS surface at 90 %, blurred.
+sidebar), whatever its own colours, gets a light veil of the DMS surface (35 %) over a strong blur.
 In a real headless Firefox (and LibreWolf with BG_LIBREWOLF).
 
 Opt-in (needs a Firefox binary, a few seconds per browser):
@@ -35,8 +35,8 @@ import test_e2e_tone as tone  # noqa: E402
 
 bg = dk.bg
 CANVAS, BAR = bg.ATTR_CANVAS, bg.ATTR_BAR
-DARK_SURFACE = "rgba(%d, %d, %d, 0.9)" % bg.surface_rgb(None, "dark")
-BLUR = "blur(24px) saturate(1.5)"
+DARK_SURFACE = "rgba(%d, %d, %d, 0.35)" % bg.surface_rgb(None, "dark")
+BLUR = bg.NAV_BAR_BLUR
 
 STYLE = """<!doctype html><html><head><meta charset="utf-8">
 <meta name="color-scheme" content="dark"><style>

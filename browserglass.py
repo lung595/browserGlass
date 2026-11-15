@@ -1780,18 +1780,22 @@ _CONTENT_DARKEN = (
 #   glass;
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
 #   window (a header, a bottom bar, a sidebar), whatever its own colours.
-#   Every site gets the same: the DMS surface at NAV_BAR_OPACITY, blurred,
-#   the dark one on a dark (or darkened) page, the light one on a light
-#   page, by the theme otherwise.
+#   Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
+#   strong blur, the dark one on a dark (or darkened) page, the light one
+#   on a light page, by the theme otherwise. The page is tinted already,
+#   so a light veil keeps the bar close to the browser's own toolbar (a
+#   bar at 0.35 over the 0.8 tint shows about 0.87), while what scrolls
+#   under it stays blurred enough to read the bar.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
-NAV_BAR_OPACITY = 0.9
+NAV_BAR_OPACITY = 0.35
+NAV_BAR_BLUR = "blur(40px) saturate(1.5)"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _CONTENT_LAYERS = (
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"
-    "    backdrop-filter: blur(24px) saturate(1.5) !important;\n"
+    "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
     "  }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    " + _BAR_SELECTOR + " {{ background: rgba({light}, {nav}) !important; }}\n"

@@ -9,7 +9,7 @@
 Firefox, LibreWolf, Zen, Floorp and Waterfox take the DMS window opacity, blur and colours.
 Page backgrounds turn see-through; video, images and text stay solid.
 
-[Getting started](#getting-started) · [Usage](#usage) · [Launcher](#launcher) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [User guide](docs/GUIDE.md) · [Changelog](CHANGELOG.md)
+[Getting started](#getting-started) · [Usage](#usage) · [Launcher](#launcher) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [User guide](docs/GUIDE.md) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -95,6 +95,7 @@ The widget is optional: the glass works without it. It shows whether the glass i
 
   *A glass site next to an excluded one.*
 
+- **Dark pages and uniform bars** (with *Live control*): under a dark theme, light pages turn dark with the bundled [Dark Reader](https://darkreader.org) engine and their background becomes glass, and every navigation bar fixed along a window edge (a header, a sidebar) gets the same look on every site, matching the browser's own toolbar.
 - **Glass commands in the DMS launcher**: type `gs blist` to exclude the site you are on, `gs list` to see the excluded ones. With *Live control*, the page changes at once, without a browser restart (see [Launcher](#launcher)).
 - **Reader view and PDF, the new tab page and private windows** each have a switch.
 - **Knows when to restart**: Browser Glass sees which running browser has not loaded the latest change yet and names it.
@@ -363,13 +364,32 @@ Click **Copy report** in **Settings → Plugins → Browser Glass → Status** a
 - **The anonymous report** holds versions, counts, settings and warning codes: no path, profile name, site or address. It is built only when you ask, goes to your clipboard, and is never sent anywhere.
 - **Uninstalling leaves nothing.** Disabling the plugin restores `userChrome.css`, `userContent.css` and `user.js` byte for byte, even with the browsers open; the original preference values go back into `prefs.js` once each browser closes (a cleaner waits for it, for up to 7 days). It also removes the niri file and line, the companion add-on, its preferences and the helper's files, and the plugin's state. A file you edited yourself since its backup keeps your edits: only Browser Glass's lines are taken out, and the backup stays for you. Deleting the plugin folder while DMS runs starts the same clean-up on its own. [More](docs/GUIDE.md#uninstalling)
 
+## Roadmap
+
+These are plans, not promises, and they have no dates. The full list, what is not planned and the known limits are in [ROADMAP.md](ROADMAP.md).
+
+**Next (1.2.0)**
+
+- A full clean-up of the code, with a bug hunt and a security review of the helper, the files it writes and the add-on.
+- Fix: copying `example.org` from the clipboard no longer says *already excluded* when only `www.example.org` is.
+- Fix: an add-on you removed yourself stays removed even if the plugin's state file is lost.
+- New screenshots for the launcher (a GIF) and the *Sites* settings.
+
+**Later**
+
+- A signed companion add-on, so that *Live control* works on Firefox release and ESR too.
+- *Live control* in Flatpak and Snap browsers, and in frames.
+- Live checks on Zen, Floorp and Waterfox, and Snap Firefox in the niri rule.
+- An option to leave some profiles of a browser without glass.
+- The DMS plugin registry, once the plugin has had wider use.
+
 ## Documentation
 
 | File | Content |
 | --- | --- |
 | [docs/GUIDE.md](docs/GUIDE.md) | Full user guide: how it works, sites, restart detection, backups, uninstalling, FAQ |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each version |
-| [ROADMAP.md](ROADMAP.md) | Ideas for the future |
+| [ROADMAP.md](ROADMAP.md) | Planned work, what is not planned, and the known limits |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Architecture, tests and release process, for anyone working on the code |
 
 ## Credits

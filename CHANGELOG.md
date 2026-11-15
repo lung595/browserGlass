@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 
 - **Dark pages** (*Sites*, on by default, with *Live control*): under a dark theme, the companion add-on turns light pages dark with the bundled [Dark Reader](https://darkreader.org) engine (v4.9.135, MIT, `extension/vendor/`) in the DMS colours, and their background becomes glass, the large elements that paint it included (marked `data-browserglass-canvas`). Pages with a dark version, excluded sites and a light theme are left alone. Off, a light page gets the light glass as before.
-- **Page layers** (with *Live control*): the companion add-on makes the lowest layer that paints a page's background glass (a fixed full-window container, as in Jellyfin; marked `data-browserglass-canvas`) when the root and body are see-through already (looked for again after a click or a late render, as in TrueNAS), and gives every navigation bar fixed or stuck along a window edge (a header, a bottom bar, a sidebar) the same look on every site: the DMS surface at 90 %, blurred (`data-browserglass-bar`).
+- **Page layers** (with *Live control*): the companion add-on makes the lowest layer that paints a page's background glass (a fixed full-window container, as in Jellyfin; marked `data-browserglass-canvas`) when the root and body are see-through already (looked for again after a click or a late render, as in TrueNAS), and gives every navigation bar fixed or stuck along a window edge (a header, a bottom bar, a sidebar) the same look on every site, close to the browser's own toolbar: a light veil of the DMS surface (35 %, over the page's tint) and a strong blur, so what scrolls under it stays unreadable (`data-browserglass-bar`).
 
 ### Fixed
 
