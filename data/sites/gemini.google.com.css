@@ -1,0 +1,11 @@
+/* browserGlass: the style makes Gemini's surface colour transparent, and the
+   dialogs (cookie consent, settings, share) are drawn with that colour, so
+   their text sat right on the page behind. Give them the glass tint with a
+   blur. */
+.mat-mdc-dialog-surface,
+.mdc-dialog__surface,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  background: var(--browserglass-bar, rgba(16, 16, 20, 0.8)) !important;
+  backdrop-filter: blur(24px) saturate(1.5) !important;
+}

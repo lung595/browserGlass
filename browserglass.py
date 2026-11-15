@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -161,6 +161,9 @@ ATTR_CANVAS = "data-browserglass-canvas"
 # ... and BAR on a navigation bar along an edge of the window (a header, a
 # bottom bar, a sidebar; see _CONTENT_LAYERS): a light veil over a blur.
 ATTR_BAR = "data-browserglass-bar"
+# ... and INK, "dark" or "light", on text left without contrast once the
+# background behind it went (see _CONTENT_LAYERS): a readable colour.
+ATTR_INK = "data-browserglass-ink"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1683,9 +1686,13 @@ _CHROME_PRIVATE_SELECTOR = ':root[privatebrowsingmode="temporary"] body'
 # dark one only pages that say they have a dark mode do: a light-only page
 # (dark text, no dark mode) would be unreadable on the dark tint, so it keeps
 # its own background. A page says so with <meta name="color-scheme"> naming
-# "dark", or a dark-mode marker on <html> (_DARK_PAGE_MARKERS).
+# "dark", or a dark-mode marker on <html> (_DARK_PAGE_MARKERS). The meta
+# counts only without a light-mode marker on <html>: a page can name both
+# schemes and still pick its light one (GitHub's home page,
+# data-color-mode="light").
+_LIGHT_PAGE_MARKERS = ('[data-color-mode="light" i]', '[data-theme~="light" i]', '.light')
 _DARK_PAGE_MARKERS = (
-    ':has(> head > meta[name="color-scheme" i][content~="dark" i])',
+    ':not(%s):has(> head > meta[name="color-scheme" i][content~="dark" i])' % ", ".join(_LIGHT_PAGE_MARKERS),
     '[data-theme~="dark" i]', '[data-theme-mode="dark" i]', '[data-color-mode="dark" i]',
     '[data-bs-theme="dark" i]', '[data-mode="dark" i]', '[dark]', '.dark', '.dark-mode',
     '.theme-dark',
@@ -1763,20 +1770,30 @@ _CONTENT_DARKEN = (
 #   over most of the window (a fixed full-window container, a wrapper):
 #   glass;
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
-#   window (a header, a bottom bar, a sidebar), or laid along one in a page
-#   that does not scroll (a web app's shell), whatever its own colours.
-#   Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
+#   window (a header, a bottom bar, a sidebar), with a background of its
+#   own, whatever its colours. Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
 #   strong blur, the dark one on a dark (or darkened) page, the light one
 #   on a light page, by the theme otherwise. The page is tinted already,
 #   so a light veil keeps the bar close to the browser's own toolbar (a
 #   bar at 0.35 over the 0.8 tint shows about 0.87), while what scrolls
-#   under it stays blurred enough to read the bar.
+#   under it stays blurred enough to read the bar;
+# - text without contrast on what is now behind it (ATTR_INK): the dark
+#   surface ("dark") or the light one ("light"). The add-on reads the
+#   colour of the glass from --browserglass-glass (the surface of the theme)
+#   to measure it.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.35
 NAV_BAR_BLUR = "blur(40px) saturate(1.5)"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
+_INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _CONTENT_LAYERS = (
+    "  :root {{ --browserglass-glass: rgb({dark}); }}\n"
+    "  @media not (prefers-color-scheme: dark) {{\n"
+    "    :root {{ --browserglass-glass: rgb({light}); }}\n"
+    "  }}\n"
+    "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; }}\n"
+    "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"

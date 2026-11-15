@@ -5,6 +5,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-15
+
+The companion add-on is still unsigned in this release (no signing keys at hand): it is placed as in 1.3.0, and the signed build moves to a later version.
+
+### Changed
+
+- **Navigation bars** (with *Live control*): only real bars get the uniform veil, an element fixed or stuck along a window edge with an opaque background of its own (`data-browserglass-bar`, the outermost one). The 1.2 guess for web apps that scroll a pane inside (a sidebar or a header laid along the window's edges, neither fixed nor sticky) is gone: it caught chat panels and composers, which got a dark square box behind them in chat apps, and cut the text of sidebars. A see-through fixed bar (a floating footer) is left alone.
+- **The page's tone is measured again while it settles after loading**, not only as it loads: a page that colours its text once loaded (YouTube's dark theme starts with black text) no longer keeps a light tone, and its header gets the dark veil.
+
+### Fixed
+
+- **Text left without contrast on the glass** (dark text on the dark glass, as in Proton Mail's top bar, or light text on the light glass): the add-on checks the visible text against what is now behind it, and colours what reads under a 2:1 ratio with the DMS surface of the other mode (`data-browserglass-ink`). Text over a picture is left alone.
+- **Black bands in web apps** (ChatGPT): inside fixed or sticky elements, the empty fade layers and the panel that covers a bar, painted with the page's own background colour, become glass too (`data-browserglass-canvas="fill"`); labels and buttons keep their colour.
+- **Frames** (a captcha, an embedded video or form) keep their own background: the add-on marks every frame of a page excluded, so the page's glass no longer leaves their text on the dark tint.
+- **Pages that name both colour schemes but show their light one** (`<meta name="color-scheme" content="light dark">` with `data-color-mode="light"`, `data-theme="light"` or a `light` class on `<html>`, as on GitHub's home page) count as light pages: they are darkened (or get the light glass) instead of keeping a white background on the glass.
+- **Gemini**: the cookie, settings and share dialogs, drawn with the colour the site style makes transparent, get the glass tint with a blur, so their text no longer sits on the page behind.
+
 ## [1.3.0] - 2026-11-15
 
 ### Added
@@ -135,7 +152,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/lung595/browserGlass/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/lung595/browserGlass/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lung595/browserGlass/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lung595/browserGlass/compare/v1.0.0...v1.1.0

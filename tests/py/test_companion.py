@@ -52,14 +52,21 @@ class ExtensionSourcesTest(unittest.TestCase):
         # Never in a private window, whatever about:addons says.
         self.assertEqual(self.manifest["incognito"], "not_allowed")
         scripts = self.manifest["content_scripts"]
-        self.assertEqual(len(scripts), 1)
-        # Dark Reader first: content.js uses its global
-        self.assertEqual(scripts[0]["js"], ["vendor/darkreader.js", "content.js"])
+        self.assertEqual(len(scripts), 2)
+        # frame.js in every frame, to keep the glass styles off the embedded
+        # pages (1.3.1)
+        self.assertEqual(scripts[0]["js"], ["frame.js"])
         self.assertEqual(scripts[0]["run_at"], "document_start")
-        self.assertNotIn("all_frames", scripts[0])  # main document only (v1.1)
+        self.assertIs(scripts[0]["all_frames"], True)
+        # Dark Reader first: content.js uses its global
+        self.assertEqual(scripts[1]["js"], ["vendor/darkreader.js", "content.js"])
+        self.assertEqual(scripts[1]["run_at"], "document_start")
+        self.assertNotIn("all_frames", scripts[1])  # main document only (v1.1)
+        for script in scripts:
+            self.assertEqual(script["matches"], ["http://*/*", "https://*/*"])
         self.assertEqual(self.manifest["background"]["scripts"], ["background.js"])
         self.assertEqual(sorted(p.name for p in EXT.iterdir()),
-                         ["background.js", "content.js", "manifest.json", "vendor"])
+                         ["background.js", "content.js", "frame.js", "manifest.json", "vendor"])
         self.assertEqual(sorted(p.name for p in (EXT / "vendor").iterdir()),
                          ["darkreader-LICENSE.txt", "darkreader.js"])
 
@@ -162,20 +169,23 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("[" + bg.ATTR_CANVAS + "]", bg._CONTENT_LAYERS)
         bars = js[js.index("function markBars()"):js.index("let layerFrame")]
         self.assertIn("off !== false", bars)
-        # fixed or sticky, or in the flow of a page that does not scroll (an
-        # app shell), the outermost one then
+        # fixed or sticky only, with a background of its own, the outermost
+        # one then (1.3.1: no more app shell bars in the flow)
         self.assertIn('position === "fixed" || position === "sticky"', bars)
-        self.assertIn("scroller.scrollHeight <= scroller.clientHeight + 1", bars)
-        self.assertIn("(pinned(el) || (shell && inFlow(el))) && along(el)", bars)
+        self.assertIn("if (!along(el) || !pinned(el))", bars)
+        self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= OWN_BG", bars)
+        self.assertIn('querySelectorAll("[" + BAR + "] [" + BAR + "]")', bars)
+        self.assertIn("const OWN_BG = 0.5;", js)
+        for gone in ("inFlow", "shell", "scrollHeight"):
+            self.assertNotIn(gone, bars)
         # headers and bottom bars, sidebars, on all four edges
         self.assertIn("r.top <= EDGE || r.bottom >= h - EDGE", bars)
         self.assertIn("r.left <= EDGE || r.right >= w - EDGE", bars)
         self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]", bars)
         self.assertIn("removeAttribute(BAR)", bars)
-        self.assertIn("mark(found, BAR)", bars)
-        self.assertNotIn("backgroundColor", bars)
+        self.assertIn("mark(el, BAR)", bars)
         mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
-        self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= SOLID", mark)
+        self.assertIn("if (large(el) && alpha(color) >= SOLID) {\n          pageColor = color;\n          mark(el, CANVAS);", mark)
         self.assertIn("const SOLID = 0.99;", js)
         watch = js[js.index("let layerFrame"):js.index("function apply(")]
         self.assertIn("requestAnimationFrame(", watch)
@@ -185,13 +195,81 @@ class ExtensionSourcesTest(unittest.TestCase):
         for line in ('for (const type of ["scroll", "transitionend"])',
                      'for (const type of ["scrollend", "resize", "load"])',
                      'for (const type of ["click", "submit"])',
-                     'for (const type of ["popstate", "hashchange"])'):
+                     'for (const type of ["popstate", "hashchange", "load"])'):
             self.assertIn(line, js)
+        # the settle passes measure the tone again (a page styled after its
+        # load), not on a darkened page
+        tick = js[js.index("function settleTick("):js.index("function apply(")]
+        self.assertIn("if (!darkened) {\n      measure();\n      darken();\n      paint();", tick)
         for fn in ("function update()", "function apply("):
             body = js[js.index(fn):]
             body = body[:body.index("\n}")]
             self.assertIn("watchLayers();", body)
             self.assertIn("markBars();", body)
+            self.assertIn("ink();", body)
+
+    def test_content_marks_fills(self):
+        # inside a fixed or sticky element, an empty scrim or the panel that
+        # covers a bar, painted with the page's colour, turns to glass too
+        js = strip_comments(read("content.js"))
+        self.assertIn('const FILL = "fill";', js)
+        self.assertIn("let pageColor = null;", js)
+        fills = js[js.index("function markFills()"):js.index("const INK_RATIO")]
+        self.assertIn("off !== false", fills)
+        self.assertIn("pageColor === null", fills)
+        self.assertIn('position === "fixed" || position === "sticky"', fills)
+        self.assertIn("getComputedStyle(el).backgroundColor !== pageColor", fills)
+        self.assertIn("NOT_FILLS.has(el.localName)", fills)
+        self.assertIn("i < kids.length && i < FILL_NODES", fills)
+        self.assertIn("bar && r.width * r.height >= FILL_COVER * box.width * box.height", fills)
+        self.assertIn("el.setAttribute(CANVAS, FILL)", fills)
+        for name in ('"img"', '"video"', '"canvas"', '"iframe"', '"input"'):
+            self.assertIn(name, js[js.index("const NOT_FILLS"):js.index("function markFills()")])
+        # fills keep their mark while small, and go with the page's layers
+        mark = js[js.index("function markCanvas()"):js.index("function markFills()")]
+        self.assertIn("if (!glass || (!large(el) && el.getAttribute(CANVAS) !== FILL))", mark)
+        # every pass that marks the bars marks the fills after them
+        for at in [i for i in range(len(js)) if js.startswith("markBars();", i)]:
+            self.assertTrue(js[at:].split("\n", 2)[1].strip() == "markFills();", js[at - 80:at + 40])
+
+    def test_content_marks_ink(self):
+        # text left without contrast on the glass gets ATTR_INK, coloured by
+        # _CONTENT_LAYERS with the glass colours, which the root hands over
+        js = strip_comments(read("content.js"))
+        self.assertIn('const INK = "%s";' % bg.ATTR_INK, js)
+        self.assertIn('const GLASS = "--browserglass-glass";', js)
+        self.assertTrue(bg.ATTR_INK.startswith("data-browserglass-"))
+        self.assertIn("--browserglass-glass: rgb({dark})", bg._CONTENT_LAYERS)
+        self.assertIn('[%s="dark"]' % bg.ATTR_INK, bg._CONTENT_LAYERS)
+        self.assertIn('[%s="light"]' % bg.ATTR_INK, bg._CONTENT_LAYERS)
+        mark = js[js.index("function markInk()"):js.index("function ink()")]
+        self.assertIn("off !== false", mark)
+        self.assertIn("removeAttribute(INK)", mark)
+        self.assertIn("contrast(fg, bg) < INK_RATIO", mark)
+        self.assertIn("i < INK_NODES && seen.size < INK_ELEMENTS", mark)
+        self.assertIn("const INK_RATIO = 2;", js)
+        behind = js[js.index("function behind(el)"):js.index("function markInk()")]
+        # an image behind the text: no guess
+        self.assertIn('if (style.backgroundImage !== "none")\n      return null;', behind)
+        self.assertIn("getPropertyValue(GLASS)", behind)
+        throttle = js[js.index("function ink()"):]
+        throttle = throttle[:throttle.index("\n}")]
+        self.assertIn("requestAnimationFrame(", throttle)
+        self.assertIn("now - inkAt < INK_MS", throttle)
+        self.assertNotIn("setTimeout", js)
+
+    def test_frame_keeps_embedded_pages_off(self):
+        # an embedded page keeps its own look: <html> of every frame but the
+        # top one carries the OFF mark, put back if the page takes it off or
+        # replaces <html>
+        js = strip_comments(read("frame.js"))
+        self.assertIn("if (window !== window.top)", js)
+        self.assertIn('const OFF = "%s";' % bg.ATTR_OFF, js)
+        self.assertIn("root.setAttribute(OFF, \"\")", js)
+        self.assertIn("attributeFilter: [OFF]", js)
+        self.assertIn("observe(document, {childList: true})", js)
+        for word in ("sendMessage", "storage", "setTimeout", "setInterval"):
+            self.assertNotIn(word, js)
 
     def test_content_darkens_light_pages(self):
         # darkPages: the glass styles hand the colours over on the root
@@ -354,7 +432,7 @@ class XpiTest(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
             self.assertIsNone(zf.testzip())
             names = zf.namelist()
-            self.assertEqual(names, ["background.js", "content.js", "manifest.json",
+            self.assertEqual(names, ["background.js", "content.js", "frame.js", "manifest.json",
                                      "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
             self.assertIn("manifest.json", names)  # at the root, no folder prefix
             for info in zf.infolist():
@@ -373,7 +451,7 @@ class XpiTest(unittest.TestCase):
         os.symlink("/etc/passwd", os.path.join(ext, "link.txt"))
         os.symlink(os.path.join(ext, "icons"), os.path.join(ext, "linked-dir"))
         with zipfile.ZipFile(io.BytesIO(bg.companion_xpi(ext))) as zf:
-            self.assertEqual(zf.namelist(), ["a.txt", "background.js", "content.js",
+            self.assertEqual(zf.namelist(), ["a.txt", "background.js", "content.js", "frame.js",
                                              "icons/a.svg", "icons/b.svg", "manifest.json",
                                              "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
 

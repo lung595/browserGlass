@@ -95,7 +95,7 @@ The widget is optional: the glass works without it. It shows whether the glass i
 
   *A glass site next to an excluded one.*
 
-- **Dark pages and uniform bars** (with *Live control*): under a dark theme, light pages switch to their own dark theme when they have one, or turn dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass, and every navigation bar along a window edge (a header, a sidebar, a web app's side panel) gets the same look on every site, matching the browser's own toolbar.
+- **Dark pages and uniform bars** (with *Live control*): under a dark theme, light pages switch to their own dark theme when they have one, or turn dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass, and every navigation bar along a window edge (a header, a sidebar, a bottom bar, fixed or stuck there with a background of its own) gets the same look on every site, matching the browser's own toolbar; text left without contrast on the glass gets a readable colour.
 - **Glass commands in the DMS launcher**: type `gs blist` to exclude the site you are on, `gs list` to see the excluded ones. With *Live control*, the page changes at once, without a browser restart (see [Launcher](#launcher)).
 - **Reader view and PDF, the new tab page and private windows** each have a switch.
 - **Knows when to restart**: Browser Glass sees which running browser has not loaded the latest change yet and names it.
@@ -194,7 +194,7 @@ Open **Settings → Plugins → Browser Glass**.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| **Live control** | On | Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets `xpinstall.signatures.required` to `false` and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. A signed add-on, which they accept, is planned for 1.3.1. Uninstalling Browser Glass removes the add-on and puts these settings back |
+| **Live control** | On | Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets `xpinstall.signatures.required` to `false` and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. A signed add-on, which they accept, is planned for a later version. Uninstalling Browser Glass removes the add-on and puts these settings back |
 
 The **Status** section has a line for it:
 
@@ -271,7 +271,7 @@ Restart the browser: Firefox reads its style files only at start-up. Close **eve
 
 The exclusion is saved, but no companion add-on could apply it at once, so the browser shows it after its next restart. The *Live control* line in **Settings → Plugins → Browser Glass → Status** tells you why:
 
-- **Firefox release, ESR and Beta builds** refuse unsigned add-ons, and the companion is not signed yet: there, changes apply at the next restart. A signed add-on, which they accept, is planned for 1.3.1.
+- **Firefox release, ESR and Beta builds** refuse unsigned add-ons, and the companion is not signed yet: there, changes apply at the next restart. A signed add-on, which they accept, is planned for a later version.
 - **You disabled the add-on** in `about:addons`: enable it again there.
 - **The first restart.** The add-on is placed in the profile while the browser runs, and the browser loads it when it starts. Restart the browser once; *waiting for a browser restart* then turns into *connected*.
 - **After a plugin update** the browser still runs the older add-on: the status says *waiting for a browser restart*, and `gs blist` answers *Restart the browser once more*. Restart it once.
@@ -283,7 +283,7 @@ The exclusion is saved, but no companion add-on could apply it at once, so the b
 <details>
 <summary><b>about:addons says the companion <i>could not be verified</i></b></summary>
 
-LibreWolf shows this for every add-on that is not signed by Mozilla, and the Browser Glass companion is not signed yet (a signed add-on is planned for 1.3.1). It is normal and harmless: the add-on is loaded and works. Turn **Live control** off if you would rather not have it; the next sync removes the add-on. Removing it in `about:addons` also works: Browser Glass then leaves it out, and takes its preferences back.
+LibreWolf shows this for every add-on that is not signed by Mozilla, and the Browser Glass companion is not signed yet (a signed add-on is planned for a later version). It is normal and harmless: the add-on is loaded and works. Turn **Live control** off if you would rather not have it; the next sync removes the add-on. Removing it in `about:addons` also works: Browser Glass then leaves it out, and takes its preferences back.
 </details>
 
 <details>
@@ -369,14 +369,14 @@ Click **Copy report** in **Settings → Plugins → Browser Glass → Status** a
 
 These are plans, not promises, and they have no dates. The full list, what is not planned and the known limits are in [ROADMAP.md](ROADMAP.md).
 
-**Next (1.3.1)**
+**Next**
 
 - The companion add-on signed by Mozilla, so *Live control* works on Firefox release, ESR and Beta builds.
 - New screenshots for the launcher (a GIF) and the *Sites* settings.
 
 **Later**
 
-- *Live control* in Flatpak and Snap browsers, and in frames.
+- *Live control* in Flatpak and Snap browsers.
 - Live checks on Zen, Floorp and Waterfox, and Snap Firefox in the niri rule.
 - An option to leave some profiles of a browser without glass.
 - The DMS plugin registry, once the plugin has had wider use.

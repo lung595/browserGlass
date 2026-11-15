@@ -2,7 +2,9 @@
 lowest layer that paints the background of a page whose root and body are
 see-through (a fixed full-window container, as in Jellyfin) becomes glass;
 a navigation bar fixed or stuck along an edge of the window (a header, a
-sidebar), whatever its own colours, gets a light veil of the DMS surface (35 %) over a strong blur.
+sidebar) with a background of its own gets a light veil of the DMS surface
+(35 %) over a strong blur; text left without contrast on the glass gets a
+readable colour.
 In a real headless Firefox (and LibreWolf with BG_LIBREWOLF).
 
 Opt-in (needs a Firefox binary, a few seconds per browser):
@@ -15,21 +17,21 @@ test_e2e_darken.py. Checked:
   - the fixed background container is marked and see-through, a card over
     it is neither; the fixed header is marked, in the dark surface (a dark
     page), under a dark theme and a light one;
-  - a fixed left sidebar with its own colour is marked too;
+  - a fixed left sidebar with its own colour is marked too, a see-through
+    fixed bar is not;
   - a background rendered late inside an existing element (as an Angular
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
     marked while it is, and left alone again back at the top;
   - in a web app's shell (a page that does not scroll, a pane scrolls
-    inside), the sidebar and the header in the flow are marked, the whole
-    sidebar and not a list inside it, the pane is not; once the page itself
-    scrolls, they are left alone;
-  - short rows of links in the shell's pane, the one cut by the bottom edge
-    included, are left alone, before and after the pane scrolls;
+    inside), the sidebar and the header in the flow keep their own look,
+    and so do the short rows of links in the pane (1.3.1);
   - in a page that does not scroll, a side panel showing a picture and a
     plain block along an edge (no link, no nav role) are left alone;
   - a header in the flow of a page whose body is fixed to lock its scroll
-    (a dialog open) is left alone.
+    (a dialog open) is left alone;
+  - dark text straight on the dark glass gets the light surface colour,
+    the same text on its own white card is left alone.
 """
 
 import os
@@ -46,6 +48,7 @@ import test_e2e_tone as tone  # noqa: E402
 bg = dk.bg
 CANVAS, BAR = bg.ATTR_CANVAS, bg.ATTR_BAR
 DARK_SURFACE = "rgba(%d, %d, %d, 0.35)" % bg.surface_rgb(None, "dark")
+LIGHT_INK = "rgb(%d, %d, %d)" % bg.surface_rgb(None, "light")
 BLUR = bg.NAV_BAR_BLUR
 
 STYLE = """<!doctype html><html><head><meta charset="utf-8">
@@ -54,15 +57,20 @@ html, body {margin:0; background:rgb(16,16,16); color:rgb(235,235,235)}
 #long {height:300vh}
 """
 # A single-page app: a fixed full-window background under the content, a
-# fixed header left see-through (as the generic style leaves a <header>;
-# these stylesheets have no site styles).
+# fixed header with its own colour, a see-through fixed bottom bar. In the
+# header an empty scrim and a label painted with the page's colour, in the
+# sidebar a panel of that colour covering it.
 APP_PAGE = STYLE + """
 #bg {position:fixed; inset:0; background:rgb(16,16,16); z-index:-1}
-header {position:fixed; top:0; left:0; right:0; height:50px; background:transparent; z-index:2}
+header {position:fixed; top:0; left:0; right:0; height:50px; background:rgb(24,24,24); z-index:2}
+#ghost {position:fixed; bottom:0; left:0; right:0; height:40px; background:transparent}
 #card {background:rgb(40,40,40); width:300px; height:100px; margin-top:80px}
 #side {position:fixed; top:50px; bottom:0; left:0; width:180px; background:rgb(60,30,30)}
-</style></head><body><div id="bg"></div><header id="bar">Bar</header>
-<aside id="side">Side</aside>
+#scrim {display:block; width:60px; height:10px; background:rgb(16,16,16)}
+#chip, #panel {background:rgb(16,16,16)}
+#panel {position:absolute; inset:0}
+</style></head><body><div id="bg"></div><header id="bar">Bar <span id="scrim"></span><b id="chip">Chip</b></header>
+<aside id="side"><div id="panel">Side</div></aside><footer id="ghost">Ghost</footer>
 <div id="card">Card</div><div id="long">""" + dk.TEXT + """</div></body></html>"""
 # An app rendered late: its background wrapper appears after load inside an
 # element that was already there.
@@ -72,10 +80,10 @@ html, body {background:transparent}
 LATE = ("const w = document.createElement('div'); w.id = 'late';"
         "w.style = 'background:rgb(16,16,16); min-height:100vh';"
         "w.textContent = 'Late'; document.getElementById('app').append(w);")
-# A see-through sticky <nav> below a hero.
+# A sticky <nav> with its own colour below a hero.
 STICKY_PAGE = STYLE + """
 #hero {height:300px}
-nav {position:sticky; top:0; height:60px; background:rgba(32,32,32,0.2)}
+nav {position:sticky; top:0; height:60px; background:rgb(32,32,32)}
 </style></head><body><div id="hero">Hero</div><nav id="bar">Nav</nav>
 <div id="long">""" + dk.TEXT + """</div></body></html>"""
 
@@ -120,7 +128,13 @@ LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
         "const s = document.createElement('div'); s.id = 'lockside';"
         "s.style = 'position:fixed; top:0; bottom:0; right:0; width:200px; background:rgb(30,30,30)';"
         "document.body.append(s);")
-ROWS_MARKED = "return [...document.querySelectorAll('.row')].filter((e) => e.hasAttribute(arguments[0])).length > 0;"
+# Dark text on see-through layers (the glass behind it), and on a white card.
+INK_PAGE = STYLE + """
+html, body {background:transparent}
+#dim, #oncard {color:rgb(20,20,20)}
+#card {background:rgb(255,255,255)}
+</style></head><body><p id="dim">Notice</p><div id="card"><p id="oncard">Card</p></div></body></html>"""
+INK = bg.ATTR_INK
 
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
 
@@ -151,7 +165,8 @@ class LayersE2E(unittest.TestCase):
                   "/shell.html": ("text/html; charset=utf-8", SHELL_PAGE.encode("utf-8")),
                   "/rows.html": ("text/html; charset=utf-8", ROWS_PAGE.encode("utf-8")),
                   "/split.html": ("text/html; charset=utf-8", SPLIT_PAGE.encode("utf-8")),
-                  "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8"))}
+                  "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8")),
+                  "/ink.html": ("text/html; charset=utf-8", INK_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -171,6 +186,16 @@ class LayersE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "sidebar not marked")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('side')).backgroundColor;"),
                              DARK_SURFACE)
+            self.assertFalse(self.marked(b, "ghost", BAR), "a see-through bar marked")
+            # the page's colour inside the bars: the scrim and the covering
+            # panel go see-through, a label keeps its colour
+            for fill in ("scrim", "panel"):
+                self.assertTrue(b.wait_for("return document.getElementById(arguments[0])"
+                                           ".getAttribute(arguments[1]) === 'fill';",
+                                           mn.WAIT_TIMEOUT, fill, CANVAS), fill + " not filled")
+                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0]))"
+                                      ".backgroundColor;", fill), "rgba(0, 0, 0, 0)")
+            self.assertFalse(self.marked(b, "chip", CANVAS), "a label in a bar filled")
             # a dark page keeps a dark header under a light theme
             tone.set_scheme(b, False)
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
@@ -191,7 +216,7 @@ class LayersE2E(unittest.TestCase):
             self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
                                        mn.WAIT_TIMEOUT, tone.LIVE))
             self.assertFalse(self.marked(b, "bar", BAR), "marked below the hero")
-            self.assertEqual(b.js(BAR_COLOR), "rgba(32, 32, 32, 0.2)")
+            self.assertEqual(b.js(BAR_COLOR), "rgb(32, 32, 32)")
             b.js("window.scrollTo(0, 600);")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "bar", BAR), "stuck nav not marked")
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
@@ -199,29 +224,16 @@ class LayersE2E(unittest.TestCase):
             self.assertTrue(b.wait_for("return !document.getElementById('bar').hasAttribute(arguments[0]);",
                                        mn.WAIT_TIMEOUT, BAR), "still marked back at the top")
 
-            b.navigate(srv.url("/shell.html", "dark.test"))
-            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
-            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "shell sidebar not marked")
-            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "top", BAR), "shell header not marked")
-            for element_id in ("side", "top"):
-                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;",
-                                      element_id), DARK_SURFACE)
-                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).backdropFilter;",
-                                      element_id), BLUR)
-            self.assertFalse(self.marked(b, "list", BAR), "a list inside the sidebar marked")
-            self.assertFalse(self.marked(b, "pane", BAR), "the scrolling pane marked")
-            b.js("document.documentElement.style.overflow = 'auto'; document.body.style.overflow = 'visible';"
-                 "document.body.style.height = 'auto'; document.getElementById('shell').style.height = '300vh';")
-            self.assertTrue(b.wait_for("return !document.getElementById('side').hasAttribute(arguments[0]);",
-                                       mn.WAIT_TIMEOUT, BAR), "sidebar still marked once the page scrolls")
-
-            b.navigate(srv.url("/rows.html", "dark.test"))
-            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
-            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "shell sidebar not marked")
-            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "top", BAR), "shell header not marked")
-            self.assertFalse(b.wait_for(ROWS_MARKED, 2.0, BAR), "a row of the pane marked")
-            b.js("document.getElementById('pane').scrollTop = 517;")
-            self.assertFalse(b.wait_for(ROWS_MARKED, 2.0, BAR), "a row of the pane marked once it scrolls")
+            # an app shell's parts in the flow keep their own look
+            for page in ("/shell.html", "/rows.html"):
+                b.navigate(srv.url(page, "dark.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
+                                           mn.WAIT_TIMEOUT, tone.LIVE))
+                self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']');",
+                                            2.0, BAR), "a part of the shell marked (%s)" % page)
+                self.assertEqual(b.js("return getComputedStyle(document.getElementById('top')).backgroundColor;"),
+                                 "rgb(30, 30, 60)")
 
             b.navigate(srv.url("/split.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
@@ -236,6 +248,15 @@ class LayersE2E(unittest.TestCase):
             b.js(LOCK)
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "lockside", BAR), "fixed sidebar not marked")
             self.assertFalse(self.marked(b, "head", BAR), "a header marked under a scroll lock")
+
+            b.navigate(srv.url("/ink.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.getElementById('dim').getAttribute(arguments[0]) === 'light';",
+                                       mn.WAIT_TIMEOUT, INK), "dark text on the glass not marked")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('dim')).color;"), LIGHT_INK)
+            self.assertFalse(self.marked(b, "oncard", INK), "text on its own white card marked")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('oncard')).color;"),
+                             "rgb(20, 20, 20)")
 
 
 if __name__ == "__main__":

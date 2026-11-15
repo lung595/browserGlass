@@ -18,9 +18,10 @@
 // get data-browserglass-canvas, which makes them glass, as does the lowest
 // layer that paints the background of any page whose root and body are
 // see-through. A navigation bar fixed or stuck along an edge of the window
-// (a header, a bottom bar, a sidebar), or laid along one in a page that does
-// not scroll (a web app's shell), gets data-browserglass-bar: the same
-// near-opaque blurred surface on every site.
+// (a header, a bottom bar, a sidebar) with a background of its own gets
+// data-browserglass-bar: the same near-opaque blurred surface on every
+// site. Text left without contrast once its background went (dark text on
+// the dark glass) gets data-browserglass-ink, a readable colour.
 "use strict";
 
 const LIVE = "data-browserglass-live";
@@ -29,6 +30,8 @@ const TONE = "data-browserglass-tone";
 const OWN = "data-browserglass-";
 const CANVAS = "data-browserglass-canvas";
 const BAR = "data-browserglass-bar";
+const INK = "data-browserglass-ink";
+const GLASS = "--browserglass-glass";
 const DARKEN_BG = "--browserglass-darken-bg";
 const DARKEN_FG = "--browserglass-darken-fg";
 
@@ -169,6 +172,8 @@ function update() {
   watchLayers();
   markCanvas();
   markBars();
+  markFills();
+  ink();
   if (darkened || sampled >= ENOUGH_TEXT || resizeMeasures >= RESIZE_MEASURES)
     sizes.disconnect();
   else if (document.body && document.readyState !== "loading")
@@ -316,10 +321,13 @@ function alpha(color) {
 // transparent; the cards and panels drawn over it keep theirs. On a
 // darkened page every such large layer does, except fixed ones (dialogs).
 // A layer loses CANVAS once smaller, and all do once the root or the body
-// paints a background again.
+// paints a background again. The colour of the last layer marked is the
+// page's colour (pageColor, for markFills).
 const GRID = 5;
 const CLEAR = 0.5;
 const SOLID = 0.99;
+const FILL = "fill";
+let pageColor = null;
 
 // A marked element is watched: its size changes (or its removal, a view
 // swapped) look again.
@@ -340,7 +348,7 @@ function markCanvas() {
   const clear = (el) => alpha(getComputedStyle(el).backgroundColor) < CLEAR;
   const glass = clear(root) && clear(document.body);
   for (const el of document.querySelectorAll("[" + CANVAS + "]"))
-    if (!glass || !large(el))
+    if (!glass || (!large(el) && el.getAttribute(CANVAS) !== FILL))
       el.removeAttribute(CANVAS);
   if (!glass)
     return;
@@ -356,8 +364,11 @@ function markCanvas() {
           break;
         if (clear(el))
           continue;
-        if (large(el) && alpha(getComputedStyle(el).backgroundColor) >= SOLID)
+        const color = getComputedStyle(el).backgroundColor;
+        if (large(el) && alpha(color) >= SOLID) {
+          pageColor = color;
           mark(el, CANVAS);
+        }
         break;
       }
       if (!darkened)
@@ -375,42 +386,23 @@ function markCanvas() {
   }
 }
 
-// Navigation bars: along an edge of the window, a header or a bottom bar
-// (most of its width, short, touching the top or the bottom) or a sidebar
-// (most of its height, narrow, touching the left or the right), either fixed
-// or sticky, or in the flow of a page that does not scroll: a web app's
-// shell (a mail client, a chat) keeps its sidebar and header in place and
-// scrolls a pane inside. One in the flow is taken only when it is navigation
-// (a nav, header, aside or footer, a navigation role, or links or buttons
-// inside), shows no picture (the bar's background replaces it), lies inside
-// the window and is not in a pane that scrolls (a row of a list). A body
-// fixed to lock the scroll (a dialog open) is not a shell. Under points
-// along the four edges, the first fixed or sticky one gets BAR, else the
-// outermost one in the flow (the whole sidebar, not a list inside it),
-// whatever its own background: one look on every site.
+// Navigation bars: fixed or stuck along an edge of the window, a header or
+// a bottom bar (most of its width, short, touching the top or the bottom)
+// or a sidebar (most of its height, narrow, touching the left or the
+// right), that paints a background of its own (what scrolls under it would
+// show through a see-through one). Under points along the four edges, the
+// first such element gets BAR: one look on every site. A bar laid in the
+// flow of a page that does not scroll is left alone: in a web app (a chat,
+// a mail client) that is as often the message box or a footer line, whose
+// shape the site draws itself, as a navigation bar.
 const EDGE = 2;
-const NAV_LIKE = "nav, header, aside, footer, [role=navigation], [role=banner], [role=complementary]";
-const NAV_ITEMS = "a[href], button, [role=button], [role=link]";
-
-// An ancestor below <body> that scrolls its content.
-function inPane(el) {
-  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-    const style = getComputedStyle(p);
-    if ((/auto|scroll/.test(style.overflowY) && p.scrollHeight > p.clientHeight)
-        || (/auto|scroll/.test(style.overflowX) && p.scrollWidth > p.clientWidth))
-      return true;
-  }
-  return false;
-}
+const OWN_BG = 0.5;
 
 function markBars() {
   const root = document.documentElement;
   if (!root || off !== false || !document.body)
     return;
   const w = root.clientWidth, h = window.innerHeight;
-  const scroller = document.scrollingElement || root;
-  const shell = scroller.scrollHeight <= scroller.clientHeight + 1
-    && getComputedStyle(document.body).position !== "fixed";
   const along = (el) => {
     const r = el.getBoundingClientRect();
     return (r.width >= 0.6 * w && r.height <= 0.35 * h && (r.top <= EDGE || r.bottom >= h - EDGE))
@@ -420,38 +412,23 @@ function markBars() {
     const position = getComputedStyle(el).position;
     return position === "fixed" || position === "sticky";
   };
-  const inFlow = (el) => {
-    const style = getComputedStyle(el);
-    if (style.position !== "static" && style.position !== "relative")
-      return false;
-    const r = el.getBoundingClientRect();
-    return r.top >= -EDGE && r.bottom <= h + EDGE && r.left >= -EDGE && r.right <= w + EDGE
-      && (el.matches(NAV_LIKE) || el.querySelector(NAV_ITEMS) !== null)
-      && style.backgroundImage === "none"
-      && !inPane(el);
-  };
-  const bar = (el) => (pinned(el) || (shell && inFlow(el))) && along(el);
+  // a marked bar shows the veil, not its own background: only its place
+  // is checked again
   for (const el of document.querySelectorAll("[" + BAR + "]"))
-    if (!bar(el))
+    if (!pinned(el) || !along(el))
       el.removeAttribute(BAR);
   for (let i = 0; i < GRID; i++) {
     const x = (i + 0.5) * w / GRID, y = (i + 0.5) * h / GRID;
     for (const [px, py] of [[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]) {
-      let found = null;
       for (const el of document.elementsFromPoint(px, py)) {
         if (el === root || el === document.body)
           break;
-        if (!along(el))
+        if (!along(el) || !pinned(el))
           continue;
-        if (pinned(el)) {
-          found = el;
-          break;
-        }
-        if (shell && inFlow(el))
-          found = el;
+        if (!el.hasAttribute(BAR) && alpha(getComputedStyle(el).backgroundColor) >= OWN_BG)
+          mark(el, BAR);
+        break;
       }
-      if (found && !found.hasAttribute(BAR))
-        mark(found, BAR);
     }
   }
   // one veil per bar: an inner one marked before its outer one was in place
@@ -459,13 +436,160 @@ function markBars() {
     el.removeAttribute(BAR);
 }
 
+// Text without contrast: with the backgrounds of the page gone (the generic
+// style, a site style, Dark Reader), some text is left on a colour close to
+// its own, dark text on the dark glass (a notice banner) or light text on
+// a light button. The text shown in the window (and a window above and
+// below) is checked: the colour behind it is that of the first ancestor
+// painting a background of its own, else the root's over the glass
+// (GLASS, the tint's colour, set by the glass styles), unknown over a
+// picture. Text whose contrast with it is below INK_RATIO gets INK, "dark"
+// or "light": the glass styles give it a readable colour. Its marks are
+// taken off before it is checked again, so a page that changes its colours
+// (a theme switch) gets them right. At most once per INK_MS.
+// Fills in the page's colour inside what stays on screen (a fixed or
+// sticky element under the points of markCanvas and markBars): an empty
+// element (a scrim that fades the content into the page's colour, often
+// with a gradient mask, and that clicks pass through), or the panel that
+// covers a bar and paints its background in its place (a sidebar drawn by
+// its child). They show the page's colour, now glass: they get CANVAS too
+// (FILL), or they stay as dark or light bands over the glass. They lose it
+// with the page's layers (markCanvas), not when they shrink.
+const FILL_NODES = 400;
+const FILL_COVER = 0.9;
+const NOT_FILLS = new Set(["img", "video", "canvas", "svg", "iframe", "embed", "object", "picture",
+  "input", "textarea", "select", "button", "hr"]);
+
+function markFills() {
+  const root = document.documentElement;
+  if (!root || off !== false || !document.body)
+    return;
+  if (pageColor === null || !document.querySelector("[" + CANVAS + "]:not([" + CANVAS + "=\"" + FILL + "\"])"))
+    return;
+  const w = root.clientWidth, h = window.innerHeight;
+  const points = [];
+  for (let i = 0; i < GRID; i++) {
+    const x = (i + 0.5) * w / GRID, y = (i + 0.5) * h / GRID;
+    points.push([x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]);
+    for (let j = 0; j < GRID; j++)
+      points.push([x, (j + 0.5) * h / GRID]);
+  }
+  const holders = new Set();
+  for (const [x, y] of points)
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el === root || el === document.body)
+        break;
+      const position = getComputedStyle(el).position;
+      if (position === "fixed" || position === "sticky")
+        holders.add(el);
+    }
+  for (const holder of holders) {
+    const box = holder.getBoundingClientRect();
+    const bar = holder.hasAttribute(BAR);
+    const kids = holder.querySelectorAll("*");
+    for (let i = 0; i < kids.length && i < FILL_NODES; i++) {
+      const el = kids[i];
+      if (el.hasAttribute(CANVAS) || NOT_FILLS.has(el.localName)
+          || getComputedStyle(el).backgroundColor !== pageColor)
+        continue;
+      const r = el.getBoundingClientRect();
+      if (!el.firstElementChild && !el.textContent.trim() ? r.width > 0 && r.height > 0
+          : bar && r.width * r.height >= FILL_COVER * box.width * box.height)
+        el.setAttribute(CANVAS, FILL);
+    }
+  }
+}
+
+const INK_RATIO = 2;
+const INK_MS = 300;
+const INK_NODES = 4000;
+const INK_ELEMENTS = 1000;
+let inkAt = -Infinity, inkFrame = 0;
+
+function contrast(a, b) {
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+// The luminance behind `el`, null when unknown (a picture, a gradient).
+function behind(el) {
+  const root = document.documentElement;
+  for (let p = el; p && p !== root; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    if (style.backgroundImage !== "none")
+      return null;
+    if (alpha(style.backgroundColor) >= OWN_BG)
+      return luminance(style.backgroundColor);
+  }
+  const style = getComputedStyle(root);
+  const glass = luminance(style.getPropertyValue(GLASS).trim());
+  const a = alpha(style.backgroundColor);
+  const own = a > 0 ? luminance(style.backgroundColor) : null;
+  if (glass === null)
+    return a >= OWN_BG ? own : null;
+  return own === null ? glass : a * own + (1 - a) * glass;
+}
+
+function markInk() {
+  const root = document.documentElement;
+  if (!root || !document.body)
+    return;
+  if (off !== false) {
+    for (const el of document.querySelectorAll("[" + INK + "]"))
+      el.removeAttribute(INK);
+    return;
+  }
+  const h = window.innerHeight;
+  const near = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.bottom > -h && r.top < 2 * h;
+  };
+  for (const el of document.querySelectorAll("[" + INK + "]"))
+    if (near(el))
+      el.removeAttribute(INK);
+  const seen = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let i = 0, n = walker.nextNode(); n && i < INK_NODES && seen.size < INK_ELEMENTS;
+       i++, n = walker.nextNode()) {
+    const el = n.parentElement;
+    if (!el || seen.has(el) || !n.data.trim())
+      continue;
+    seen.add(el);
+    if (!near(el) || !el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+      continue;
+    const color = getComputedStyle(el).color;
+    const fg = luminance(color);
+    if (fg === null || alpha(color) < CLEAR)
+      continue;
+    const bg = behind(el);
+    if (bg !== null && contrast(fg, bg) < INK_RATIO)
+      el.setAttribute(INK, bg > 0.179 ? "dark" : "light");
+  }
+}
+
+function ink() {
+  if (!inkFrame)
+    inkFrame = requestAnimationFrame(function tick(now) {
+      if (now - inkAt < INK_MS) {
+        inkFrame = requestAnimationFrame(tick);
+        return;
+      }
+      inkFrame = 0;
+      inkAt = now;
+      markInk();
+    });
+}
+
 // The layers are looked for again, once per frame at most: when the page
 // scrolls (a header sticks, or turns fixed), is resized, has loaded, ends a
 // transition (a bar fading in), when the size of the document, the body,
 // one of its children or a marked element changes, and when the body gets
 // or loses a child. A single-page app swaps its view once its data is in:
-// after a click, a form sent or a navigation, a few more passes, the last
-// SETTLE_MS[SETTLE_MS.length - 1] ms later (animation frames, no timer).
+// after a click, a form sent, a navigation or the page's load, a few more
+// passes, the last SETTLE_MS[SETTLE_MS.length - 1] ms later (animation
+// frames, no timer). They measure the tone again too: an app's text may
+// get its colours only once its components are drawn, after the load
+// (YouTube's dark theme starts as black text), and a view may have
+// another tone.
 let layerFrame = 0;
 
 function layers() {
@@ -474,6 +598,8 @@ function layers() {
       layerFrame = 0;
       markCanvas();
       markBars();
+      markFills();
+      ink();
     });
 }
 
@@ -517,8 +643,15 @@ function settleTick(now) {
   settleFrame = 0;
   if (now - settleStart >= SETTLE_MS[settleStep]) {
     settleStep++;
+    if (!darkened) {
+      measure();
+      darken();
+      paint();
+    }
     markCanvas();
     markBars();
+    markFills();
+    ink();
   }
   if (settleStep < SETTLE_MS.length)
     settleFrame = requestAnimationFrame(settleTick);
@@ -532,6 +665,8 @@ function apply(domains, dark) {
   watchLayers();
   markCanvas();
   markBars();
+  markFills();
+  ink();
 }
 
 // Storage has no list until the helper sent its first one (a fresh
@@ -611,7 +746,7 @@ for (const type of ["scrollend", "resize", "load"])
   window.addEventListener(type, layers, {passive: true});
 for (const type of ["click", "submit"])
   document.addEventListener(type, settle, {capture: true, passive: true});
-for (const type of ["popstate", "hashchange"])
+for (const type of ["popstate", "hashchange", "load"])
   window.addEventListener(type, settle, {passive: true});
 
 if (document.documentElement && document.documentElement.hasAttribute(OFF))

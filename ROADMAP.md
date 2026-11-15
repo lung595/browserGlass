@@ -4,11 +4,11 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 ## Planned
 
-- **Signed companion add-on** (1.3.1): have Mozilla sign the companion and ship it as `companion/browserglass@companion.xpi`, so *Live control* works on Firefox release, ESR and Beta builds, LibreWolf shows it as verified, and `xpinstall.signatures.required` is no longer written. 1.3.0 supports it but ships the unsigned add-on.
+- **Signed companion add-on** (next version with signing keys): have Mozilla sign the companion and ship it as `companion/browserglass@companion.xpi`, so *Live control* works on Firefox release, ESR and Beta builds, LibreWolf shows it as verified, and `xpinstall.signatures.required` is no longer written. 1.3.0 and 1.3.1 support it but ship the unsigned add-on.
 - **New screenshots**: a GIF of the launcher, and the *Sites* settings with the new page layers.
 - **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
 - **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
-- **Live control in frames** (`all_frames`): today only the main page switches at once; frames follow at the next restart.
+- **Glass in frames**: since 1.3.1 every frame keeps its own background (the add-on marks it excluded), so its text stays readable; giving frames the glass would need their own tone and layers.
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
 - **Dark Reader and local addresses**: its stylesheet fetch runs with the add-on's access, so a page that links a stylesheet on the local network or on `localhost` gets its text copied in. Refuse loopback and private targets (and redirects to them).
@@ -33,9 +33,11 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 - **A manual restart is needed.** Firefox reads its CSS only when it starts. After a change (a new wallpaper, the opacity, a setting), a running browser shows the new look only after a restart. When the glass turns on, niri applies the plugin's rule at once, so a running browser stays opaque until its restart. The exceptions: the light or dark switch (with DMS's *Sync with portal* on), and site exclusions with Live control.
 - **`gs on` and `gs off` are not live**: the browser's own bars are read at start-up, so they follow at the next restart; the niri rule changes at once.
-- **Live control needs an add-on that loads unsigned** (until 1.3.1). Without a signed `companion/browserglass@companion.xpi` that matches `extension/` (1.3.0 ships none), Browser Glass places the unsigned companion and sets `xpinstall.signatures.required` to `false`, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*.
+- **Live control needs an add-on that loads unsigned** (until it is signed). Without a signed `companion/browserglass@companion.xpi` that matches `extension/` (1.3.0 and 1.3.1 ship none), Browser Glass places the unsigned companion and sets `xpinstall.signatures.required` to `false`, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*.
 - **Private windows have no live control**: the companion does not run there and their site cannot be read, so `gs blist` refuses in a private window, and a private window shows exclusion changes after a restart.
-- **Frames follow at the next restart**: the companion switches the main page only (no `all_frames`).
+- **Frames stay opaque**: with Live control, frames inside a page (a captcha, an embedded video or form) keep their own background; without it they follow the generic rule.
+- **Bars laid in the flow**: a web app's sidebar or header that is neither fixed nor sticky keeps its own colours (no uniform veil), since it cannot be told from a panel of the page.
+- **Text over pictures**: the contrast check leaves text over a background picture alone, and Dark Reader can make such text hard to read (Amazon's banners).
 - **Shadow trees follow at the next restart**: a live exclusion leaves the parts a site draws in its shadow DOM styled until the browser restarts, since they do not see the page's `data-browserglass-off` mark.
 - **Shadow trees cannot tell a light page from a dark one**: the parts a site draws in its shadow DOM do not see the page's dark-version markers or the companion's tone mark. Under a dark theme the generic style therefore leaves them alone on every page (as in 1.0), and a dedicated site style still applies there on every page, light-only ones included.
 - **Launcher results come after the apps** whose name matches the query, ten lines at most, since the plugin answers in the launcher's *all* mode instead of having a mode of its own.

@@ -417,6 +417,11 @@ class SchemeTest(unittest.TestCase):
             self.assertIn(tone, bg.GATE_DARK[gate])
         for marker in bg._DARK_PAGE_MARKERS:
             self.assertIn(marker, bg._DARK_PAGE_TONE_WHERE)
+        # a page naming both schemes but showing its light one is light
+        meta = bg._DARK_PAGE_MARKERS[0]
+        self.assertIn('meta[name="color-scheme" i][content~="dark" i]', meta)
+        self.assertTrue(meta.startswith(":not("))
+        self.assertIn('[data-color-mode="light" i]', meta)
         # the shadow branch (unless left out) and the at-rules follow the gate
         for gate in (None, bg.GATE_NORMAL_ROOT):
             nest = bg._Nest(bg.GATE_DARK[gate])

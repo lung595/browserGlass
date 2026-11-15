@@ -46,7 +46,10 @@ the states of data-browserglass-off / -live on <html>: at its first script
      unless excluded in the stylesheet); its sites are never reported;
  10. a sync of an exclusion alone with the add-on connected: live.acked >= 1,
      running_changed == [], status restart_needed false; the ack file is
-     written within 2 s of the sync's start.
+     written within 2 s of the sync's start;
+ 11. a page shown in a frame of a glass page keeps its own look: OFF on
+     the frame's <html> (frame.js), put back when the page takes it off,
+     its white background kept, the top page still glass.
 """
 
 import hashlib
@@ -107,6 +110,18 @@ addEventListener("pageshow", (e) => __shown.push(e.persisted));
 </script></head><body><p>Some text.</p></body></html>
 """ % (TITLE, OFF, LIVE)).encode("utf-8")
 
+# A page with the test page in a frame.
+FRAMED = ("""<!doctype html><html><head><meta charset="utf-8">
+<meta name="color-scheme" content="light dark"><title>%s</title></head>
+<body><iframe id="inner" src="/p.html?inner"></iframe></body></html>
+""" % TITLE).encode("utf-8")
+FRAME_JS = (
+    "const d = document.getElementById('inner').contentDocument;"
+    "if (!d || !d.body || d.readyState !== 'complete') return null;"
+    "return {off: d.documentElement.hasAttribute(arguments[0]),"
+    " bg: getComputedStyle(d.body).backgroundColor};"
+)
+
 STATE_JS = (
     "const r = document.documentElement;"
     "return {off: r.hasAttribute(arguments[0]), live: r.hasAttribute(arguments[1]),"
@@ -132,7 +147,8 @@ def live_without_off(log):
 class LiveE2E(unittest.TestCase):
 
     def setUp(self):
-        self.server = mn.TestServer({"/p.html": ("text/html; charset=utf-8", PAGE)},
+        self.server = mn.TestServer({"/p.html": ("text/html; charset=utf-8", PAGE),
+                                     "/f.html": ("text/html; charset=utf-8", FRAMED)},
                                     cacheable=True).start()
         self.addCleanup(self.server.stop)
         self.browser = b = mn.Browser(firefox=FIREFOX, manage_user_js=False,
@@ -312,6 +328,18 @@ class LiveE2E(unittest.TestCase):
         s = self.open("other.test", "?2")
         self.check("2 other host untouched", not any(e[1] for e in s["log"]) and s["live"]
                    and mn.alpha(s["bg"]) == 0.0, s)
+
+        # 11. a framed page keeps its own look, the top page is glass
+        b.navigate(self.server.url("/f.html", host="other.test"))
+        f = h.wait(lambda: b.js(FRAME_JS, OFF), 5) or b.js(FRAME_JS, OFF)
+        s = self.wait_glass()
+        self.check("11 frame: OFF, own white background",
+                   f and f["off"] and f["bg"] == WHITE, f)
+        self.check("11 top page: no OFF, glass", not s["off"] and mn.alpha(s["bg"]) == 0.0, s)
+        b.js("document.getElementById('inner').contentDocument.documentElement"
+             ".removeAttribute(arguments[0]);", OFF)
+        f = h.wait(lambda: (lambda f: f if f and f["off"] else None)(b.js(FRAME_JS, OFF)), 2)
+        self.check("11 frame: OFF put back", f, b.js(FRAME_JS, OFF))
 
         # 3. un-exclude gone.test: OFF goes, the live section paints the glass
         s = self.open("gone.test", "?3")
