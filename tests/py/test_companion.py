@@ -280,6 +280,20 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('style === null ? el.removeAttribute("style") : el.setAttribute("style", style);', mark)
         self.assertLess(mark.index("el.setAttribute(INK,"), mark.index("getComputedStyle(held[0][0])"))
         self.assertIn("const INK_RATIO = 2;", js)
+        # a text drawn with a gradient clipped to it (its fill transparent):
+        # every stop must contrast, and what is behind it is its parent's
+        self.assertIn("fgs.every((fg) => contrast(fg, bg) < INK_RATIO)", mark)
+        self.assertIn("inks(getComputedStyle(el))", mark)
+        inks = js[js.index("function clipped("):js.index("function behind(el)")]
+        for part in ('split(style.backgroundClip).includes("text")',
+                     "style.webkitTextFillColor || style.color",
+                     "split(style.backgroundImage).every((image) => GRADIENT.test(image))"):
+            self.assertIn(part, inks)
+        self.assertIn("if (clipped(getComputedStyle(el)))\n    el = el.parentElement || root;",
+                      js[js.index("function behind(el)"):js.index("function markInk()")])
+        self.assertIn("const GRADIENT = /^(repeating-)?(linear|radial|conic)-gradient\\(/;", js)
+        # the ink's colour is the fill too (a gradient is drawn under it)
+        self.assertIn("-webkit-text-fill-color: currentcolor !important;", bg._CONTENT_LAYERS)
 
     def test_content_marks_blend(self):
         # a picture multiplied into a dark background gets ATTR_BLEND, in the
@@ -309,7 +323,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         pic = js[js.index("const THIN = "):js.index("function paints(")]
         self.assertIn("const THIN = 4;", pic)
         for part in ('if (style.backgroundImage === "none")\n    return false;',
-                     "/^(repeating-)?(linear|radial|conic)-gradient\\(/.test(image)",
+                     "if (!GRADIENT.test(image))\n      return true;",
                      'v.endsWith("px") && parseFloat(v) <= THIN',
                      'thin(h) && ry === "no-repeat" || thin(w) && rx === "no-repeat"',
                      'else if (c === "," && depth === 0)'):

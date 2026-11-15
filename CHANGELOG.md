@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Wikipedia** (English, French and German) starts in its own dark theme, signed out: a recipe writes the wiki's theme cookie (`skin-theme-clientpref-night`), keeping the other display preferences stored in that cookie.
 - **npm** starts in its own dark theme: a recipe writes its `npm-color-mode` setting.
 - **Gemini**, signed out, starts in its own dark theme when its Theme menu was set to light: a recipe writes its `Bard-Color-Theme` setting.
+- **docs.rs** and **AlternativeTo** start in their own dark theme: recipes write their `rustdoc-theme` and `theme` settings, light when absent on both sites.
 
 ### Fixed
 
@@ -24,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A button whose label sits over a hover layer kept invisible (opacity 0) took that layer for its face, and its label kept a colour unreadable on the glass (Gemini's "New chat"). An invisible layer no longer counts as a face.
 - A link underlined with a thin gradient (2px high, as on mozilla.org's buttons) was taken for text over a picture and never recoloured, white on the light glass. A thin gradient line no longer counts as a picture.
 - Text whose colour has a transition (WordPress.com's menus) flickered between its own colour and the readable one: each check read the colour halfway through the transition. The colour is now read without it.
+- Light words drawn with a gradient clipped to the text (a headline's highlighted words) were left light on the light glass, unreadable: their own colour is transparent, so they were never checked. Their gradient's colours are now checked, and when none reads, the words get the readable colour drawn over the gradient.
 - Text straight on a page's translucent tint is judged against the colour the browser actually shows there. Black text on the dark tint used to be judged readable and was left black.
 - Editing the DMS window opacity while a browser still waited for a restart showed no toast: the restart toast came once per restart, so the new opacity looked ignored. It now shows again for each new opacity, and says to close every window of the browser and open it again: opening it from the launcher while one of its windows is still open only adds a window to the browser already running, which keeps its old styles.
 

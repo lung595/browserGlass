@@ -744,6 +744,7 @@ let faces = new Map();
 // gradients drawn as thin lines (THIN px at most across) that do not
 // repeat across them, as links are underlined with a gradient 2px high.
 const THIN = 4;
+const GRADIENT = /^(repeating-)?(linear|radial|conic)-gradient\(/;
 
 function split(value) {
   const parts = [];
@@ -769,7 +770,7 @@ function picture(style) {
   const sizes = split(style.backgroundSize), repeats = split(style.backgroundRepeat);
   const thin = (v) => v.endsWith("px") && parseFloat(v) <= THIN;
   return split(style.backgroundImage).some((image, i) => {
-    if (!/^(repeating-)?(linear|radial|conic)-gradient\(/.test(image))
+    if (!GRADIENT.test(image))
       return true;
     const [w, h = "auto"] = sizes[i % sizes.length].split(/\s+/);
     const r = repeats[i % repeats.length].split(/\s+/);
@@ -841,8 +842,29 @@ function face(p) {
   return value;
 }
 
+function clipped(style) {
+  return split(style.backgroundClip).includes("text");
+}
+
+// The colours a text is drawn with: its fill (-webkit-text-fill-color,
+// its colour unless set), or, the fill transparent, the colours of a
+// gradient clipped to the text (background-clip: text, a headline's
+// highlighted words); none when unknown (a picture clipped to the text).
+function inks(style) {
+  const fill = style.webkitTextFillColor || style.color;
+  if (alpha(fill) >= CLEAR)
+    return [fill];
+  if (clipped(style) && style.backgroundImage !== "none"
+      && split(style.backgroundImage).every((image) => GRADIENT.test(image)))
+    return (style.backgroundImage.match(/rgba?\([^)]*\)/g) || []).filter((c) => alpha(c) >= CLEAR);
+  return [];
+}
+
 function behind(el) {
   const root = document.documentElement;
+  // a background clipped to the text is the text's colour, not behind it
+  if (clipped(getComputedStyle(el)))
+    el = el.parentElement || root;
   for (let p = el; p && p !== root; p = p.parentElement) {
     const style = getComputedStyle(p);
     const own = face(p);
@@ -899,12 +921,11 @@ function markInk() {
     seen.add(el);
     if (!near(el) || !el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
       continue;
-    const color = getComputedStyle(el).color;
-    const fg = luminance(color);
-    if (fg === null || alpha(color) < CLEAR)
+    const fgs = inks(getComputedStyle(el)).map(luminance).filter((y) => y !== null);
+    if (!fgs.length)
       continue;
     const bg = behind(el);
-    if (bg !== null && contrast(fg, bg) < INK_RATIO)
+    if (bg !== null && fgs.every((fg) => contrast(fg, bg) < INK_RATIO))
       el.setAttribute(INK, bg > 0.179 ? "dark" : "light");
   }
   if (held.length)

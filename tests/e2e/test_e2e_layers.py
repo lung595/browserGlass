@@ -141,7 +141,8 @@ LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
 # picture laid under it. Dark text the light faces do not hold: a ::before
 # at opacity 0 (a hover state), a gradient 2px high (an underline); text
 # with a colour transition (its mark kept, not taken off and set in turn);
-# text on a full gradient, a picture.
+# text on a full gradient, a picture. Light text drawn with a gradient
+# clipped to it (its fill transparent): its stops are its colours.
 LOGO = ("<img id=\"%s\" width=\"40\" height=\"20\" style=\"mix-blend-mode:multiply\" src=\"data:image/svg+xml,"
         "%%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%%3E%%3Crect width='40' height='20'/%%3E%%3C/svg%%3E\">")
 INK_PAGE = STYLE + """
@@ -157,6 +158,8 @@ html, body {background:transparent}
   background-repeat:no-repeat; background-position:0 100%}
 #fade {transition:color 0.2s linear}
 #ongrad {background-image:linear-gradient(rgb(250,250,250), rgb(240,240,240))}
+#clip {color:transparent; -webkit-text-fill-color:transparent; background-clip:text;
+  background-image:linear-gradient(90deg, rgb(255,214,125) 60%, rgb(241,180,52))}
 </style></head><body><p id="dim">Notice</p>""" + LOGO % "logo" + """
 <div id="card"><p id="oncard">Card</p>""" + LOGO % "cardlogo" + """</div>
 <button class="pill face"><span id="pill">Upgrade</span></button>
@@ -164,6 +167,7 @@ html, body {background:transparent}
 <div style="position:relative"><img style="position:absolute; inset:0; width:100%; height:100%" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"><p id="onpic">Hero</p></div>
 <button class="pill state"><span id="ghost">New chat</span></button>
 <p><a id="cta" href="#">Download</a></p><p id="fade" style="font-weight:bold">Fading</p><p id="ongrad">Gradient</p>
+<p>Plain <span id="clip">highlighted</span></p>
 </body></html>"""
 INK = bg.ATTR_INK
 BLEND = bg.ATTR_BLEND
@@ -344,6 +348,9 @@ class LayersE2E(unittest.TestCase):
             # underline is no picture
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "ghost", INK), "text over an opacity 0 face not marked")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "cta", INK), "text over a gradient underline not marked")
+            # light words drawn with a gradient clipped to them: marked dark
+            # under a light theme (checked below); none here, light on dark
+            self.assertFalse(self.marked(b, "clip", INK), "light gradient text on the dark glass marked")
             # a colour transition: the mark stays (each pass, from its
             # transitionend, would take it off and read the colour halfway)
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "fade", INK), "fading text not marked")
@@ -353,6 +360,17 @@ class LayersE2E(unittest.TestCase):
                 time.sleep(0.1)
             self.assertEqual(seen, {"light"})
             self.assertEqual(b.js("return document.getElementById('fade').getAttribute('style');"), "font-weight:bold")
+
+            # under a light theme, the light words drawn with a gradient
+            # clipped to them: marked dark, the fill drawn over the gradient
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/ink.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.getElementById('clip').getAttribute(arguments[0]) === 'dark';",
+                                       mn.WAIT_TIMEOUT, INK), "light gradient text on the light glass not marked")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('clip')).webkitTextFillColor;"),
+                             b.js("return getComputedStyle(document.getElementById('clip')).color;"))
+            self.assertFalse(self.marked(b, "dim", INK), "dark text on the light glass marked")
 
             # a dark page under a light theme: the root's translucent tint
             # over the light glass, mixed as the browser mixes it (sRGB)

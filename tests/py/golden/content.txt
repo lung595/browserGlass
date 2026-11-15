@@ -1784,8 +1784,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -1872,8 +1872,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -1941,8 +1941,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2040,8 +2040,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2120,8 +2120,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2219,8 +2219,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2304,8 +2304,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2387,8 +2387,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2451,8 +2451,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2545,8 +2545,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2620,8 +2620,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2714,8 +2714,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2809,8 +2809,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2898,8 +2898,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -2968,8 +2968,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3068,8 +3068,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3149,8 +3149,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3249,8 +3249,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3335,8 +3335,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3419,8 +3419,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3484,8 +3484,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3579,8 +3579,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3655,8 +3655,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {
@@ -3750,8 +3750,8 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){:root:where(&,& *) { --browserglass-glass: rgb(247, 249, 255); }}
   }
-  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; }
-  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; }
+  :where(:root:not([data-browserglass-off]),:not(:root,* *)){[data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; }
+  [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-blend]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }
   [data-browserglass-bar]:not(#browserglass-a):not(#browserglass-b):where(&,& *) {

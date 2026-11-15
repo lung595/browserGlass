@@ -1782,7 +1782,8 @@ _CONTENT_DARKEN = (
 #   lays the blurred backdrop on the glass's colour so the sharp text
 #   under it no longer shows through: text is blurred like pictures;
 # - text without contrast on what is now behind it (ATTR_INK): the dark
-#   surface ("dark") or the light one ("light"). The add-on reads the
+#   surface ("dark") or the light one ("light"), its fill too (a gradient
+#   clipped to the text is drawn under that fill). The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
 # - a picture multiplied into a background now dark (ATTR_BLEND, a black
@@ -1799,8 +1800,8 @@ _CONTENT_LAYERS = (
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    :root {{ --browserglass-glass: rgb({light}); }}\n"
     "  }}\n"
-    "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; }}\n"
-    "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; }}\n"
+    "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
+    "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  " + _BLEND_SELECTOR
     + " {{ filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }}\n"
