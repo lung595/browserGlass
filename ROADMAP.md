@@ -2,15 +2,9 @@
 
 These are ideas, not promises, and they have no dates. Anything that would need the network while the plugin runs, or would send data somewhere, is out of scope.
 
-## Next: 1.2.0
-
-- **A full clean-up**: dead code and duplicates out, clearer names and comments, a bug hunt over the backend, the shell components and the add-on, and a security review of the native helper, the files Browser Glass writes, the preferences it sets and the add-on's permissions.
-- **Clipboard exclusion**: copying `example.org` no longer says *already excluded* when only `www.example.org` is in the list.
-- **A removed add-on stays removed**: when you remove the companion add-on yourself, Browser Glass does not put it back, even after its state file is lost.
-- **New screenshots**: a GIF of the launcher, and the *Sites* settings.
-
 ## Planned
 
+- **New screenshots**: a GIF of the launcher, and the *Sites* settings with the new page layers.
 - **A signed companion add-on for Firefox release**: have Mozilla sign the add-on as unlisted (`web-ext sign --channel=unlisted`), so that Live control works on Firefox release and ESR builds too. The manifest will then need `browser_specific_settings.gecko.data_collection_permissions`.
 - **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
 - **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
@@ -18,6 +12,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
 - **Dark pages decided by the helper**: send the *Dark pages* setting with the excluded sites, so the companion darkens only when the helper says so. Today, under a dark theme, a page can set the colour variables itself and switch the darkening on while *Dark pages* is off (what Dark Reader then fetches is limited to stylesheets, without cookies).
+- **Dark Reader and local addresses**: its stylesheet fetch runs with the add-on's access, so a page that links a stylesheet on the local network or on `localhost` gets its text copied in. Refuse loopback and private targets (and redirects to them).
 - **Exclude copied URL and private suffixes**: `www.` is kept before country suffixes such as `gov.uk`, but not yet before private ones such as `github.io`; the helper, which has the Public Suffix List, could reduce the host instead.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.

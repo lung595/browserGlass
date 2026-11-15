@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-15
+
 ### Added
 
 - **Dark pages** (*Sites*, on by default, with *Live control*): under a dark theme, the companion add-on turns light pages dark. It first tries the page's own dark theme (the usual marks on `<html>`: a `dark` class, `data-theme="dark"`, `data-bs-theme="dark"`…, kept only if the text turns light), and otherwise uses the bundled [Dark Reader](https://darkreader.org) engine (v4.9.135, MIT, `extension/vendor/`) in the DMS colours, and their background becomes glass, the large elements that paint it included (marked `data-browserglass-canvas`). Pages with a dark version, excluded sites and a light theme are left alone. Off, a light page gets the light glass as before.
@@ -16,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Pages with a dark version** (YouTube and other sites marked dark on `<html>`) never get the light glass, even when the companion measured them before their text appeared; the companion also measures again as a single-page app renders, and reads the colour of the visible text rather than the body's.
 - **Exclude copied URL** no longer reports a bare domain as excluded when only its `www.` form is listed (`www.example.org` covers `www.example.org` and its subdomains, not `example.org`), recognises listed entries written as `*.example.com`, a full URL or an IDN in either form, and keeps `www.` when dropping it would leave a public suffix (`www.gov.uk` is saved as is, not `gov.uk`).
 - **Status with many excluded sites**: the generated CSS is read with the larger data limit, so a profile with hundreds of exclusions is no longer reported as not applied.
+- **Excluded sites opened with a trailing dot** (`example.com.`) are excluded too, with *Live control*.
 - **A companion removed in `about:addons`** stays removed even when `state.json` is lost: the mark is also kept in the profile's backup (`backup/<profile>/meta.json`).
 
 ### Security
@@ -103,6 +106,7 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/lung595/browserGlass/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lung595/browserGlass/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lung595/browserGlass/releases/tag/v1.0.0

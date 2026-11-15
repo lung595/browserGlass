@@ -125,7 +125,7 @@ The widget is optional: the glass works without it. It shows whether the glass i
 
 ## Launcher
 
-<!-- P10: <img src="screenshots/launcher.gif" alt="The DMS launcher with gs typed: the Browser Glass commands, then gs blist excluding the open site, whose page turns solid at once" width="100%"> -->
+<!-- launcher.gif, to record with tools/media/launcher_gif.sh: <img src="screenshots/launcher.gif" alt="The DMS launcher with gs typed: the Browser Glass commands, then gs blist excluding the open site, whose page turns solid at once" width="100%"> -->
 
 Open the DMS launcher and type `glass` or `gs`: the Browser Glass commands show up with the other results. `glass` or `gs` alone lists them all, and the start of a command is enough (`gs b` finds `blist`). In the plugin's own view of the launcher (its *Browse* entry, or the *Plugins* tab), the bare words work too (`on`, `list exa`), and an empty query lists the commands.
 
@@ -368,16 +368,13 @@ Click **Copy report** in **Settings → Plugins → Browser Glass → Status** a
 
 These are plans, not promises, and they have no dates. The full list, what is not planned and the known limits are in [ROADMAP.md](ROADMAP.md).
 
-**Next (1.2.0)**
+**Next (1.3.0)**
 
-- A full clean-up of the code, with a bug hunt and a security review of the helper, the files it writes and the add-on.
-- Fix: copying `example.org` from the clipboard no longer says *already excluded* when only `www.example.org` is.
-- Fix: an add-on you removed yourself stays removed even if the plugin's state file is lost.
+- A signed companion add-on, so that *Live control* works on Firefox release and ESR too.
 - New screenshots for the launcher (a GIF) and the *Sites* settings.
 
 **Later**
 
-- A signed companion add-on, so that *Live control* works on Firefox release and ESR too.
 - *Live control* in Flatpak and Snap browsers, and in frames.
 - Live checks on Zen, Floorp and Waterfox, and Snap Firefox in the niri rule.
 - An option to leave some profiles of a browser without glass.
