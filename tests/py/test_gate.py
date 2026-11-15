@@ -610,17 +610,17 @@ class LayersTest(unittest.TestCase):
         css = bg._render_content(settings(liveControl=True, darkPages=False), 0.8, None, False, None)
         rgb = {mode: "%d, %d, %d" % bg.surface_rgb(None, mode) for mode in bg.MODES}
         block = bg._content_block("https?://.*", bg._CONTENT_LAYERS.format(
-            nav="0.35", **rgb), bg.GATE_NORMAL_ROOT)
+            nav="0.65", **rgb), bg.GATE_NORMAL_ROOT)
         self.assertEqual(css.count(block), 1)
         bar = "[%s]:not(#browserglass-a):not(#browserglass-b)" % bg.ATTR_BAR
         self.assertIn("[%s]:where(&,& *) { background-color: transparent !important; }"
                       % bg.ATTR_CANVAS, block)
-        self.assertEqual((bg.NAV_BAR_OPACITY, bg.NAV_BAR_BLUR), (0.35, "blur(40px) saturate(1.5)"))
-        self.assertIn("%s:where(&,& *) {\n    background: rgba(%s, 0.35) !important;\n"
-                      "    backdrop-filter: blur(40px) saturate(1.5) !important;"
+        self.assertEqual((bg.NAV_BAR_OPACITY, bg.NAV_BAR_BLUR), (0.65, "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"))
+        self.assertIn("%s:where(&,& *) {\n    background: rgba(%s, 0.65) !important;\n"
+                      "    backdrop-filter: blur(20px) saturate(1.5) url(\"#browserglass-veil\") !important;"
                       % (bar, rgb["dark"]), block)
         for tone in bg.MODES:
-            self.assertIn('html:root[%s="%s"] %s:where(&,& *) { background: rgba(%s, 0.35) !important; }'
+            self.assertIn('html:root[%s="%s"] %s:where(&,& *) { background: rgba(%s, 0.65) !important; }'
                           % (bg.ATTR_TONE, tone, bar, rgb[tone]), block)
         # the tone wins over the theme: last
         self.assertLess(block.index("not (prefers-color-scheme: dark)"), block.index(bg.ATTR_TONE))
@@ -654,7 +654,7 @@ class ContentTest(unittest.TestCase):
         tint = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
                 % bg._CONTENT_TONE.format(a="0.88", bar="0.8", **rgb))
         bars = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
-                % bg._CONTENT_LAYERS.format(nav="0.35", **rgb))
+                % bg._CONTENT_LAYERS.format(nav="0.65", **rgb))
         hexes = {mode + "_hex": "#%02x%02x%02x" % bg.surface_rgb(None, mode) for mode in bg.MODES}
         darken = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
                   % bg._CONTENT_DARKEN.format(**hexes))

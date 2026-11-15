@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -1773,18 +1773,18 @@ _CONTENT_DARKEN = (
 #   window (a header, a bottom bar, a sidebar), with a background of its
 #   own, whatever its colours. Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
 #   strong blur, the dark one on a dark (or darkened) page, the light one
-#   on a light page, by the theme otherwise. The page is tinted already,
-#   so a light veil keeps the bar close to the browser's own toolbar (a
-#   bar at 0.35 over the 0.8 tint shows about 0.87), while what scrolls
-#   under it stays blurred enough to read the bar;
+#   on a light page, by the theme otherwise. The blur ends with the
+#   add-on's filter (#browserglass-veil, see extension/content.js), which
+#   lays the blurred backdrop on the glass's colour so the sharp text
+#   under it no longer shows through: text is blurred like pictures;
 # - text without contrast on what is now behind it (ATTR_INK): the dark
 #   surface ("dark") or the light one ("light"). The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
-NAV_BAR_OPACITY = 0.35
-NAV_BAR_BLUR = "blur(40px) saturate(1.5)"
+NAV_BAR_OPACITY = 0.65
+NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _CONTENT_LAYERS = (

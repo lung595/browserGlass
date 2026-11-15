@@ -47,7 +47,7 @@ import test_e2e_tone as tone  # noqa: E402
 
 bg = dk.bg
 CANVAS, BAR = bg.ATTR_CANVAS, bg.ATTR_BAR
-DARK_SURFACE = "rgba(%d, %d, %d, 0.35)" % bg.surface_rgb(None, "dark")
+DARK_SURFACE = "rgba(%d, %d, %d, 0.65)" % bg.surface_rgb(None, "dark")
 LIGHT_INK = "rgb(%d, %d, %d)" % bg.surface_rgb(None, "light")
 BLUR = bg.NAV_BAR_BLUR
 
@@ -57,7 +57,8 @@ html, body {margin:0; background:rgb(16,16,16); color:rgb(235,235,235)}
 #long {height:300vh}
 """
 # A single-page app: a fixed full-window background under the content, a
-# fixed header with its own colour, a see-through fixed bottom bar. In the
+# fixed header with its own colour, a see-through fixed bottom bar over
+# the text. In the
 # header an empty scrim and a label painted with the page's colour, in the
 # sidebar a panel of that colour covering it.
 APP_PAGE = STYLE + """
@@ -182,11 +183,16 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('bar')).backdropFilter;"),
                              BLUR)
+            # the filter the blur refers to: without it, no blur at all
+            self.assertEqual(b.js("return document.querySelectorAll('filter#browserglass-veil feFlood + feMerge').length;"),
+                             1)
             self.assertFalse(self.marked(b, "card", BAR))
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "sidebar not marked")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('side')).backgroundColor;"),
                              DARK_SURFACE)
-            self.assertFalse(self.marked(b, "ghost", BAR), "a see-through bar marked")
+            # see-through, but over the page's text: its own text would sit on it
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "ghost", BAR),
+                            "a see-through bar over text not marked")
             # the page's colour inside the bars: the scrim and the covering
             # panel go see-through, a label keeps its colour
             for fill in ("scrim", "panel"):

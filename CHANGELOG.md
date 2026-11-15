@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-15
+
+The companion add-on is still unsigned in this release, as in 1.3.0 and 1.3.1.
+
+### Changed
+
+- **Navigation bars** (with *Live control*): the veil is more opaque (the DMS surface at 65 % instead of 35 %) and its blur lighter (20 px instead of 40 px). See-through bars fixed or stuck along an edge with the page's content under them (a transparent header over posters, as in Jellyfin) now get the veil too, so their text stays readable; one over nothing but the page's background is still left alone.
+
+### Fixed
+
+- **Text under a navigation bar showed sharp through the blur** on the glass (comments under YouTube's header): Firefox lays the blurred backdrop over what scrolls under the bar, and on a see-through page a line of text blurs into a faint haze. The bar's blur now ends with a small SVG filter the add-on puts in the page (`#browserglass-veil`), which lays that haze on the glass's colour: the text under a bar is blurred like a picture.
+
 ## [1.3.1] - 2026-11-15
 
 The companion add-on is still unsigned in this release (no signing keys at hand): it is placed as in 1.3.0, and the signed build moves to a later version.
@@ -152,7 +164,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/lung595/browserGlass/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/lung595/browserGlass/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/lung595/browserGlass/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lung595/browserGlass/compare/v1.1.0...v1.2.0

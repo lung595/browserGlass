@@ -20,7 +20,13 @@
 // see-through. A navigation bar fixed or stuck along an edge of the window
 // (a header, a bottom bar, a sidebar) with a background of its own gets
 // data-browserglass-bar: the same near-opaque blurred surface on every
-// site. Text left without contrast once its background went (dark text on
+// site. Its blur ends with VEIL, a filter this script puts in the page:
+// Firefox lays the blurred backdrop over what scrolls under the bar, so
+// on the glass (a see-through page) a thin line of text, blurred into a
+// faint haze, still showed sharp through it, unlike a picture; VEIL lays
+// that haze on the glass's colour, as on a page with a background of its
+// own: the text under the bar is blurred like a picture. Text left
+// without contrast once its background went (dark text on
 // the dark glass) gets data-browserglass-ink, a readable colour.
 "use strict";
 
@@ -389,19 +395,75 @@ function markCanvas() {
 // Navigation bars: fixed or stuck along an edge of the window, a header or
 // a bottom bar (most of its width, short, touching the top or the bottom)
 // or a sidebar (most of its height, narrow, touching the left or the
-// right), that paints a background of its own (what scrolls under it would
-// show through a see-through one). Under points along the four edges, the
+// right), that paints a background of its own, or a see-through one with
+// content of the page under it (a header over the posters it was scrolled
+// past: its text on theirs). Under points along the four edges, the
 // first such element gets BAR: one look on every site. A bar laid in the
 // flow of a page that does not scroll is left alone: in a web app (a chat,
 // a mail client) that is as often the message box or a footer line, whose
 // shape the site draws itself, as a navigation bar.
 const EDGE = 2;
 const OWN_BG = 0.5;
+// The bar's backdrop-filter refers to it (url(#VEIL)); without it, the
+// bar gets no blur at all, hence its check before every pass. Two cheap
+// steps on the GPU after the blur: a flood of the glass's colour (GLASS)
+// at VEIL_FLOOD, and the blurred backdrop over it.
+const VEIL = "browserglass-veil";
+const VEIL_FLOOD = "0.9";
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function veil(root) {
+  if (document.getElementById(VEIL))
+    return;
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("style", "position:absolute!important;width:0!important;height:0!important;overflow:hidden!important");
+  const filter = document.createElementNS(SVG_NS, "filter");
+  filter.id = VEIL;
+  filter.setAttribute("color-interpolation-filters", "sRGB");
+  const flood = document.createElementNS(SVG_NS, "feFlood");
+  flood.setAttribute("style", "flood-color:var(" + GLASS + ",transparent)");
+  flood.setAttribute("flood-opacity", VEIL_FLOOD);
+  flood.setAttribute("result", "glass");
+  const merge = document.createElementNS(SVG_NS, "feMerge");
+  for (const input of ["glass", "SourceGraphic"]) {
+    const node = document.createElementNS(SVG_NS, "feMergeNode");
+    node.setAttribute("in", input);
+    merge.appendChild(node);
+  }
+  filter.append(flood, merge);
+  svg.appendChild(filter);
+  root.appendChild(svg);
+}
+
+// Whether page content lies under a see-through bar: along its middle
+// line, an element below it that is neither its own, one of its
+// ancestors, a layer of the page's background (CANVAS) nor a wrapper the
+// size of the window. Runs on scroll (layers) only while such a bar is
+// still unmarked: at most GRID hit tests per bar.
+function over(bar, w, h) {
+  const r = bar.getBoundingClientRect();
+  const y = r.top + r.height / 2;
+  for (let i = 0; i < GRID; i++) {
+    for (const el of document.elementsFromPoint(r.left + (i + 0.5) * r.width / GRID, y)) {
+      if (el === document.documentElement || el === document.body || el.hasAttribute(CANVAS))
+        break;
+      if (bar.contains(el) || el.contains(bar))
+        continue;
+      const e = el.getBoundingClientRect();
+      if (e.width >= 0.9 * w && e.height >= 0.6 * h)
+        continue;
+      return true;
+    }
+  }
+  return false;
+}
 
 function markBars() {
   const root = document.documentElement;
   if (!root || off !== false || !document.body)
     return;
+  veil(root);
   const w = root.clientWidth, h = window.innerHeight;
   const along = (el) => {
     const r = el.getBoundingClientRect();
@@ -425,7 +487,8 @@ function markBars() {
           break;
         if (!along(el) || !pinned(el))
           continue;
-        if (!el.hasAttribute(BAR) && alpha(getComputedStyle(el).backgroundColor) >= OWN_BG)
+        if (!el.hasAttribute(BAR)
+            && (alpha(getComputedStyle(el).backgroundColor) >= OWN_BG || over(el, w, h)))
           mark(el, BAR);
         break;
       }
