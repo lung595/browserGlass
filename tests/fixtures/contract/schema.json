@@ -32,8 +32,8 @@
         "companion": {"ref": "companion_state"}
       }
     },
-    "companion_state": {"type": "string", "enum": ["off", "installed", "pending_restart", "outdated", "signing_enforced", "signing_required", "removed_by_user", "unsupported_variant", "no_plugin_dir"],
-                        "doc": "the companion add-on in one profile: off (liveControl false), installed (xpi present and named in extensions.json), pending_restart (deposited, not loaded yet), outdated (the running add-on speaks another protocol: restart again; status only), signing_enforced (Firefox release/esr channel: nothing deposited), signing_required (the browser deleted the xpi: no new deposit until its version changes), removed_by_user (gone from a build that never deletes it, LibreWolf or Firefox nightly/aurora/default, or after a sync saw it registered: removed in the browser, no new deposit until liveControl is turned off and on), unsupported_variant (Flatpak/Snap), no_plugin_dir (sync without --plugin-dir, or never deposited: left as it is)"},
+    "companion_state": {"type": "string", "enum": ["off", "installed", "disabled", "pending_restart", "outdated", "signing_enforced", "signing_required", "removed_by_user", "unsupported_variant", "no_plugin_dir"],
+                        "doc": "the companion add-on in one profile: off (liveControl false), installed (xpi present and named in extensions.json, active), disabled (xpi present, its extensions.json entry inactive, userDisabled or appDisabled: kept in place, enabled again in about:addons), pending_restart (deposited, not loaded yet), outdated (the running add-on speaks another protocol: restart again; status only), signing_enforced (unsigned fallback only: Firefox release/esr/beta channel without a usable signed xpi in companion/, nothing deposited; with the signed xpi these channels get the deposit), signing_required (the browser deleted the xpi: no new deposit until its version changes), removed_by_user (gone from a build that never deletes it, LibreWolf or Firefox nightly/aurora/default, or after a sync saw it registered: removed in the browser, no new deposit until liveControl is turned off and on), unsupported_variant (Flatpak/Snap), no_plugin_dir (sync without --plugin-dir, or never deposited: left as it is)"},
     "browser": {
       "type": "object",
       "fields": {
@@ -91,7 +91,7 @@
         "type": "object",
         "fields": {
           "enabled": {"type": "boolean", "doc": "the liveControl setting of the last full sync"},
-          "state": {"type": "string", "enum": ["connected", "waiting_restart", "removed", "unavailable", "off"], "doc": "off (liveControl false), connected (a native host of the current protocol runs), waiting_restart (deposited in a profile, no such host yet: none, or only outdated ones), removed (deposited nowhere, and removed_by_user in a profile), unavailable (deposited nowhere)"},
+          "state": {"type": "string", "enum": ["connected", "waiting_restart", "disabled", "removed", "unavailable", "off"], "doc": "off (liveControl false), connected (a native host of the current protocol runs), waiting_restart (deposited in a profile that is not disabled, no such host yet: none, or only outdated ones), disabled (deposited only in profiles where it is disabled in the browser), removed (deposited nowhere, and removed_by_user in a profile), unavailable (deposited nowhere)"},
           "hosts": {"type": "integer", "min": 0, "doc": "native host sockets whose process is alive (never connected to)"},
           "manifest": {"type": "boolean", "doc": "our native messaging manifest is in ~/.mozilla/native-messaging-hosts"}
         }

@@ -456,6 +456,8 @@ function warningText(code) {
         return "The niri rule stays until the running browsers restart";
     case "niri_rule_stale":
         return "The niri rule is out of date";
+    case "signed_xpi_unusable":
+        return "The signed companion add-on could not be used: the unsigned one is used instead";
     default:
         return "Browser Glass warning";
     }
@@ -703,6 +705,8 @@ function liveStatusText(state) {
         return "Live control: restart the browser once more";
     case "unavailable":
         return "Live control: not available for these browsers; changes apply at the next restart";
+    case "disabled":
+        return "Live control: the add-on is disabled in the browser; enable it in about:addons";
     case "removed":
         return "Live control: the add-on was removed in the browser; turn Live control off and on to add it back";
     default:
@@ -711,10 +715,11 @@ function liveStatusText(state) {
 }
 
 // True when a profile the last sync (parseSync()'s result) left
-// pending_restart is installed in `status` (parseStatus()'s status): the
-// browser loaded the add-on since, and one sync records it, so a removal in
-// about:addons that follows is not read as the browser's signing refusal.
-// That sync says installed: it does not repeat.
+// pending_restart is installed (or disabled) in `status` (parseStatus()'s
+// status): the browser registered the add-on since, and one sync records
+// it, so a removal in about:addons that follows is not read as the
+// browser's signing refusal. That sync says installed or disabled: it does
+// not repeat.
 function companionLoaded(lastSync, status) {
     if (!_isObject(lastSync) || !Array.isArray(lastSync.companion) || !_isObject(status) || !Array.isArray(status.browsers))
         return false;
@@ -725,7 +730,7 @@ function companionLoaded(lastSync, status) {
     });
     return status.browsers.some(function (b) {
         return _isObject(b) && Array.isArray(b.profiles) && b.profiles.some(function (p) {
-            return _isObject(p) && p.companion === "installed" && pending[p.id] === true;
+            return _isObject(p) && (p.companion === "installed" || p.companion === "disabled") && pending[p.id] === true;
         });
     });
 }

@@ -197,6 +197,12 @@ Item {
                                             "state": "pending_restart"
                                         }]
                                 }, statusDoc)], [false, false]);
+                    t.check("companionLoaded: pending in the sync, disabled in the status", Logic.companionLoaded({
+                                    "companion": [{
+                                            "profile": "13579bdf0246",
+                                            "state": "pending_restart"
+                                        }]
+                                }, statusDoc), true);
                     t.check("companionLoaded: unreadable input", [Logic.companionLoaded(null, statusDoc), Logic.companionLoaded(withCompanion, null), Logic.companionLoaded(withCompanion, {
                                     "browsers": [null, {
                                             "profiles": [null]
@@ -312,8 +318,9 @@ Item {
                     t.ok("other toasts are not", !Logic.isRestartToast({
                         "text": "Browser Glass sync failed"
                     }) && !Logic.isRestartToast(null));
-                    t.check("live status lines", ["connected", "waiting_restart", "outdated", "unavailable", "removed", "off", "?"].map(Logic.liveStatusText).map(x => x.indexOf("Live control: ") === 0), [true, true, true, true, true, true, true]);
-                    t.ok("each live state has its own line", new Set(["connected", "waiting_restart", "outdated", "unavailable", "removed", "off"].map(Logic.liveStatusText)).size === 6);
+                    t.check("live status lines", ["connected", "waiting_restart", "outdated", "unavailable", "disabled", "removed", "off", "?"].map(Logic.liveStatusText).map(x => x.indexOf("Live control: ") === 0), [true, true, true, true, true, true, true, true]);
+                    t.ok("each live state has its own line", new Set(["connected", "waiting_restart", "outdated", "unavailable", "disabled", "removed", "off"].map(Logic.liveStatusText)).size === 7);
+                    t.ok("the signed xpi warning has its own sentence", Logic.warningText("signed_xpi_unusable") !== Logic.warningText("unknown_code"));
                     let ctx = Logic.newToastContext();
                     let out = Logic.syncToasts(Logic.parseSync(t.readFile("contract/sync.json"), 0), ctx);
                     t.check("first run: set-up toast + the zen warning", out.toasts.map(x => x.level), ["info", "warning"]);

@@ -139,6 +139,10 @@ PSL_FILE = "public_suffix_list.dat"   # Mozilla Public Suffix List (section psl)
 EXTENSION_DIR = "extension"
 COMPANION_ID = "browserglass@companion"
 COMPANION_XPI = COMPANION_ID + ".xpi"
+# The add-on as Mozilla signed it, committed at <plugin>/<COMPANION_DIR>/
+# <COMPANION_XPI>: deposited instead of the zipped sources when it holds
+# exactly them (companion_signed_problem).
+COMPANION_DIR = "companion"
 EXTENSIONS_DIR = "extensions"  # relative to a profile directory
 NATIVE_HOST_NAME = "browserglass"
 NATIVE_MANIFEST_REL = ".mozilla/native-messaging-hosts"  # relative to $HOME
@@ -2430,7 +2434,7 @@ def content_live_section(settings, sites):
     return "\n".join(out)
 
 
-def userjs_prefs(settings, opacity, off=False, profile=None, companion=None):
+def userjs_prefs(settings, opacity, off=False, profile=None, companion=None, signed=False):
     """[(pref, JS literal)] of the user.js block, in PREFS order.
 
     The stylesheet pref is always on (the imported files must load);
@@ -2441,7 +2445,8 @@ def userjs_prefs(settings, opacity, off=False, profile=None, companion=None):
     `profile` (a Profile, None for any) is the profile the block is for.
     `companion`, None when the companion add-on is not deposited in the
     profile, holds the original prefs.js values ({pref: JS literal or None})
-    the companion prefs are derived from (companion_prefs).
+    the companion prefs are derived from (companion_prefs), `signed` whether
+    the deposited add-on is the signed xpi.
     """
     active, _ = glass_state(settings, opacity, off)
     prefs = [
@@ -2454,7 +2459,7 @@ def userjs_prefs(settings, opacity, off=False, profile=None, companion=None):
     elif theme == "dark":
         prefs.append((PREF_COLOR_SCHEME, str(COLOR_SCHEME_DARK)))
     if companion is not None:
-        prefs += companion_prefs(companion)
+        prefs += companion_prefs(companion, signed)
     return prefs
 
 
@@ -3928,6 +3933,98 @@ def companion_xpi(ext_dir):
     return buf.getvalue()
 
 
+# The signed xpi: the sources (at most _XPI_MAX_BYTES) plus Mozilla's
+# META-INF/ signature files.
+_SIGNED_XPI_MAX_BYTES = 2 * _XPI_MAX_BYTES
+# One of these makes a signature (COSE, or the older PKCS#7 one).
+SIGNATURE_FILES = ("META-INF/cose.sig", "META-INF/mozilla.rsa")
+
+
+def companion_sources_key(ext_dir):
+    """A fingerprint of the sources companion_xpi() packs from `ext_dir`:
+    the sha256 of their (name, mtime_ns, size). Raises OSError."""
+    items = []
+    for name, path in _xpi_sources(ext_dir):
+        st = os.lstat(path)
+        items.append([name, st.st_mtime_ns, st.st_size])
+    return hashlib.sha256(json.dumps(items).encode("utf-8")).hexdigest()
+
+
+def _zip_entries(data, limit):
+    """{name: bytes} of the zip `data`, pure directory entries left out.
+    ValueError when it is not a zip, holds a duplicate name, an entry that
+    cannot be read or more than `limit` bytes of content."""
+    import zipfile
+    import zlib
+    errors = (zipfile.BadZipFile, zlib.error, NotImplementedError, RuntimeError, EOFError,
+              ValueError, OverflowError)
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(data))
+    except errors:
+        raise ValueError("not a zip file") from None
+    out = {}
+    total = 0
+    with zf:
+        for info in zf.infolist():
+            name = info.filename
+            if name.endswith("/") and not info.file_size:
+                continue
+            if name in out:
+                raise ValueError("duplicate entry")
+            total += info.file_size
+            if total > limit:
+                raise ValueError("contents larger than %d bytes" % limit)
+            try:
+                with zf.open(info) as f:
+                    body = f.read(limit + 1)
+            except errors:
+                raise ValueError("corrupt entry") from None
+            if len(body) != info.file_size:
+                raise ValueError("corrupt entry")
+            out[name] = body
+    return out
+
+
+def _gecko_id(manifest):
+    """The gecko id of the manifest.json bytes `manifest`, None without one."""
+    try:
+        doc = json.loads(manifest.decode("utf-8"))
+    except (ValueError, RecursionError):
+        return None
+    for key in ("browser_specific_settings", "applications"):
+        gecko = doc.get(key) if isinstance(doc, dict) else None
+        gecko = gecko.get("gecko") if isinstance(gecko, dict) else None
+        if isinstance(gecko, dict) and isinstance(gecko.get("id"), str):
+            return gecko["id"]
+    return None
+
+
+def companion_signed_problem(data, unsigned):
+    """Why the signed xpi `data` is not the add-on of `unsigned` (the
+    companion_xpi() bytes of the sources), None when it is: a zip whose
+    entries outside META-INF/ are byte for byte those of `unsigned` (same
+    names, none missing or extra), whose manifest.json names COMPANION_ID,
+    and that holds a Mozilla signature (SIGNATURE_FILES). The reason holds
+    no path."""
+    if len(data) > _SIGNED_XPI_MAX_BYTES:
+        return "larger than %d bytes" % _SIGNED_XPI_MAX_BYTES
+    try:
+        got = _zip_entries(data, _SIGNED_XPI_MAX_BYTES)
+        want = _zip_entries(unsigned, _SIGNED_XPI_MAX_BYTES)
+    except ValueError as exc:
+        return str(exc)
+    content = {n: b for n, b in got.items() if not n.startswith("META-INF/")}
+    if sorted(content) != sorted(want):
+        return "its files are not those of %s/" % EXTENSION_DIR
+    if any(content[name] != want[name] for name in want):
+        return "a file differs from %s/" % EXTENSION_DIR
+    if _gecko_id(content.get("manifest.json", b"")) != COMPANION_ID:
+        return "manifest.json does not name %s" % COMPANION_ID
+    if not any(name in got for name in SIGNATURE_FILES):
+        return "no Mozilla signature in META-INF/"
+    return None
+
+
 # Per-profile companion states (contract companion_state). "outdated" is
 # told by status only (the running host speaks another protocol).
 COMPANION_OFF = "off"
@@ -3938,12 +4035,18 @@ COMPANION_REFUSED = "signing_required"
 COMPANION_REMOVED = "removed_by_user"
 COMPANION_PENDING = "pending_restart"
 COMPANION_INSTALLED = "installed"
+COMPANION_DISABLED = "disabled"
 COMPANION_OUTDATED = "outdated"
-COMPANION_DEPOSITED = (COMPANION_PENDING, COMPANION_INSTALLED)
+# States that keep the add-on in the profile (a disabled one stays: the
+# user enables it again in about:addons).
+COMPANION_DEPOSITED = (COMPANION_PENDING, COMPANION_INSTALLED, COMPANION_DISABLED)
+# States the browser registered the add-on in (sync marks it "seen").
+COMPANION_REGISTERED = (COMPANION_INSTALLED, COMPANION_DISABLED)
 # Variants whose browser runs in a sandbox the host cannot run from (D6).
 COMPANION_SANDBOXED = ("flatpak", "snap")
-# Firefox channels that require signed add-ons (MOZ_REQUIRE_SIGNING): the
-# xpi would be deleted at startup, so nothing is deposited.
+# Firefox channels that require signed add-ons (MOZ_REQUIRE_SIGNING:
+# release, ESR and Beta): an unsigned xpi would be deleted at startup, so
+# only the signed one is deposited there (signing_enforced without it).
 SIGNED_CHANNELS = ("release", "esr", "beta")
 # Firefox channels built without MOZ_REQUIRE_SIGNING (Nightly, Developer
 # Edition, a local build): with our pref they never delete the add-on.
@@ -3966,19 +4069,19 @@ _CHANNEL_PREF = re.compile(
 _SCOPE_LITERAL = re.compile(r"-?\d{1,10}")
 
 
-def companion_prefs(originals):
+def companion_prefs(originals, signed=False):
     """[(pref, JS literal)] of the companion prefs for the original prefs.js
     values `originals` ({pref: JS literal or None}): unsigned add-ons
-    allowed, and of the two scope prefs only the profile bit changes (no
-    sideload prompt, an existing profile scans its extensions/ folder at
-    the next start); a missing or odd value counts as the default."""
+    allowed (not for the `signed` xpi, which every build loads), and of
+    the two scope prefs only the profile bit changes (no sideload prompt,
+    an existing profile scans its extensions/ folder at the next start); a
+    missing or odd value counts as the default."""
     def scope(pref, default):
         value = originals.get(pref)
         if value is not None and _SCOPE_LITERAL.fullmatch(value):
             return int(value)
         return default
-    return [
-        (PREF_SIGNATURES, "false"),
+    return ([] if signed else [(PREF_SIGNATURES, "false")]) + [
         (PREF_AUTODISABLE, str(scope(PREF_AUTODISABLE, AUTODISABLE_DEFAULT) & ~SCOPE_PROFILE)),
         (PREF_STARTUP_SCAN, str(scope(PREF_STARTUP_SCAN, STARTUP_SCAN_DEFAULT) | SCOPE_PROFILE)),
     ]
@@ -4044,13 +4147,34 @@ def installed_firefox_signed(env=None):
     return any(_channel_of(f) in SIGNED_CHANNELS for f in folders)
 
 
+def companion_entry(profile_path):
+    """The companion add-on's entry (a dict) in addons[] of the profile's
+    extensions.json, the visible one when there are several; None when the
+    file is missing, unreadable, larger than _EXTENSIONS_JSON_LIMIT or not
+    JSON, or names no such add-on."""
+    try:
+        doc = json.loads(read_text(os.path.join(profile_path, EXTENSIONS_JSON),
+                                   limit=_EXTENSIONS_JSON_LIMIT))
+    except (OSError, ValueError, RecursionError):
+        return None
+    addons = doc.get("addons") if isinstance(doc, dict) else None
+    if not isinstance(addons, list):
+        return None
+    entries = [a for a in addons if isinstance(a, dict) and a.get("id") == COMPANION_ID]
+    visible = [a for a in entries if a.get("visible") is not False]
+    return (visible or entries or [None])[0]
+
+
 def companion_registered(profile_path):
     """True when the profile's extensions.json names the companion add-on."""
-    try:
-        text = read_text(os.path.join(profile_path, EXTENSIONS_JSON), limit=_EXTENSIONS_JSON_LIMIT)
-    except (OSError, ValueError):
-        return False
-    return ('"%s"' % COMPANION_ID) in text
+    return companion_entry(profile_path) is not None
+
+
+def companion_disabled(entry):
+    """True when the extensions.json `entry` of the add-on says it does not
+    run: inactive, disabled by the user (about:addons) or by the browser."""
+    return entry.get("active") is False or entry.get("userDisabled") is True \
+        or entry.get("appDisabled") is True
 
 
 def _mtime(path):
@@ -4083,38 +4207,50 @@ def companion_can_refuse(family, compat):
     return not (family == "firefox" and browser_channel(compat) in UNSIGNED_CHANNELS)
 
 
-def companion_state(profile_path, family, variant, comp, enabled, available, compat=None, env=None):
+def companion_state(profile_path, family, variant, comp, enabled, available, compat=None, env=None,
+                    signed=False):
     """The companion state of one profile (COMPANION_*, never "outdated").
     `comp` is the profile's record["companion"], `enabled` liveControl,
     `available` whether the add-on can be deposited (sync: --plugin-dir and
-    a built xpi; status: we deposited it)."""
+    a built xpi; status: we deposited it), `signed` whether that add-on is
+    the signed xpi (sync: the one chosen; status: the one deposited)."""
     if not enabled:
         return COMPANION_OFF
     if variant in COMPANION_SANDBOXED:
         return COMPANION_UNSUPPORTED
     compat = compat_values(profile_path) if compat is None else compat
-    if family == "firefox" and browser_channel(compat) in SIGNED_CHANNELS:
+    removed = (comp is not None and not os.path.lexists(companion_xpi_path(profile_path))
+               and (comp["seen"] or (not companion_can_refuse(family, compat)
+                                     and companion_refused(profile_path, comp))))
+    if removed and comp["signed"]:
+        # The signed add-on removed in about:addons: the removal holds
+        # even where the unsigned one would be signing_enforced (no signed
+        # xpi this sync, or an unusable one).
+        return COMPANION_REMOVED
+    if not signed and family == "firefox" and browser_channel(compat) in SIGNED_CHANNELS:
         return COMPANION_ENFORCED
-    if family == "firefox" and not compat and installed_firefox_signed(env):
+    if not signed and family == "firefox" and not compat and installed_firefox_signed(env):
         # Never ran: the Firefox installed here is the one that will.
         return COMPANION_ENFORCED
-    if comp is not None and not os.path.lexists(companion_xpi_path(profile_path)) \
-            and (comp["seen"] or (not companion_can_refuse(family, compat)
-                                  and companion_refused(profile_path, comp))):
+    if removed:
         # Seen registered then gone, or gone from a build that never deletes
         # it: removed in about:addons. Left out until liveControl is turned
         # off and on (or an uninstall).
         return COMPANION_REMOVED
     if comp is not None and comp["refused"] is not None \
-            and comp["refused"] == (compat.get("LastVersion") or ""):
+            and comp["refused"] == (compat.get("LastVersion") or "") \
+            and (comp["signed"] or not signed):
+        # The signed xpi gets its chance where the unsigned one was refused.
         return COMPANION_REFUSED
     if companion_refused(profile_path, comp):
         return COMPANION_REFUSED
     if not available:
         return COMPANION_NO_PLUGIN
-    if os.path.isfile(companion_xpi_path(profile_path)) and companion_registered(profile_path):
-        return COMPANION_INSTALLED
-    return COMPANION_PENDING
+    entry = companion_entry(profile_path) if os.path.isfile(companion_xpi_path(profile_path)) \
+        else None
+    if entry is None:
+        return COMPANION_PENDING
+    return COMPANION_DISABLED if companion_disabled(entry) else COMPANION_INSTALLED
 
 
 def native_manifest_text(wrapper_path):
@@ -4609,7 +4745,9 @@ def native_host(env, data_dir, stdin, stdout, bpid):
 #       owned_prefs     prefs our user.js block sets
 #       restore_prefs   prefs that left the block (siteTheme "none") and
 #                       still wait for their original value in prefs.js
-#                       (written only while the browser is closed)
+#                       (written only while the browser is closed, and
+#                       done only once user.js is written: a read-only
+#                       one still holds them)
 #       applied_hash    hash of what the last sync wrote (None if a write failed)
 #       instance        "pid:starttime" of the browser running on the profile
 #                       ("?" when unknown), None when it is closed
@@ -4623,15 +4761,21 @@ def native_host(env, data_dir, stdin, stdout, bpid):
 #                       exclusion list pushed live and acknowledged, valid
 #                       while no RESTART_FILES is newer than mtime (see
 #                       live_push)
-#       companion       None, or {dropped, build, refused, ext_dir, seen}: dropped
-#                       the mtime of the add-on we deposited (None when none
+#       companion       None, or {dropped, build, refused, ext_dir, seen, signed}:
+#                       dropped the mtime of the add-on we deposited (None when none
 #                       is), build the browser's LastVersion then, refused
 #                       the LastVersion of a browser that deleted it
 #                       (signing_required: no new deposit until it changes,
 #                       "" when unknown), ext_dir we created extensions/,
 #                       seen a sync found it registered, or found it removed
 #                       by the user (gone since: removed_by_user, no new
-#                       deposit until liveControl is turned off and on)
+#                       deposit until liveControl is turned off and on),
+#                       signed the xpi deposited (or refused, or removed by
+#                       the user) is the signed one (no
+#                       xpinstall.signatures.required; Firefox
+#                       release/esr/beta get it; an unsigned refusal does
+#                       not stop it; its removal holds even without a
+#                       signed xpi to deposit)
 #     backups         {profile_id: backup record}, also kept as
 #                     backup/<profile_id>/meta.json
 #       path, chrome_dir (the chrome folder existed before us), ext_dir
@@ -4652,6 +4796,11 @@ def native_host(env, data_dir, stdin, stdout, bpid):
 #                     (explicit paths, uninstall never globs); the folders
 #                     are also kept in native-dirs.json
 #     synced          a sync ran since the last uninstall (first_run)
+#     signed_xpi      None, or {mtime_ns, size, sources, problem}: the check
+#                     of <plugin>/companion/<COMPANION_XPI> (_sync_xpi), for
+#                     the file of that mtime_ns and size and the extension
+#                     sources of that companion_sources_key(); problem None
+#                     when it holds exactly them, signed, else why not
 #   native-dirs.json
 #                the folders made for the native messaging manifest (a JSON
 #                list), next to the host wrapper, so they survive a lost or
@@ -4743,6 +4892,7 @@ WARN_FORK_FAILED = "fork_failed"
 WARN_PROFILE_MISSING = "profile_missing"
 WARN_DANGLING_LINK = "dangling_link"
 WARN_STATE_UNAVAILABLE = "state_unavailable"
+WARN_SIGNED_XPI = "signed_xpi_unusable"
 
 
 class StateBusy(Exception):
@@ -4833,7 +4983,7 @@ def new_state(synced=False):
     return {"version": STATE_VERSION, "profiles": {}, "backups": {},
             "niri": {"include_added": False, "config_eol": True}, "created_dirs": [],
             "native": {"manifests": [], "created_dirs": []},
-            "synced": synced, "last_sync": None}
+            "synced": synced, "last_sync": None, "signed_xpi": None}
 
 
 # Settings whose effect last_sync["glass"] already records (blur and isLight
@@ -4972,7 +5122,26 @@ def _norm_companion(value):
             dropped = None
     return {"dropped": dropped, "build": _norm_str(value.get("build")),
             "refused": _norm_str(value.get("refused")), "ext_dir": value.get("ext_dir") is True,
-            "seen": value.get("seen") is True}
+            "seen": value.get("seen") is True, "signed": value.get("signed") is True}
+
+
+def _norm_signed_xpi(value):
+    if not isinstance(value, dict):
+        return None
+    out = {}
+    for key in ("mtime_ns", "size"):
+        item = value.get(key)
+        if isinstance(item, bool) or not isinstance(item, int):
+            return None
+        out[key] = item
+    if not isinstance(value.get("sources"), str):
+        return None
+    problem = value.get("problem")
+    if problem is not None and not isinstance(problem, str):
+        return None
+    out["sources"] = value["sources"]
+    out["problem"] = problem
+    return out
 
 
 def _abs_path(value):
@@ -5050,6 +5219,7 @@ def state_load(folder, warnings):
         state["native"] = {"manifests": _abs_paths(native.get("manifests")),
                            "created_dirs": _abs_paths(native.get("created_dirs"))}
     state["last_sync"] = _norm_last_sync(doc.get("last_sync"))
+    state["signed_xpi"] = _norm_signed_xpi(doc.get("signed_xpi"))
     return state, True
 
 
@@ -6038,16 +6208,16 @@ def _restart_prefix(base):
     return base["restart_prefix"]
 
 
-def profile_output(base, profile, record=None, companion=None, guard=()):
+def profile_output(base, profile, record=None, companion=None, guard=(), signed=False):
     """What sync writes to `profile` (a Profile) and its fingerprints:
     {chrome, content, block, block_prefs, block_values, hash, restart_hash,
     excl_hash}. hash is applied_hash (applied_hash_of), the one
     profile_applied() finds again on disk. `record` is the profile's state
     record, None for a new one: an output it already describes keeps its
-    restart_hash. `companion` goes to userjs_prefs(). `guard`
+    restart_hash. `companion` and `signed` go to userjs_prefs(). `guard`
     (companion_guard) ends the block but is not in block_prefs: those
     prefs are not owned."""
-    prefs = userjs_prefs(base["settings"], base["opacity"], base["off"], profile, companion)
+    prefs = userjs_prefs(base["settings"], base["opacity"], base["off"], profile, companion, signed)
     block = userjs_block_text(prefs + list(guard))
     applied = applied_hash_of(base["chrome"], base["content"], block, base["hash_prefix"])
     if (record is not None and record.get("restart_hash") is not None
@@ -6094,9 +6264,13 @@ def _sync_profile(ctx, profile):
         }
         backup = state["backups"].get(pid)
         if backup is not None and backup["companion_removed"]:
-            # Removed by the user before state.json was lost.
-            record["companion"] = {"dropped": None, "build": compat_values(path).get("LastVersion"),
-                                   "refused": None, "ext_dir": backup["ext_dir"], "seen": True}
+            # Removed by the user before state.json was lost. Where signing
+            # is enforced only the signed add-on could have been removed.
+            compat = compat_values(path)
+            record["companion"] = {"dropped": None, "build": compat.get("LastVersion"),
+                                   "refused": None, "ext_dir": backup["ext_dir"], "seen": True,
+                                   "signed": family == "firefox"
+                                   and browser_channel(compat) in SIGNED_CHANNELS}
         pend = ctx["pending"].get(pid)
         if pend is not None:
             # The deferred cleanup is dropped below: its prefs become
@@ -6125,18 +6299,10 @@ def _sync_profile(ctx, profile):
         record["variant"] = profile.variant
     state["profiles"][pid] = record
 
-    comp_state, comp_originals = _companion_plan(ctx, profile, record, fresh, prefs_text)
-    # Companion prefs leaving the block while the browser runs: it writes
-    # its values (unsigned add-ons allowed) to prefs.js, restored only once
-    # it is closed. Until then the block holds the originals: user.js
-    # overrides prefs.js at every start.
-    guard = []
-    if comp_originals is None:
-        waiting = [p for p in COMPANION_PREFS
-                   if p in record["owned_prefs"] or p in record["restore_prefs"]]
-        if waiting and lock_state(path) != LOCK_FREE:
-            guard = companion_guard(record["prefs_original"], waiting)
-    out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals, guard)
+    comp_state, comp_originals, comp_signed = _companion_plan(ctx, profile, record, fresh,
+                                                              prefs_text)
+    out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals,
+                         signed=comp_signed)
     # What a running browser has loaded, probed before anything is written
     # (the writes would make every file newer than its start). Only an
     # exclusion change can be applied live, and only a live record can
@@ -6146,51 +6312,7 @@ def _sync_profile(ctx, profile):
         if lstate != LOCK_FREE:
             # (key, loaded, RESTART_FILES mtime right after the writes)
             ctx["instances"][pid] = (key, instance_loaded(path, record, key), None)
-    writes = [
-        (chrome_path, out["chrome"], None),
-        (content_path, out["content"], None),
-    ]
-    for name, rel in PROFILE_FILES:
-        writes.append((os.path.join(path, rel), apply_ours(name, texts[name] or "", out["block"]),
-                       0o600 if name == USER_JS else None))
     changed = False
-    clean = True
-    # A dangling chrome/ link would make the writes create its target
-    # folders outside the profile.
-    chrome_dangling = os.path.islink(chrome_dir) and not os.path.exists(chrome_dir)
-    if chrome_dangling:
-        warnings.append(make_warning(WARN_DANGLING_LINK, "%s is a dangling symlink, left unchanged"
-                                     % CHROME_DIR, family, pid))
-        clean = False
-    for target, text, mode in writes:
-        if chrome_dangling and os.path.dirname(target) == chrome_dir:
-            continue
-        ctx["folders"].add(os.path.dirname(target))
-        ctx["folders"].add(_target_dir(target))
-        before = len(warnings)
-        if os.path.islink(target) and not os.path.exists(target):
-            # Writing would create folders at the link's target, outside the
-            # profile, that uninstall could not tell from the user's.
-            warnings.append(make_warning(WARN_DANGLING_LINK, "%s is a dangling symlink, left unchanged"
-                                         % os.path.basename(target), family, pid))
-            clean = False
-            continue
-        try:
-            if write_if_changed(target, text, warnings, family, pid, mode=mode):
-                changed = True
-        except OSError as exc:
-            warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
-                                         % (os.path.basename(target), _oserror_text(exc)), family, pid))
-        if len(warnings) != before:
-            clean = False
-    if _companion_files(ctx, profile, record, comp_state):
-        changed = True
-    if pid in ctx["instances"]:
-        # The live record's baseline, taken now and not after the push.
-        ctx["instances"][pid] = ctx["instances"][pid][:2] + (restart_files_mtime(path),)
-    record["applied_hash"] = out["hash"] if clean else None
-    record["restart_hash"] = out["restart_hash"] if clean else None
-    record["excl_hash"] = out["excl_hash"] if clean else None
 
     # Prefs that left the block get their original value back in
     # prefs.js, only while the browser is closed (it rewrites the file).
@@ -6214,6 +6336,7 @@ def _sync_profile(ctx, profile):
     restore = set(record["restore_prefs"]) | (set(record["owned_prefs"]) - set(owned))
     restore -= set(owned)
     record["owned_prefs"] = [p for p in PREFS if p in owned]
+    leaving = set(restore)
     if restore and lock_state(path) == LOCK_FREE:
         before = len(warnings)
         try:
@@ -6224,8 +6347,71 @@ def _sync_profile(ctx, profile):
         except (OSError, ValueError) as exc:
             warnings.append(make_warning(WARN_WRITE_FAILED, "prefs.js not written: %s"
                                          % _oserror_text(exc), family, pid))
-    ctx["folders"].add(path)
     record["restore_prefs"] = [p for p in PREFS if p in restore]
+    # Companion prefs out of the block whose original is not back in
+    # prefs.js (the browser runs, or the restore failed): prefs.js still
+    # holds our values (unsigned add-ons allowed), so the block holds the
+    # originals until the restore is done: user.js overrides prefs.js at
+    # every start.
+    waiting = [p for p in COMPANION_PREFS if p in restore]
+    if waiting:
+        out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals,
+                             companion_guard(record["prefs_original"], waiting), comp_signed)
+    writes = [
+        (chrome_path, out["chrome"], None),
+        (content_path, out["content"], None),
+    ]
+    for name, rel in PROFILE_FILES:
+        writes.append((os.path.join(path, rel), apply_ours(name, texts[name] or "", out["block"]),
+                       0o600 if name == USER_JS else None))
+    userjs_path = os.path.join(path, dict(PROFILE_FILES)[USER_JS])
+    userjs_written = True
+    clean = True
+    # A dangling chrome/ link would make the writes create its target
+    # folders outside the profile.
+    chrome_dangling = os.path.islink(chrome_dir) and not os.path.exists(chrome_dir)
+    if chrome_dangling:
+        warnings.append(make_warning(WARN_DANGLING_LINK, "%s is a dangling symlink, left unchanged"
+                                     % CHROME_DIR, family, pid))
+        clean = False
+    for target, text, mode in writes:
+        if chrome_dangling and os.path.dirname(target) == chrome_dir:
+            continue
+        ctx["folders"].add(os.path.dirname(target))
+        ctx["folders"].add(_target_dir(target))
+        before = len(warnings)
+        if os.path.islink(target) and not os.path.exists(target):
+            # Writing would create folders at the link's target, outside the
+            # profile, that uninstall could not tell from the user's.
+            warnings.append(make_warning(WARN_DANGLING_LINK, "%s is a dangling symlink, left unchanged"
+                                         % os.path.basename(target), family, pid))
+            clean = False
+            userjs_written = userjs_written and target != userjs_path
+            continue
+        try:
+            if write_if_changed(target, text, warnings, family, pid, mode=mode):
+                changed = True
+        except OSError as exc:
+            warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
+                                         % (os.path.basename(target), _oserror_text(exc)), family, pid))
+        if len(warnings) != before:
+            clean = False
+            userjs_written = userjs_written and target != userjs_path
+    if not userjs_written:
+        # The block on disk may still hold the prefs that left it (a
+        # read-only user.js): the browser copies them into prefs.js again
+        # at its next start, so their restore is not done yet.
+        record["restore_prefs"] = [p for p in PREFS if p in leaving]
+    if _companion_files(ctx, profile, record, comp_state):
+        changed = True
+    if pid in ctx["instances"]:
+        # The live record's baseline, taken now and not after the push.
+        ctx["instances"][pid] = ctx["instances"][pid][:2] + (restart_files_mtime(path),)
+    record["applied_hash"] = out["hash"] if clean else None
+    record["restart_hash"] = out["restart_hash"] if clean else None
+    record["excl_hash"] = out["excl_hash"] if clean else None
+
+    ctx["folders"].add(path)
     return changed
 
 
@@ -6280,17 +6466,21 @@ def _backup_add_originals(sdir, pid, backup, originals, warnings, family=None):
 
 
 def _companion_plan(ctx, profile, record, fresh, prefs_text):
-    """(state, originals) of the companion add-on in one profile, before
-    its files are written. `originals` ({pref: JS literal or None}, the
-    original prefs.js values the companion prefs are derived from) is None
-    when the block holds no companion pref. Without --plugin-dir the
-    add-on is left as it is (R15): a deposit of ours keeps its prefs."""
+    """(state, originals, signed) of the companion add-on in one profile,
+    before its files are written. `originals` ({pref: JS literal or None},
+    the original prefs.js values the companion prefs are derived from) is
+    None when the block holds no companion pref; `signed` tells whether
+    the xpi they are for is the signed one (no PREF_SIGNATURES). Without
+    --plugin-dir the add-on is left as it is (R15): a deposit of ours
+    keeps its prefs."""
     path = profile.path
     comp = record["companion"]
     compat = compat_values(path)
+    # Without an xpi to deposit, the kind of the one in the profile decides.
+    signed = ctx["xpi_signed"] if ctx["xpi"] is not None else comp is not None and comp["signed"]
     state = companion_state(path, profile.family, profile.variant, comp,
                             ctx["base"]["settings"]["liveControl"], ctx["xpi"] is not None, compat,
-                            ctx["env"])
+                            ctx["env"], signed)
     if state == COMPANION_REFUSED and comp["dropped"] is not None:
         # Deleted by the browser (signing required): no new deposit until
         # its build changes.
@@ -6304,7 +6494,7 @@ def _companion_plan(ctx, profile, record, fresh, prefs_text):
     keep = (state == COMPANION_NO_PLUGIN and comp is not None and comp["dropped"] is not None
             and os.path.lexists(companion_xpi_path(path)))
     if state not in COMPANION_DEPOSITED and not keep:
-        return state, None
+        return state, None, False
     current = parse_prefs(prefs_text)
     originals = {}
     for pref in COMPANION_PREFS:
@@ -6313,7 +6503,7 @@ def _companion_plan(ctx, profile, record, fresh, prefs_text):
         else:
             # the original a pref that leaves the block is restored to
             originals[pref] = current.get(pref)
-    return state, originals
+    return state, originals, signed
 
 
 def companion_remove(profile_path, comp, keep_seen=False):
@@ -6348,27 +6538,37 @@ def _companion_files(ctx, profile, record, state):
                                             or _ext_dir_ours(folder, backup)):
             record["companion"] = {"dropped": None, "build": compat_values(path).get("LastVersion"),
                                    "refused": None, "ext_dir": _ext_dir_ours(folder, backup),
-                                   "seen": False}
+                                   "seen": False, "signed": False}
         if state in COMPANION_DEPOSITED:
             comp = record["companion"]
             if make_dirs_tracked(folder):
                 comp["ext_dir"] = True
+            before = len(warnings)
             changed = write_bytes_if_changed(target, ctx["xpi"], warnings, family, pid,
                                              mode=0o644, make_dirs=False)
+            if len(warnings) == before:
+                # The profile holds this xpi (a read-only one left
+                # unchanged keeps the kind it was).
+                comp["signed"] = ctx["xpi_signed"]
             if changed or comp["dropped"] is None:
                 comp["dropped"] = os.stat(target).st_mtime
                 comp["build"] = compat_values(path).get("LastVersion")
-            if state == COMPANION_INSTALLED:
+            if state in COMPANION_REGISTERED:
                 comp["seen"] = True
         else:
             changed = companion_remove(path, record["companion"],
                                        keep_seen=state == COMPANION_REMOVED)
+            if record["companion"] is not None and record["companion"]["refused"] is None \
+                    and state != COMPANION_REMOVED:
+                # A refusal keeps the kind of xpi refused, a removal the kind
+                # of xpi removed (companion_state).
+                record["companion"]["signed"] = False
     except OSError as exc:
         warnings.append(make_warning(WARN_WRITE_FAILED, "%s not written: %s"
                                      % (COMPANION_XPI, _oserror_text(exc)), family, pid))
     comp = record["companion"]
     if comp is not None and comp == {"dropped": None, "build": comp["build"], "refused": None,
-                                     "ext_dir": False, "seen": False} \
+                                     "ext_dir": False, "seen": False, "signed": False} \
             and state not in COMPANION_DEPOSITED:
         record["companion"] = None
     _backup_mark(ctx["sdir"], pid, backup, "ext_dir", comp is not None and comp["ext_dir"],
@@ -6553,17 +6753,83 @@ def _sync_native(ctx, plugin_dir):
     return changed
 
 
-def _sync_xpi(plugin_dir, warnings):
-    """The companion xpi built from <plugin_dir>/extension, None without
-    --plugin-dir or when it cannot be built (a warning)."""
+def _sync_xpi(plugin_dir, state, warnings):
+    """(xpi bytes, signed) of the companion add-on to deposit: the signed
+    xpi <plugin_dir>/companion/<COMPANION_XPI> when it holds exactly the
+    sources (companion_signed_problem; signed True), else the one built
+    from <plugin_dir>/extension. (None, False) without --plugin-dir or
+    when neither can be had (a warning). A signed xpi that is unusable is
+    a warning too. The check is kept in state["signed_xpi"], keyed by the
+    file's (mtime_ns, size) and the sources' companion_sources_key(): a
+    sync where neither changed does no zip work."""
     if not plugin_dir:
-        return None
+        return None, False
+    ext_dir = os.path.join(plugin_dir, EXTENSION_DIR)
+
+    def unsigned():
+        try:
+            return companion_xpi(ext_dir)
+        except (OSError, ValueError) as exc:
+            warnings.append(make_warning(WARN_DATA_UNAVAILABLE, "companion add-on unavailable: %s"
+                                         % (getattr(exc, "strerror", None) or exc)))
+            return None
+
+    def unusable(reason):
+        warnings.append(make_warning(WARN_SIGNED_XPI, "%s/%s not used, %s: the unsigned add-on "
+                                     "is used instead" % (COMPANION_DIR, COMPANION_XPI, reason)))
+
     try:
-        return companion_xpi(os.path.join(plugin_dir, EXTENSION_DIR))
+        found = _signed_xpi_read(os.path.join(plugin_dir, COMPANION_DIR, COMPANION_XPI))
     except (OSError, ValueError) as exc:
-        warnings.append(make_warning(WARN_DATA_UNAVAILABLE, "companion add-on unavailable: %s"
-                                     % (getattr(exc, "strerror", None) or exc)))
+        state["signed_xpi"] = None
+        unusable(_oserror_text(exc) if isinstance(exc, OSError) else str(exc))
+        return unsigned(), False
+    if found is None:
+        state["signed_xpi"] = None
+        return unsigned(), False
+    data, mtime_ns, size = found
+    try:
+        sources = companion_sources_key(ext_dir)
+    except OSError:
+        return unsigned(), False  # its warning tells why
+    key = {"mtime_ns": mtime_ns, "size": size, "sources": sources}
+    cached = state["signed_xpi"]
+    plain = None
+    if cached is not None and all(cached[k] == v for k, v in key.items()):
+        problem = cached["problem"]
+    else:
+        plain = unsigned()
+        if plain is None:
+            return None, False
+        problem = companion_signed_problem(data, plain)
+        state["signed_xpi"] = dict(key, problem=problem)
+    if problem is None:
+        return data, True
+    unusable(problem)
+    return (plain if plain is not None else unsigned()), False
+
+
+def _signed_xpi_read(path):
+    """(bytes, mtime_ns, size) of the signed xpi at `path`, None when there
+    is none. ValueError when it is a symlink, not a regular file or larger
+    than _SIGNED_XPI_MAX_BYTES; OSError when it cannot be read."""
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
         return None
+    if stat.S_ISLNK(st.st_mode):
+        raise ValueError("it is a symlink")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(fd, "rb") as f:
+        st = os.fstat(f.fileno())
+        if not stat.S_ISREG(st.st_mode):
+            raise ValueError("not a regular file")
+        if st.st_size > _SIGNED_XPI_MAX_BYTES:
+            raise ValueError("larger than %d bytes" % _SIGNED_XPI_MAX_BYTES)
+        data = f.read(_SIGNED_XPI_MAX_BYTES + 1)
+    if len(data) != st.st_size:
+        raise ValueError("it changed while being read")
+    return data, st.st_mtime_ns, st.st_size
 
 
 def _h1_rule_needed(ctx, active):
@@ -6792,9 +7058,11 @@ def cmd_sync(args, env):
             "base": sync_base(settings, opacity, args.off, chrome, content, restart_content),
             "disk_glass": {}, "folders": {sdir}, "instances": {},
             "pending": pending_load(sdir), "taken_back": set(),
-            "xpi": _sync_xpi(args.plugin_dir, warnings) if settings["liveControl"] else None,
+            "xpi": None, "xpi_signed": False,
             "companion": {},
         }
+        if settings["liveControl"]:
+            ctx["xpi"], ctx["xpi_signed"] = _sync_xpi(args.plugin_dir, state, warnings)
         changed = []
         for profile in _select_profiles(args, env, state, warnings):
             if _sync_profile(ctx, profile) and profile.id not in changed:
@@ -7545,6 +7813,7 @@ def cmd_uninstall(args, env):
                 state["profiles"] = {p: r for p, r in state["profiles"].items() if p in unfinished}
                 state["niri"] = {"include_added": False, "config_eol": True}
                 state["synced"] = False
+                state["signed_xpi"] = None
                 state_save(sdir, state, warnings)
             else:
                 try:
@@ -7843,7 +8112,8 @@ def collect_status(env):
         group["restart_needed"] = group["restart_needed"] or restart
         comp = record["companion"] if record is not None else None
         cstate = companion_state(profile.path, profile.family, profile.variant, comp, enabled,
-                                 comp is not None and comp["dropped"] is not None, env=env)
+                                 comp is not None and comp["dropped"] is not None, env=env,
+                                 signed=comp is not None and comp["signed"])
         if cstate in COMPANION_DEPOSITED and running \
                 and companion_outdated(rdir, instance_browser_pid(key)):
             cstate = COMPANION_OUTDATED
@@ -7875,8 +8145,10 @@ def collect_status(env):
         # A host whose add-on speaks another protocol relays nothing: the
         # browser needs one more restart (waiting_restart).
         summary = "connected"
-    elif any(st in COMPANION_DEPOSITED or st == COMPANION_OUTDATED for st in states):
+    elif any(st in (COMPANION_PENDING, COMPANION_INSTALLED, COMPANION_OUTDATED) for st in states):
         summary = "waiting_restart"
+    elif COMPANION_DISABLED in states:
+        summary = "disabled"
     elif COMPANION_REMOVED in states:
         summary = "removed"
     else:

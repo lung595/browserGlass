@@ -58,7 +58,6 @@ Browser Glass keeps a marked block in each profile's `user.js`. With the default
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.tabs.allow_transparent_browser", true);
 user_pref("layout.css.prefers-color-scheme.content-override", 2);
-user_pref("xpinstall.signatures.required", false);
 user_pref("extensions.autoDisableScopes", 14);
 user_pref("extensions.startupScanScopes", 1);
 // <<< browserGlass v1
@@ -69,7 +68,7 @@ user_pref("extensions.startupScanScopes", 1);
 | `toolkit.legacyUserProfileCustomizations.stylesheets` | Always `true`: the browser must load `userChrome.css` and `userContent.css` |
 | `browser.tabs.allow_transparent_browser` | `true` only while the glass is on with **Glass web pages**, `false` otherwise |
 | `layout.css.prefers-color-scheme.content-override` | The scheme websites are asked for. **Follow DMS**: `2` (automatic: websites get the browser's light or dark theme, which follows the system scheme live). **Always dark**: `0`. **Leave as is**: not written, and your own value comes back |
-| `xpinstall.signatures.required` | `false`, only with **Live control** on, where the browser can load the companion add-on (see [Live control](#live-control)) |
+| `xpinstall.signatures.required` | Not written with the signed add-on. `false` only with **Live control** on and the unsigned add-on of a development checkout, where the browser can load it (see [Live control](#live-control)) |
 | `extensions.autoDisableScopes` | With **Live control**: your value with the profile bit (`1`) cleared, so the add-on placed in the profile loads without a prompt |
 | `extensions.startupScanScopes` | With **Live control**: your value with the profile bit (`1`) set, so a profile that already exists picks the add-on up at its next start |
 
@@ -200,7 +199,11 @@ The browser reads its style files only when it starts, so an exclusion would nor
 
 Only the main page is concerned: frames inside a page follow at the next restart. Private windows do not run the add-on (it does not ask for them), so they behave as without Live control.
 
-**What it changes in the browser.** Three preferences go into the marked `user.js` block (see [The preferences](#the-preferences)): `xpinstall.signatures.required` set to `false` so an unsigned add-on can load, and the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes` so the add-on placed in the profile loads without a prompt. Their original values are recorded and put back like the others.
+**What it changes in the browser.** Two preferences go into the marked `user.js` block (see [The preferences](#the-preferences)): the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes`, so the add-on placed in the profile loads without a prompt. Their original values are recorded and put back like the others. The add-on is signed by Mozilla, so the browser checks it like any other add-on, and `xpinstall.signatures.required` is left alone.
+
+**Signed or unsigned add-on.** The plugin ships the signed add-on as `companion/browserglass@companion.xpi`. A sync places it only when it holds exactly the files of `extension/` and Mozilla's signature. Otherwise, as in a development checkout, it places the unsigned add-on built from `extension/`, as 1.2 did: it then also sets `xpinstall.signatures.required` to `false`, which LibreWolf, Firefox Developer Edition and Nightly follow, and writes nothing for the companion on Firefox release, ESR and Beta (`signing_enforced`). A signed file that cannot be read or is damaged gives a warning, and the unsigned add-on is used.
+
+**Updating from 1.1 or 1.2.** Those versions wrote `xpinstall.signatures.required = false`. With the signed add-on it leaves the `user.js` block, and its original value goes back in `prefs.js` once the browser is closed. Until then the block holds the original value (or the browser default, `true`), so the browser does not keep `false` at its next start.
 
 **States.** The *Live control* line in **Status** comes from `companion.state` in `status --json`:
 
@@ -208,29 +211,31 @@ Only the main page is concerned: frames inside a page follow at the next restart
 | --- | --- | --- |
 | `connected` | *Live control: connected* | A browser runs the add-on of this version and its helper is listening |
 | `waiting_restart` | *Live control: waiting for a browser restart* | The add-on is in place; the browser loads it at its next start. After a plugin update, also while the browser still runs the older add-on |
+| `disabled` | *Live control: the add-on is disabled in the browser; enable it in about:addons* | The add-on is in place, but disabled in `about:addons` in every profile that has it. Browser Glass leaves it there: enable it again in `about:addons` |
 | `removed` | *Live control: the add-on was removed in the browser; turn Live control off and on to add it back* | No profile has the add-on, and it was removed in the browser (`about:addons`) in at least one profile. Browser Glass leaves it out until Live control is turned off and on again |
-| `unavailable` | *Live control: not available for these browsers; changes apply at the next restart* | No profile has the add-on: Firefox release, ESR or Beta builds, Flatpak or Snap browsers (see below). Changes apply at the next restart |
+| `unavailable` | *Live control: not available for these browsers; changes apply at the next restart* | No profile has the add-on: Flatpak or Snap browsers, browsers that refused it, or, in a development checkout, Firefox release, ESR or Beta builds (see below). Changes apply at the next restart |
 | `off` | *Live control: off* | Live control is turned off |
 
 `companion` also has `enabled` (the setting at the last sync), `hosts` (how many helpers are running) and `manifest` (the native messaging manifest is in place). Each profile in `browsers[].profiles[]` has its own `companion` state:
 
 | Profile state | Meaning |
 | --- | --- |
-| `installed` | The add-on is in the profile, and the browser lists it |
+| `installed` | The add-on is in the profile, and the browser lists it as enabled |
+| `disabled` | The add-on is in the profile, but disabled in `about:addons`: enable it again there |
 | `pending_restart` | The add-on is in the profile; the browser has not loaded it yet |
 | `outdated` | The browser runs an add-on from an older version: restart it once more |
-| `signing_enforced` | A Firefox release, ESR or Beta build: they only load add-ons signed by Mozilla, so nothing is written for the companion |
-| `signing_required` | The browser deleted the add-on at start-up (it wants signed add-ons). Browser Glass takes the add-on's preferences back and stops trying until the browser is updated |
+| `signing_enforced` | A development checkout without a matching signed add-on, on a Firefox release, ESR or Beta build: they only load add-ons signed by Mozilla, so nothing is written for the companion |
+| `signing_required` | The browser deleted the add-on at start-up (it wants signed add-ons; the signed add-on should never get this). Browser Glass takes the add-on's preferences back and stops trying until the browser is updated |
 | `removed_by_user` | The add-on was removed in `about:addons`: LibreWolf, Firefox Nightly and Developer Edition never delete it themselves; on other browsers Browser Glass saw it loaded first (otherwise the removal reads as `signing_required`). Browser Glass takes the add-on's preferences back and does not place it again, even after a browser update, until Live control is turned off and on again (or the plugin is disabled and enabled again) |
 | `unsupported_variant` | A Flatpak or Snap browser: the helper would have to run inside their sandbox |
 | `no_plugin_dir` | A `sync` run by hand without `--plugin-dir`, or a profile the add-on has not been placed in yet: the add-on is left as it is, and the next sync from the plugin places it |
 | `off` | Live control is turned off |
 
-A Firefox profile that has never been started follows the channel of the installed Firefox: `signing_enforced` when that build enforces signing. Any other profile whose channel cannot be read gets the add-on; if Firefox then drops it at start-up, the profile turns `signing_required`.
+With the unsigned add-on, a Firefox profile that has never been started follows the channel of the installed Firefox: `signing_enforced` when that build enforces signing. Any other profile whose channel cannot be read gets the add-on; if Firefox then drops it at start-up, the profile turns `signing_required`.
 
-**Turning it off.** At the next sync the add-on, its three preferences, the manifest and the helper script are removed, and the style file goes back to the same rules as without Live control. A helper still running goes away with its browser.
+**Turning it off.** At the next sync the add-on, its preferences, the manifest and the helper script are removed, and the style file goes back to the same rules as without Live control. A helper still running goes away with its browser.
 
-**Uninstalling** also removes all of it: the add-on of each profile, the manifest (and the folders created for it), the helper script, `$XDG_RUNTIME_DIR/browserGlass/`, and the three preferences come back to their original values. Once the browser is closed, the clean-up also removes the add-on's own leftovers in the profile: its storage folder, its entry in `extensions.webextensions.uuids` (only that entry; the other add-ons keep theirs) and its storage-migration preference. The browser removes the add-on from its own list, `extensions.json`, at its next start.
+**Uninstalling** also removes all of it: the add-on of each profile, the manifest (and the folders created for it), the helper script, `$XDG_RUNTIME_DIR/browserGlass/`, and its preferences come back to their original values. Once the browser is closed, the clean-up also removes the add-on's own leftovers in the profile: its storage folder, its entry in `extensions.webextensions.uuids` (only that entry; the other add-ons keep theirs) and its storage-migration preference. The browser removes the add-on from its own list, `extensions.json`, at its next start.
 
 ## Restart detection
 
@@ -387,11 +392,11 @@ Turning the glass on or off changes the browser's own bars, which the browser re
 **Why does a light website stay white in dark mode?**
 Without the companion add-on, under a dark theme, only pages that declare a dark version become see-through, dedicated site styles included; a light-only page keeps its own background, since its dark text would be unreadable on the dark tint. With **Live control**, such a page gets a light glass instead. See [Light pages under a dark theme](#light-pages-under-a-dark-theme). A site that stays hard to read can be excluded (see [Sites](#sites)).
 
-**Why does Firefox say Live control is not available?**
-Firefox release, ESR and Beta builds only load add-ons signed by Mozilla, and they ignore `xpinstall.signatures.required`. The companion is not signed yet (it is on the [roadmap](../ROADMAP.md#planned)), so on those builds Browser Glass does not install it, and the launcher's changes apply at the next restart. Firefox Developer Edition and Nightly accept it.
+**Does Live control work on Firefox release?**
+Yes, on release, ESR and Beta builds too: they only load add-ons signed by Mozilla, and the companion is signed. In a development checkout without a signed add-on that matches `extension/`, Browser Glass uses the unsigned one, which those builds refuse (they ignore `xpinstall.signatures.required`): it does not install it there, and the launcher's changes apply at the next restart. Firefox Developer Edition and Nightly accept the unsigned add-on.
 
 **Does Live control work with LibreWolf?**
-Yes: LibreWolf loads unsigned add-ons. Its add-ons page shows the companion as *could not be verified*, as it does for every unsigned add-on; this is normal and does not stop it.
+Yes. The companion is signed by Mozilla, so LibreWolf shows it as verified, and Browser Glass does not change `xpinstall.signatures.required` there. The unsigned add-on of a development checkout loads too, but LibreWolf's add-ons page shows it as *could not be verified*, as it does for every unsigned add-on; this is normal and does not stop it.
 
 **What about private windows?**
 The companion does not run in private windows, and the browser does not record them in its session either. Browser Glass tells a private window by its title. So `gs blist` refuses there (*Private window: site not detected*), and a private window shows a change of the excluded sites only after a restart. Glass itself works there as usual.

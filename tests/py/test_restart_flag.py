@@ -137,8 +137,8 @@ class SeamTest(RestartCase):
         # block, owned prefs and applied hash.
         real = bg.userjs_prefs
 
-        def by_family(settings_doc, opacity, off=False, profile=None, companion=None):
-            prefs = real(settings_doc, opacity, off, profile, companion)
+        def by_family(settings_doc, opacity, off=False, profile=None, companion=None, signed=False):
+            prefs = real(settings_doc, opacity, off, profile, companion, signed)
             if profile is not None and profile.family == "librewolf":
                 prefs = [(p, "0" if p == bg.PREF_COLOR_SCHEME else v) for p, v in prefs]
             return prefs

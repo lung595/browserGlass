@@ -324,7 +324,7 @@ PluginSettings {
         objectName: "liveControl"
         settingKey: "liveControl"
         label: I18n.trFor("browserGlass", "Live control")
-        description: I18n.trFor("browserGlass", "Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets xpinstall.signatures.required to false and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. Uninstalling Browser Glass removes the add-on and puts these settings back.")
+        description: I18n.trFor("browserGlass", "Installs Browser Glass's small companion add-on, signed by Mozilla, in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass lets add-ons placed in the profile folder load without a prompt. Without the signed add-on (a development checkout), it also sets xpinstall.signatures.required to false, and Firefox release builds apply changes at the next restart. Uninstalling Browser Glass removes the add-on and puts these settings back.")
         defaultValue: true
     }
 

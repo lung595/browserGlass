@@ -8,6 +8,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 
 - **Signing tool** (`tools/sign_companion.py`, for releases): has Mozilla sign the companion add-on in the unlisted channel through the AMO API v5, with the standard library only. `pack` builds the xpi exactly as the helper does, `sign` uploads it, waits for the signature and downloads it, `fetch` downloads a version signed later, and `verify` checks that a signed xpi holds the same files as `extension/` plus a Mozilla signature. It never uploads the same version twice and keeps the API keys out of every message. The companion's manifest now declares `data_collection_permissions` (none: the add-on talks only to the local helper).
+- **Signed companion add-on**: the plugin ships the companion signed by Mozilla (`companion/browserglass@companion.xpi`), so *Live control* now works on Firefox release, ESR and Beta builds, and LibreWolf shows the add-on as verified. A sync places it only when it holds exactly the files of `extension/` and a Mozilla signature; otherwise (a development checkout, or a damaged file, which gives a warning) it places the unsigned add-on as in 1.2.
+- **Companion state `disabled`**: a profile whose companion is disabled in `about:addons` shows it (`status --json`, `sync`), and when no profile runs it, *Status* says *Live control: the add-on is disabled in the browser; enable it in about:addons* (`companion.state` `disabled`). The add-on stays in the profile; enable it again there.
+
+### Changed
+
+- **Add-on signature preference**: with the signed companion, the plugin no longer writes `xpinstall.signatures.required` in any profile, only the profile bit of `extensions.autoDisableScopes` and `extensions.startupScanScopes`. On update, the preference leaves the `user.js` block and its original value is put back in `prefs.js` once the browser is closed; until then `user.js` holds the original value (or the browser default).
+
+- **Live control description** (*Advanced & help*): says the add-on is signed by Mozilla, and that `xpinstall.signatures.required` is set only without the signed add-on.
+- **A signed companion that cannot be used** gives its own warning text (*The signed companion add-on could not be used: the unsigned one is used instead*).
+
+### Fixed
+
+- **A companion disabled in `about:addons`** is no longer shown as installed.
+- **The add-on signature guard** (the original values kept in the `user.js` block until `prefs.js` is restored) is now written even when restoring `prefs.js` fails with the browser closed.
 
 ## [1.2.0] - 2026-11-15
 

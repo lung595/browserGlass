@@ -27,7 +27,7 @@
     {
       "family": "zen", "variant": "native", "root": "~/.zen", "running": false, "restart_needed": false,
       "profiles": [
-        {"id": "13579bdf0246", "name": "Default (release)", "path": "~/.zen/fake0005.Default (release)", "default": true, "running": false, "restart_needed": false, "applied": true, "companion": "installed"}
+        {"id": "13579bdf0246", "name": "Default (release)", "path": "~/.zen/fake0005.Default (release)", "default": true, "running": false, "restart_needed": false, "applied": true, "companion": "disabled"}
       ]
     }
   ],

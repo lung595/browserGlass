@@ -137,10 +137,12 @@ class Home:
         return json.loads(proc.stdout)
 
     def sync(self, excluded=(), plugin_dir=True, **settings):
+        """One sync; `plugin_dir` is True (this repository), a plugin folder,
+        or False (no --plugin-dir)."""
         doc = dict(SETTINGS, excluded=list(excluded), **settings)
         args = ["sync", "--data", DATA, "--settings", json.dumps(doc)]
         if plugin_dir:
-            args += ["--plugin-dir", REPO]
+            args += ["--plugin-dir", REPO if plugin_dir is True else plugin_dir]
         return self.run(args)
 
     def status(self):
@@ -174,6 +176,22 @@ class Home:
         start = text.find("// >>> browserGlass v1 managed block")
         end = text.find("// <<< browserGlass v1", start)
         return user_js_prefs(text[start:end]) if 0 <= start < end else {}
+
+    def user_js(self):
+        """{pref: raw value} of every user_pref line of user.js."""
+        return user_js_prefs(read(os.path.join(self.profile, "user.js")) or "")
+
+    def addon_entry(self):
+        """The companion's entry in the profile's extensions.json (written
+        by the browser, complete once it quit), None without one."""
+        try:
+            doc = json.loads(read(os.path.join(self.profile, "extensions.json")) or "{}")
+        except ValueError:
+            return None
+        for a in doc.get("addons") or ():
+            if isinstance(a, dict) and a.get("id") == COMPANION_ID:
+                return a
+        return None
 
     def prefs_js(self):
         return user_js_prefs(read(os.path.join(self.profile, "prefs.js")) or "")
