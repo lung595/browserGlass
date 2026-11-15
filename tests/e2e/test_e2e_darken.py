@@ -13,12 +13,18 @@ Same throwaway browsers and stylesheets as test_e2e_tone.py; Dark Reader and
 content.js run in the page with a stand-in `browser`. Checked:
   - a light page under a dark theme: darkened (light text), html and body
     see-through, the full-page wrapper marked as canvas and see-through, a
-    small card dark but opaque, not marked;
+    small card dark but opaque, not marked; the fetch Dark Reader gets
+    returns a stylesheet, and refuses another type or a missing file;
   - a light theme gives the page its own colours back (no Dark Reader
     style, tone light), the wrapper, its lowest layer, still glass; a dark
     theme darkens it again;
   - left alone: a page that declares a dark version, an excluded page, and
-    any page with darkPages off.
+    any page with darkPages off, and a page that sets the darkening colours
+    itself under a light theme;
+  - a page with its own dark theme behind a class (a "dark" class on
+    <html>, its text colour animated) gets it instead of Dark Reader, and
+    gives it back under a light theme; a page without one is left with no
+    such mark once darkened.
 """
 
 import os
@@ -42,13 +48,29 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #card {background:rgb(240,240,240); width:200px; height:100px}
 </style></head><body><div id="wrap">""" + TEXT + """<div id="card">Card</div></div></body></html>"""
 
+# A light page with its own dark theme, on a "dark" class of <html>; the
+# text colour is animated, as theme switches often are.
+NATIVE_PAGE = """<!doctype html><html class="app"><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20); transition: color 2s}
+html.dark, html.dark body {background:rgb(17,17,17); color:rgb(230,230,230)}
+</style></head><body>""" + TEXT + """</body></html>"""
+CLASSES = "return document.documentElement.className;"
+
 # Dark Reader as a module (its UMD wrapper fills `exports`), then content.js
-# with it and a stand-in WebExtension API (the stored exclusion list).
+# with it and a stand-in WebExtension API (the stored exclusion list). The
+# fetch method content.js hands Dark Reader is kept as window.bgFetch.
 RUN = ("const exp = {}; (new Function('exports', 'module', arguments[1]))(exp, {exports: exp});"
+       "const setFetch = exp.setFetchMethod;"
+       "exp.setFetchMethod = (f) => { window.bgFetch = f; setFetch(f); };"
        "const stub = {storage: {local: {get: () => Promise.resolve({excluded: arguments[2]})}},"
        "  runtime: {onMessage: {addListener() {}}}};"
        "(new Function('browser', 'DarkReader', arguments[0]))(stub, exp);")
 DARKENED = "return !!document.querySelector('style.darkreader');"
+FETCHED = ("return window.bgFetch(arguments[0]).then((r) => r.text(), () => 'refused');")
+
+# A light page that sets the darkening colours itself.
+SPOOF_PAGE = WRAPPED_PAGE.replace(
+    "</style>", ":root {--browserglass-darken-bg: #000; --browserglass-darken-fg: #fff}</style>")
 MARKED = "return document.getElementById(arguments[0]).hasAttribute(arguments[1]);"
 
 
@@ -83,6 +105,7 @@ class DarkenE2E(unittest.TestCase):
             with self.subTest(browser=name):
                 self.check_darken(binary)
                 self.check_left_alone(binary)
+                self.check_native(binary)
 
     def run_content(self, b, excluded=()):
         b.js(RUN, self.content_js, self.darkreader_js, list(excluded))
@@ -92,14 +115,23 @@ class DarkenE2E(unittest.TestCase):
                     element_id)
 
     def check_darken(self, binary):
-        routes = {"/w.html": ("text/html; charset=utf-8", WRAPPED_PAGE.encode("utf-8"))}
+        routes = {"/w.html": ("text/html; charset=utf-8", WRAPPED_PAGE.encode("utf-8")),
+                  "/s.css": ("text/css; charset=utf-8", b"p {}"),
+                  "/s.json": ("application/json", b"{}")}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
             b.navigate(srv.url("/w.html", "light.test"))
             self.run_content(b)
             self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            # Dark Reader's fetch hands over stylesheets only
+            self.assertEqual(b.js(FETCHED, srv.url("/s.css", "light.test")), "p {}")
+            self.assertEqual(b.js(FETCHED, srv.url("/s.json", "light.test")), "refused")
+            self.assertEqual(b.js(FETCHED, srv.url("/none.css", "light.test")), "refused")
             self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            # its own dark theme was tried first, and taken back
+            self.assertEqual(b.js(CLASSES), "")
+            self.assertIsNone(b.js("return document.documentElement.getAttribute('data-theme');"))
             self.assertEqual(b.js("return document.documentElement.getAttribute(arguments[0]);",
                                   tone.TONE), "dark")
             text, html, body = tone.colors(b)
@@ -125,6 +157,32 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(DARKENED), "not darkened again")
             self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS))
 
+    def check_native(self, binary):
+        routes = {"/n.html": ("text/html; charset=utf-8", NATIVE_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/n.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for("return document.documentElement.getAttribute(arguments[0]) === 'dark';",
+                                       mn.WAIT_TIMEOUT, tone.TONE), "own dark theme not on")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertFalse(b.js(DARKENED), "Dark Reader used over the page's own dark theme")
+            self.assertIn("dark", b.js(CLASSES).split())
+            self.assertIn("app", b.js(CLASSES).split())
+            text = tone.colors(b)[0]
+            self.assertGreater(tone.luminance(tone.rgba(text)), 0.179, text)
+            # a light theme takes it back, the page's own class kept
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return document.documentElement.className === 'app'"
+                                       " && document.documentElement.getAttribute('data-theme') === null;"),
+                            "own dark theme not taken back")
+            # dark again: tried again
+            tone.set_scheme(b, True)
+            self.assertTrue(b.wait_for("return document.documentElement.classList.contains('dark');"),
+                            "own dark theme not tried again")
+            self.assertFalse(b.js(DARKENED))
+
     def left_alone(self, b, why):
         # content.js decides once the list is there and the page loaded:
         # both are by the time LIVE is set
@@ -135,7 +193,8 @@ class DarkenE2E(unittest.TestCase):
 
     def check_left_alone(self, binary):
         routes = {"/w.html": ("text/html; charset=utf-8", WRAPPED_PAGE.encode("utf-8")),
-                  "/d.html": ("text/html; charset=utf-8", tone.DARK_PAGE.encode("utf-8"))}
+                  "/d.html": ("text/html; charset=utf-8", tone.DARK_PAGE.encode("utf-8")),
+                  "/s.html": ("text/html; charset=utf-8", SPOOF_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -152,6 +211,11 @@ class DarkenE2E(unittest.TestCase):
             b.navigate(srv.url("/w.html", "light.test"))
             self.run_content(b)
             self.left_alone(b, "darkPages off")
+            # the page's own darkening colours, under a light theme
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/s.html", "light.test"))
+            self.run_content(b)
+            self.left_alone(b, "colours set by the page, light theme")
 
 
 if __name__ == "__main__":

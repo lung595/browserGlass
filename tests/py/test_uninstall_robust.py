@@ -289,6 +289,33 @@ class SyncEdgeTest(RobustCase):
         self.uninstall()
         self.assertEqual(self.fh.snapshot("."), before)
 
+    def test_dangling_chrome_folder_link_is_left_alone(self):
+        outside = self.fh.root / "outside"
+        outside.mkdir()
+        chrome = self.fh.resolve(PROFILE + "/chrome")
+        os.symlink(str(outside / "missing" / "chrome"), str(chrome))
+        before = self.fh.snapshot(".")
+        out = self.sync()
+        self.assertIn("dangling_link", [w["code"] for w in out["warnings"]])
+        self.assertEqual(os.listdir(str(outside)), [])
+        self.uninstall()
+        self.assertEqual(os.listdir(str(outside)), [])
+        self.assertEqual(self.fh.snapshot("."), before)
+
+    def test_bad_backup_mode_is_ignored(self):
+        css = PROFILE + "/chrome/userChrome.css"
+        for bad in (-1, 2 ** 40):
+            with self.subTest(mode=bad):
+                self.fh.write(css, "/* mine */\n", mode=0o644)
+                self.sync()
+                doc = self.state()
+                doc["backups"][self.pid()]["files"]["userChrome.css"]["mode"] = bad
+                self.fh.write(STATE + "/state.json", json.dumps(doc))
+                self.uninstall()
+                self.assertEqual(self.fh.read(css), "/* mine */\n")
+                mode = os.stat(str(self.fh.resolve(css))).st_mode
+                self.assertEqual(mode & ~0o777 & 0o7777, 0, oct(mode))
+
     def test_empty_chrome_folder_survives(self):
         chrome = self.fh.resolve(PROFILE + "/chrome")
         chrome.mkdir()

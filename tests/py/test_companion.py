@@ -160,13 +160,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("[" + bg.ATTR_CANVAS + "]", bg._CONTENT_LAYERS)
         bars = js[js.index("function markBars()"):js.index("let layerFrame")]
         self.assertIn("off !== false", bars)
-        self.assertIn('style.position !== "fixed" && style.position !== "sticky"', bars)
+        # fixed or sticky, or in the flow of a page that does not scroll (an
+        # app shell), the outermost one then
+        self.assertIn('position === "fixed" || position === "sticky"', bars)
+        self.assertIn("scroller.scrollHeight <= scroller.clientHeight + 1", bars)
+        self.assertIn("(pinned(el) || (shell && inFlow(el))) && along(el)", bars)
         # headers and bottom bars, sidebars, on all four edges
         self.assertIn("r.top <= EDGE || r.bottom >= h - EDGE", bars)
         self.assertIn("r.left <= EDGE || r.right >= w - EDGE", bars)
         self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]", bars)
         self.assertIn("removeAttribute(BAR)", bars)
-        self.assertIn("mark(el, BAR)", bars)
+        self.assertIn("mark(found, BAR)", bars)
         self.assertNotIn("backgroundColor", bars)
         mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
         self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= SOLID", mark)
@@ -203,11 +207,23 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("off !== false", theme)
         self.assertIn('typeof DarkReader === "undefined"', theme)
         self.assertIn("darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg", theme)
+        # a page can set the colours itself: never under a light theme
+        self.assertIn('!window.matchMedia("(prefers-color-scheme: dark)").matches', theme)
         darken = js[js.index("function darken()"):js.index("const GRID")]
         self.assertIn("darkened && !theme", darken)
         self.assertIn('tone === "light"', darken)
         self.assertIn('sampled >= ENOUGH_TEXT || document.readyState === "complete"', darken)
-        self.assertIn("DarkReader.setFetchMethod(fetch)", darken)
+        # the add-on's fetch, which the page can read through Dark Reader's
+        # copies: no credentials or referrer, stylesheets only
+        self.assertIn("DarkReader.setFetchMethod(fetchStylesheet)", darken)
+        self.assertNotIn("setFetchMethod(fetch)", js)
+        self.assertEqual(js.count("fetch("), 1)
+        fetcher = js[js.index("function fetchStylesheet("):]
+        fetcher = fetcher[:fetcher.index("\n}")]
+        for opt in ('credentials: "omit"', 'cache: "force-cache"',
+                    'referrerPolicy: "no-referrer"',
+                    "!r.ok", r"/^text\/css\b/i", 'r.headers.get("Content-Type")', "throw "):
+            self.assertIn(opt, fetcher)
         self.assertEqual(js.count("DarkReader.enable("), 1)
         self.assertIn("DarkReader.disable()", darken)
         self.assertIn("removeAttribute(CANVAS)", darken)

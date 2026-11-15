@@ -95,7 +95,7 @@ The widget is optional: the glass works without it. It shows whether the glass i
 
   *A glass site next to an excluded one.*
 
-- **Dark pages and uniform bars** (with *Live control*): under a dark theme, light pages turn dark with the bundled [Dark Reader](https://darkreader.org) engine and their background becomes glass, and every navigation bar fixed along a window edge (a header, a sidebar) gets the same look on every site, matching the browser's own toolbar.
+- **Dark pages and uniform bars** (with *Live control*): under a dark theme, light pages switch to their own dark theme when they have one, or turn dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass, and every navigation bar along a window edge (a header, a sidebar, a web app's side panel) gets the same look on every site, matching the browser's own toolbar.
 - **Glass commands in the DMS launcher**: type `gs blist` to exclude the site you are on, `gs list` to see the excluded ones. With *Live control*, the page changes at once, without a browser restart (see [Launcher](#launcher)).
 - **Reader view and PDF, the new tab page and private windows** each have a switch.
 - **Knows when to restart**: Browser Glass sees which running browser has not loaded the latest change yet and names it.
@@ -186,7 +186,7 @@ Open **Settings → Plugins → Browser Glass**.
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Generic style for other sites** | On | Adds see-through backgrounds to the inner parts of sites without a dedicated style (the page background is see-through either way) |
-| **Dark pages** | On | Under a dark theme, the companion add-on turns light pages dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass. Needs *Live control* |
+| **Dark pages** | On | Under a dark theme, the companion add-on switches light pages to their own dark theme when they have one, otherwise turns them dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass. Needs *Live control* |
 | **Excluded sites** | Empty | These sites keep their normal background. Type a domain and press **Add**, or use **Exclude copied URL**. Subdomains included |
 | **Dedicated site styles** | All on | The my-internet styles, searchable. Switch one off and that site loses its tailored style |
 

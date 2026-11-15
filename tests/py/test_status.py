@@ -321,6 +321,20 @@ class AppliedTest(StatusCase):
         self.sync()
         self.assertTrue(all(p["applied"] for b in self.status()["browsers"] for p in b["profiles"]))
 
+    def test_large_generated_css_is_applied(self):
+        # Many exclusions under liveControl make the content CSS larger
+        # than the limit of the small inputs.
+        self.home()
+        self.sync()
+        path = str(self.fh.resolve(MAIN))
+        content = self.fh.resolve(MAIN + "/chrome/dms-glass-content.css")
+        with open(str(content), "a", encoding="utf-8") as f:
+            f.write("/*" + "x" * bg.READ_LIMIT + "*/\n")
+        real = bg.applied_hash_of
+        self.addCleanup(setattr, bg, "applied_hash_of", real)
+        bg.applied_hash_of = lambda chrome, css, block: "h" if len(css) > bg.READ_LIMIT else None
+        self.assertTrue(bg.profile_applied(path, {"applied_hash": "h"}))
+
     def test_unit_needs_a_hash(self):
         self.home()
         path = str(self.fh.resolve(MAIN))

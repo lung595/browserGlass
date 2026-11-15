@@ -19,7 +19,17 @@ test_e2e_darken.py. Checked:
   - a background rendered late inside an existing element (as an Angular
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
-    marked while it is, and left alone again back at the top.
+    marked while it is, and left alone again back at the top;
+  - in a web app's shell (a page that does not scroll, a pane scrolls
+    inside), the sidebar and the header in the flow are marked, the whole
+    sidebar and not a list inside it, the pane is not; once the page itself
+    scrolls, they are left alone;
+  - short rows of links in the shell's pane, the one cut by the bottom edge
+    included, are left alone, before and after the pane scrolls;
+  - in a page that does not scroll, a side panel showing a picture and a
+    plain block along an edge (no link, no nav role) are left alone;
+  - a header in the flow of a page whose body is fixed to lock its scroll
+    (a dialog open) is left alone.
 """
 
 import os
@@ -69,6 +79,49 @@ nav {position:sticky; top:0; height:60px; background:rgba(32,32,32,0.2)}
 </style></head><body><div id="hero">Hero</div><nav id="bar">Nav</nav>
 <div id="long">""" + dk.TEXT + """</div></body></html>"""
 
+# A web app's shell: the page does not scroll, a pane does; the sidebar and
+# the header are in the flow (neither fixed nor sticky).
+SHELL_PAGE = STYLE + """
+html, body {height:100%; overflow:hidden}
+#shell {display:flex; height:100%}
+#side {width:220px; background:rgb(60,30,30)}
+#list {height:90%; padding-left:0}
+#right {flex:1; display:flex; flex-direction:column; min-width:0}
+#top {height:56px; background:rgb(30,30,60)}
+#pane {flex:1; overflow:auto; background:rgb(20,20,20)}
+#pane div {height:300vh}
+</style></head><body><div id="shell"><nav id="side"><ul id="list"><li>Inbox</li></ul></nav>
+<div id="right"><header id="top">Search</header><main id="pane"><div>Mail</div></main></div>
+</div></body></html>"""
+
+# The shell with a list of short rows of links in its pane.
+ROWS_PAGE = SHELL_PAGE.replace("#pane div {height:300vh}", ".row {height:40px}").replace(
+    "<div>Mail</div>", "".join('<div class="row" id="r%d"><a href="#">Mail %d</a></div>' % (i, i)
+                               for i in range(80)))
+# A sign-in page that fits the window: a picture panel, a form, a plain
+# block, and a fixed bottom bar.
+SPLIT_PAGE = STYLE + """
+html, body {height:100%; overflow:hidden}
+#split {display:flex; height:100%}
+#photo {width:35%; background:rgb(40,60,80) linear-gradient(rgb(90,60,30), rgb(30,60,90))}
+#form {flex:1}
+#plain {width:30%; background:rgb(50,50,50)}
+#fixbar {position:fixed; left:0; right:0; bottom:0; height:50px; background:rgb(30,30,30)}
+</style></head><body><div id="split"><aside id="photo"></aside>
+<div id="form"><a href="#">Sign in</a></div><div id="plain">Plain</div></div>
+<div id="fixbar">Bar</div></body></html>"""
+# A page with a header in the flow, its scroll then locked by fixing the
+# body (as a dialog does).
+LOCK_PAGE = STYLE + """
+#head {height:56px; background:rgb(30,30,60)}
+</style></head><body><header id="head"><a href="#">Home</a></header>
+<div id="long">""" + dk.TEXT + """</div></body></html>"""
+LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
+        "const s = document.createElement('div'); s.id = 'lockside';"
+        "s.style = 'position:fixed; top:0; bottom:0; right:0; width:200px; background:rgb(30,30,30)';"
+        "document.body.append(s);")
+ROWS_MARKED = "return [...document.querySelectorAll('.row')].filter((e) => e.hasAttribute(arguments[0])).length > 0;"
+
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
 
 
@@ -94,7 +147,11 @@ class LayersE2E(unittest.TestCase):
     def check(self, binary):
         routes = {"/a.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
                   "/s.html": ("text/html; charset=utf-8", STICKY_PAGE.encode("utf-8")),
-                  "/l.html": ("text/html; charset=utf-8", LATE_PAGE.encode("utf-8"))}
+                  "/l.html": ("text/html; charset=utf-8", LATE_PAGE.encode("utf-8")),
+                  "/shell.html": ("text/html; charset=utf-8", SHELL_PAGE.encode("utf-8")),
+                  "/rows.html": ("text/html; charset=utf-8", ROWS_PAGE.encode("utf-8")),
+                  "/split.html": ("text/html; charset=utf-8", SPLIT_PAGE.encode("utf-8")),
+                  "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -141,6 +198,44 @@ class LayersE2E(unittest.TestCase):
             b.js("window.scrollTo(0, 0);")
             self.assertTrue(b.wait_for("return !document.getElementById('bar').hasAttribute(arguments[0]);",
                                        mn.WAIT_TIMEOUT, BAR), "still marked back at the top")
+
+            b.navigate(srv.url("/shell.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "shell sidebar not marked")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "top", BAR), "shell header not marked")
+            for element_id in ("side", "top"):
+                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;",
+                                      element_id), DARK_SURFACE)
+                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).backdropFilter;",
+                                      element_id), BLUR)
+            self.assertFalse(self.marked(b, "list", BAR), "a list inside the sidebar marked")
+            self.assertFalse(self.marked(b, "pane", BAR), "the scrolling pane marked")
+            b.js("document.documentElement.style.overflow = 'auto'; document.body.style.overflow = 'visible';"
+                 "document.body.style.height = 'auto'; document.getElementById('shell').style.height = '300vh';")
+            self.assertTrue(b.wait_for("return !document.getElementById('side').hasAttribute(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, BAR), "sidebar still marked once the page scrolls")
+
+            b.navigate(srv.url("/rows.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", BAR), "shell sidebar not marked")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "top", BAR), "shell header not marked")
+            self.assertFalse(b.wait_for(ROWS_MARKED, 2.0, BAR), "a row of the pane marked")
+            b.js("document.getElementById('pane').scrollTop = 517;")
+            self.assertFalse(b.wait_for(ROWS_MARKED, 2.0, BAR), "a row of the pane marked once it scrolls")
+
+            b.navigate(srv.url("/split.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "fixbar", BAR), "fixed bottom bar not marked")
+            self.assertFalse(self.marked(b, "photo", BAR), "the picture panel marked")
+            self.assertFalse(self.marked(b, "plain", BAR), "a plain block marked")
+            self.assertNotEqual(b.js("return getComputedStyle(document.getElementById('photo')).backgroundImage;"),
+                                "none")
+
+            b.navigate(srv.url("/lock.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            b.js(LOCK)
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "lockside", BAR), "fixed sidebar not marked")
+            self.assertFalse(self.marked(b, "head", BAR), "a header marked under a scroll lock")
 
 
 if __name__ == "__main__":

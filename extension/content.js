@@ -9,12 +9,15 @@
 // page under a dark theme (and a dark one under a light theme). Under a
 // dark theme, the glass styles give the root of a page without a dark
 // version two colours (--browserglass-darken-*, the darkPages setting): a
-// light page is then turned dark with them by Dark Reader (vendor/, loaded
-// before this script), and the large elements that paint its background
+// light page first gets the usual dark-theme marks on <html> (a "dark"
+// class, data-theme="dark"...), kept if its own dark theme then shows,
+// and is otherwise turned dark with those colours by Dark Reader (vendor/,
+// loaded before this script), and the large elements that paint its background
 // get data-browserglass-canvas, which makes them glass, as does the lowest
 // layer that paints the background of any page whose root and body are
 // see-through. A navigation bar fixed or stuck along an edge of the window
-// (a header, a bottom bar, a sidebar) gets data-browserglass-bar: the same
+// (a header, a bottom bar, a sidebar), or laid along one in a page that does
+// not scroll (a web app's shell), gets data-browserglass-bar: the same
 // near-opaque blurred surface on every site.
 "use strict";
 
@@ -44,6 +47,10 @@ let tone = null;
 // take the colours back (an excluded page, a light theme, a page that
 // switched to its own dark version), whatever the tone it then shows.
 let darkened = false;
+// The page's own dark theme: tried once per dark theme (nativeTried), on
+// while it shows (native: {classes, attrs}, what was added, to take back).
+let nativeTried = false;
+let native = null;
 
 // sRGB channel (0-1) to linear light.
 function linear(c) {
@@ -182,10 +189,12 @@ function paint() {
 }
 
 // The Dark Reader theme the glass styles give this page, null when it
-// stays as it is.
+// stays as it is. The page's own CSS can set these colours too: the dark
+// theme, which it cannot fake here, is checked as well.
 function darkTheme() {
   const root = document.documentElement;
-  if (!root || off !== false || typeof DarkReader === "undefined")
+  if (!root || off !== false || typeof DarkReader === "undefined"
+      || !window.matchMedia("(prefers-color-scheme: dark)").matches)
     return null;
   const style = getComputedStyle(root);
   const bg = style.getPropertyValue(DARKEN_BG).trim();
@@ -193,9 +202,73 @@ function darkTheme() {
   return bg && fg ? {darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg} : null;
 }
 
+// Dark Reader reads the page's cross-origin stylesheets with this script's
+// fetch (the add-on's host permission), and the page can read what it
+// copies: no cookies, no referrer, and only a stylesheet.
+function fetchStylesheet(url) {
+  return fetch(url, {credentials: "omit", cache: "force-cache", referrerPolicy: "no-referrer"})
+    .then((r) => {
+      if (!r.ok || !/^text\/css\b/i.test(r.headers.get("Content-Type") || ""))
+        throw new Error("not a stylesheet");
+      return r;
+    });
+}
+
+// The marks of a page's own dark theme set on <html> (the ones the glass
+// styles read as a page with a dark version: _DARK_PAGE_MARKERS).
+const NATIVE_CLASSES = ["dark", "dark-mode", "theme-dark"];
+const NATIVE_ATTRS = [["data-theme", "dark"], ["data-bs-theme", "dark"], ["data-color-mode", "dark"],
+  ["data-theme-mode", "dark"], ["data-mode", "dark"], ["dark", ""]];
+const NO_TRANSITIONS = "*, *::before, *::after { transition: none !important; }";
+
+// Takes back what nativeDark() added, leaving alone what the page changed
+// since (a class of its own, a value it set).
+function nativeRestore() {
+  const root = document.documentElement;
+  if (native && root) {
+    root.classList.remove(...native.classes);
+    for (const [name, value] of native.attrs)
+      if (root.getAttribute(name) === NATIVE_ATTRS.find(([n]) => n === name)[1])
+        value === null ? root.removeAttribute(name) : root.setAttribute(name, value);
+  }
+  native = null;
+}
+
+// Turns on the page's own dark theme if it has one: the marks are set, the
+// tone measured at once (transitions held, so the colours are the final
+// ones), and kept only if the text turned light; true then.
+function nativeDark() {
+  const root = document.documentElement;
+  native = {classes: NATIVE_CLASSES.filter((c) => !root.classList.contains(c)),
+    attrs: NATIVE_ATTRS.map(([name]) => [name, root.getAttribute(name)])};
+  const hold = document.createElement("style");
+  hold.textContent = NO_TRANSITIONS;
+  (document.head || root).append(hold);
+  root.classList.add(...NATIVE_CLASSES);
+  for (const [name, value] of NATIVE_ATTRS)
+    root.setAttribute(name, value);
+  measure();
+  hold.remove();
+  if (tone === "dark")
+    return true;
+  nativeRestore();
+  measure();
+  return false;
+}
+
 // A light page is darkened once its tone is settled (enough text, or the
 // page loaded): a single-page app still rendering may show little text.
+// Its own dark theme is tried first; the marks are taken back with a light
+// theme or once the page is excluded.
 function darken() {
+  // a light theme, an excluded page, or the page took its dark theme back
+  if (native && (off !== false || tone === "light"
+      || !window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+    nativeRestore();
+    measure();
+  }
+  if (off !== false || !window.matchMedia("(prefers-color-scheme: dark)").matches)
+    nativeTried = false;
   const theme = darkTheme();
   if (darkened && !theme) {
     darkened = false;
@@ -205,10 +278,13 @@ function darken() {
     measure();
   } else if (!darkened && theme && tone === "light"
       && (sampled >= ENOUGH_TEXT || document.readyState === "complete")) {
+    if (!nativeTried) {
+      nativeTried = true;
+      if (nativeDark())
+        return;
+    }
     darkened = true;
-    // this script's fetch (the add-on's host permission) reads the page's
-    // cross-origin stylesheets
-    DarkReader.setFetchMethod(fetch);
+    DarkReader.setFetchMethod(fetchStylesheet);
     DarkReader.enable(theme);
     measure();
   }
@@ -293,43 +369,88 @@ function markCanvas() {
   }
 }
 
-// Navigation bars: fixed or sticky along an edge of the window, a header or
-// a bottom bar (most of its width, short, touching the top or the bottom)
-// or a sidebar (most of its height, narrow, touching the left or the
-// right). The first one under points along the four edges gets BAR,
+// Navigation bars: along an edge of the window, a header or a bottom bar
+// (most of its width, short, touching the top or the bottom) or a sidebar
+// (most of its height, narrow, touching the left or the right), either fixed
+// or sticky, or in the flow of a page that does not scroll: a web app's
+// shell (a mail client, a chat) keeps its sidebar and header in place and
+// scrolls a pane inside. One in the flow is taken only when it is navigation
+// (a nav, header, aside or footer, a navigation role, or links or buttons
+// inside), shows no picture (the bar's background replaces it), lies inside
+// the window and is not in a pane that scrolls (a row of a list). A body
+// fixed to lock the scroll (a dialog open) is not a shell. Under points
+// along the four edges, the first fixed or sticky one gets BAR, else the
+// outermost one in the flow (the whole sidebar, not a list inside it),
 // whatever its own background: one look on every site.
 const EDGE = 2;
+const NAV_LIKE = "nav, header, aside, footer, [role=navigation], [role=banner], [role=complementary]";
+const NAV_ITEMS = "a[href], button, [role=button], [role=link]";
+
+// An ancestor below <body> that scrolls its content.
+function inPane(el) {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    if ((/auto|scroll/.test(style.overflowY) && p.scrollHeight > p.clientHeight)
+        || (/auto|scroll/.test(style.overflowX) && p.scrollWidth > p.clientWidth))
+      return true;
+  }
+  return false;
+}
 
 function markBars() {
   const root = document.documentElement;
   if (!root || off !== false || !document.body)
     return;
   const w = root.clientWidth, h = window.innerHeight;
-  const bar = (el) => {
-    const style = getComputedStyle(el);
-    if (style.position !== "fixed" && style.position !== "sticky")
-      return false;
+  const scroller = document.scrollingElement || root;
+  const shell = scroller.scrollHeight <= scroller.clientHeight + 1
+    && getComputedStyle(document.body).position !== "fixed";
+  const along = (el) => {
     const r = el.getBoundingClientRect();
     return (r.width >= 0.6 * w && r.height <= 0.35 * h && (r.top <= EDGE || r.bottom >= h - EDGE))
       || (r.height >= 0.6 * h && r.width <= 0.4 * w && (r.left <= EDGE || r.right >= w - EDGE));
   };
+  const pinned = (el) => {
+    const position = getComputedStyle(el).position;
+    return position === "fixed" || position === "sticky";
+  };
+  const inFlow = (el) => {
+    const style = getComputedStyle(el);
+    if (style.position !== "static" && style.position !== "relative")
+      return false;
+    const r = el.getBoundingClientRect();
+    return r.top >= -EDGE && r.bottom <= h + EDGE && r.left >= -EDGE && r.right <= w + EDGE
+      && (el.matches(NAV_LIKE) || el.querySelector(NAV_ITEMS) !== null)
+      && style.backgroundImage === "none"
+      && !inPane(el);
+  };
+  const bar = (el) => (pinned(el) || (shell && inFlow(el))) && along(el);
   for (const el of document.querySelectorAll("[" + BAR + "]"))
     if (!bar(el))
       el.removeAttribute(BAR);
   for (let i = 0; i < GRID; i++) {
     const x = (i + 0.5) * w / GRID, y = (i + 0.5) * h / GRID;
     for (const [px, py] of [[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]) {
+      let found = null;
       for (const el of document.elementsFromPoint(px, py)) {
         if (el === root || el === document.body)
           break;
-        if (bar(el)) {
-          if (!el.hasAttribute(BAR))
-            mark(el, BAR);
+        if (!along(el))
+          continue;
+        if (pinned(el)) {
+          found = el;
           break;
         }
+        if (shell && inFlow(el))
+          found = el;
       }
+      if (found && !found.hasAttribute(BAR))
+        mark(found, BAR);
     }
   }
+  // one veil per bar: an inner one marked before its outer one was in place
+  for (const el of document.querySelectorAll("[" + BAR + "] [" + BAR + "]"))
+    el.removeAttribute(BAR);
 }
 
 // The layers are looked for again, once per frame at most: when the page

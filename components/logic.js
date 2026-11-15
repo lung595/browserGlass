@@ -766,8 +766,155 @@ function statusDecision(parsed, ctx) {
 // Clipboard exclusion
 // ---------------------------------------------------------------------------
 
+var _IDEOGRAPHIC_DOTS = /[。．｡]/g;
+var _DOMAIN_LABEL = /^[a-z0-9-]{1,63}$/;
+var _NON_ASCII = /[^\x00-\x7f]/;
+
+// The code points of `text`, or null when it holds a lone surrogate (the
+// engine's Array.from() splits a string in UTF-16 units)
+function _codePoints(text) {
+    var out = [];
+    for (var i = 0; i < text.length; i++) {
+        var c = text.charCodeAt(i);
+        if (c >= 0xd800 && c <= 0xdbff) {
+            var low = i + 1 < text.length ? text.charCodeAt(i + 1) : 0;
+            if (low < 0xdc00 || low > 0xdfff)
+                return null;
+            out.push((c - 0xd800) * 0x400 + (low - 0xdc00) + 0x10000);
+            i++;
+        } else if (c >= 0xdc00 && c <= 0xdfff) {
+            return null;
+        } else {
+            out.push(c);
+        }
+    }
+    return out;
+}
+
+function _punyDigit(d) {
+    return String.fromCharCode(d < 26 ? 97 + d : 22 + d);
+}
+
+function _punyAdapt(delta, points, first) {
+    var d = first ? Math.floor(delta / 700) : Math.floor(delta / 2);
+    d += Math.floor(d / points);
+    var k = 0;
+    while (d > 455) {
+        d = Math.floor(d / 35);
+        k += 36;
+    }
+    return k + Math.floor(36 * d / (d + 38));
+}
+
+// RFC 3492 Punycode of one label (Python's "punycode" codec), "" for a
+// label with a lone surrogate
+function _punycode(label) {
+    var cps = _codePoints(label);
+    if (cps === null)
+        return "";
+    var out = "";
+    for (var i = 0; i < cps.length; i++) {
+        if (cps[i] < 128)
+            out += String.fromCharCode(cps[i]);
+    }
+    var b = out.length;
+    var h = b;
+    if (b > 0)
+        out += "-";
+    var n = 128, delta = 0, bias = 72;
+    while (h < cps.length) {
+        var m = 0x110000;
+        for (var j = 0; j < cps.length; j++) {
+            if (cps[j] >= n && cps[j] < m)
+                m = cps[j];
+        }
+        delta += (m - n) * (h + 1);
+        n = m;
+        for (var x = 0; x < cps.length; x++) {
+            if (cps[x] < n)
+                delta++;
+            if (cps[x] !== n)
+                continue;
+            var q = delta;
+            for (var k = 36; ; k += 36) {
+                var t = k <= bias ? 1 : (k >= bias + 26 ? 26 : k - bias);
+                if (q < t)
+                    break;
+                out += _punyDigit(t + (q - t) % (36 - t));
+                q = Math.floor((q - t) / (36 - t));
+            }
+            out += _punyDigit(q);
+            bias = _punyAdapt(delta, h + 1, h === b);
+            delta = 0;
+            h++;
+        }
+        delta++;
+        n++;
+    }
+    return out;
+}
+
+// A domain as the exclusion list compares it, the way browserglass.py
+// normalize_domain() reads an excludedSites entry: the bare host of a domain
+// or URL ("https://user@Sub.Example.com:8080/path?q" -> "sub.example.com"),
+// without a leading "*." or the dots around it, lowercase, an
+// internationalised name in its "xn--" form; "" when it is no usable host
+// (Python's None). A leading "www." is kept, as Python keeps it:
+// "www.example.com" covers that host only, and the registrable domain
+// "www.gov.uk" must never turn into the public suffix "gov.uk".
+function normDomain(text) {
+    if (typeof text !== "string")
+        return "";
+    var host = text.trim();
+    var scheme = host.indexOf("://");
+    if (scheme >= 0)
+        host = host.slice(scheme + 3);
+    host = host.split(/[\/?#]/)[0];
+    host = host.slice(host.lastIndexOf("@") + 1);
+    if (host.charAt(0) === "[")
+        return "";
+    host = host.normalize("NFKC").toLowerCase().normalize("NFC").replace(_IDEOGRAPHIC_DOTS, ".");
+    host = host.split(":")[0].replace(/^\.+|\.+$/g, "");
+    while (host.indexOf("*.") === 0)
+        host = host.slice(2);
+    if (_NON_ASCII.test(host)) {
+        var labels = host.split(".");
+        for (var i = 0; i < labels.length; i++) {
+            if (!_NON_ASCII.test(labels[i]))
+                continue;
+            var code = _punycode(labels[i]);
+            if (!code)
+                return "";
+            labels[i] = "xn--" + code;
+        }
+        host = labels.join(".");
+    }
+    if (!host || host.length > 253)
+        return "";
+    var parts = host.split(".");
+    for (var p = 0; p < parts.length; p++) {
+        if (!_DOMAIN_LABEL.test(parts[p]))
+            return "";
+    }
+    return host;
+}
+
+// Second-level labels that ccTLDs commonly sell under ("co.uk", "gov.au")
+var _SUFFIX_LABELS = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "ltd",
+    "mil", "ne", "net", "nhs", "nic", "or", "org", "plc", "police", "sch"];
+
+// No Public Suffix List here: a single label, or "gov.uk"-like names, are
+// treated as public suffixes
+function _looksLikeSuffix(host) {
+    var labels = host.split(".");
+    if (labels.length < 2)
+        return true;
+    return labels.length === 2 && /^[a-z]{2}$/.test(labels[1]) && _SUFFIX_LABELS.indexOf(labels[0]) >= 0;
+}
+
 // The host of a URL or bare host in `text` ("" when it holds none): scheme,
-// user info, port, path and a leading "www." dropped, lowercase. Only
+// user info, port, path and a leading "www." dropped (kept when what
+// remains looks like a public suffix: "www.gov.uk"), lowercase. Only
 // http(s) URLs and bare hosts count (no about:, file:...). A backslash ends
 // the host, as a slash does (browsers read one so); the host keeps only
 // letters, digits, dots and hyphens (non-ASCII letters included, for
@@ -794,7 +941,7 @@ function hostFromText(text) {
     if (at >= 0)
         t = t.slice(at + 1);
     t = t.replace(/:\d*$/, "").replace(/\.$/, "").toLowerCase();
-    if (t.indexOf("www.") === 0)
+    if (t.indexOf("www.") === 0 && !_looksLikeSuffix(t.slice(4)))
         t = t.slice(4);
     if (t.indexOf(".") < 0 || !/^[a-z0-9.\-\u0080-\uffff]+$/.test(t))
         return "";
@@ -813,15 +960,19 @@ function hostFromText(text) {
 function excludeFromClipboard(text, excludedSites) {
     var list = Array.isArray(excludedSites) ? excludedSites.slice() : [];
     var host = hostFromText(text);
-    if (!host)
+    var h = normDomain(host);
+    if (!h)
         return {"ok": false, "domain": "", "list": list, "reason": "invalid"};
-    var current = _items(list, "domain").map(function (d) {
-        var low = String(d).trim().toLowerCase().replace(/\.$/, "");
-        return low.indexOf("www.") === 0 ? low.slice(4) : low;
-    });
+    // Stored entries are compared the way the backend reads them
+    // (normDomain keeps "www."): "www.x.com" covers that host and its
+    // subdomains, not x.com, so only the exact entry or a parent domain makes
+    // the copied host "already" listed. The copied host itself loses its
+    // "www." (hostFromText) on purpose: the bare domain covers www. and every
+    // other subdomain.
+    var current = _items(list, "domain").map(normDomain);
     for (var i = 0; i < current.length; i++) {
         var d = current[i];
-        if (d && (host === d || host.slice(-(d.length + 1)) === "." + d))
+        if (d && (h === d || h.slice(-(d.length + 1)) === "." + d))
             return {"ok": true, "domain": host, "list": list, "reason": "already"};
     }
     list.push({"domain": host});

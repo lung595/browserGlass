@@ -277,6 +277,42 @@ class DepositTest(CompanionCase):
         self.assertEqual(per[lw], bg.COMPANION_OFF)
         self.assertEqual(status["companion"]["state"], "off")
 
+    def off_while_running(self, prefs):
+        """liveControl on, then off while the browser runs; the browser
+        then exits writing the companion prefs it had into prefs.js."""
+        self.profile(LIBREWOLF, prefs=prefs)
+        self.sync()
+        holder = LockHolder(self.fh, LIBREWOLF + "/.parentlock")
+        self.addCleanup(holder.stop)
+        self.sync(liveControl=False)
+        got = self.userjs(LIBREWOLF)
+        self.assertEqual((got.get(SIG), got.get(AUTO), got.get(SCAN)), ("true", "11", "0"),
+                         "the originals hold until prefs.js is restored")
+        self.fh.write(LIBREWOLF + "/prefs.js",
+                      prefs_text(dict(prefs, **{SIG: "false", AUTO: "10", SCAN: "1"})))
+        holder.release()
+        holder.stop()
+
+    def test_live_control_off_while_running(self):
+        prefs = {"browser.startup.page": "3", AUTO: "11"}
+        self.off_while_running(prefs)
+        # Started again before any sync: user.js still overrides prefs.js.
+        got = self.userjs(LIBREWOLF)
+        self.assertEqual((got.get(SIG), got.get(AUTO), got.get(SCAN)), ("true", "11", "0"))
+        self.sync(liveControl=False)
+        self.assertEqual(self.fh.read(LIBREWOLF + "/prefs.js"), prefs_text(prefs))
+        self.assertFalse(set(self.userjs(LIBREWOLF)) & set(bg.COMPANION_PREFS))
+        before = self.fh.snapshot(".")
+        self.sync(liveControl=False)
+        self.assertEqual(self.fh.snapshot("."), before, "a second sync changes nothing")
+
+    def test_live_control_off_while_running_then_uninstall(self):
+        prefs = {"browser.startup.page": "3", AUTO: "11"}
+        self.off_while_running(prefs)
+        self.uninstall()
+        self.assertEqual(self.fh.read(LIBREWOLF + "/prefs.js"), prefs_text(prefs))
+        self.assertFalse(self.fh.exists(LIBREWOLF + "/user.js"))
+
     def test_missing_extension_folder_warns(self):
         lw = self.profile(LIBREWOLF)
         plugin = self.fh.root / "plugin"
@@ -385,6 +421,35 @@ class RemovedByUserTest(CompanionCase):
         # The plugin enabled again.
         self.assertEqual(self.states(self.sync()), {lw: bg.COMPANION_PENDING})
         self.assertTrue(self.fh.exists(LIBREWOLF + XPI_REL))
+
+    def test_removal_survives_a_lost_state(self):
+        lw = self.profile(LIBREWOLF)
+        self.sync()
+        self.fh.write(LIBREWOLF + "/" + bg.EXTENSIONS_JSON,
+                      json.dumps({"addons": [{"id": bg.COMPANION_ID}]}))
+        self.assertEqual(self.states(self.sync()), {lw: bg.COMPANION_INSTALLED})
+        os.unlink(str(self.fh.resolve(LIBREWOLF + XPI_REL)))
+        self.fh.write(LIBREWOLF + "/" + bg.EXTENSIONS_JSON, json.dumps({"addons": []}))
+        self.assertEqual(self.states(self.sync()), {lw: bg.COMPANION_REMOVED})
+        meta = STATE + "/%s/%s/%s" % (bg.BACKUP_DIR, lw, bg.BACKUP_META)
+        self.assertIs(json.loads(self.fh.read(meta))["companion_removed"], True)
+        os.unlink(str(self.fh.resolve(STATE + "/" + bg.STATE_FILE)))
+        self.assertEqual(self.states(self.sync()), {lw: bg.COMPANION_REMOVED})
+        self.removed(lw)
+        # Live control off and on again still places it.
+        self.assertEqual(self.states(self.sync(liveControl=False)), {lw: bg.COMPANION_OFF})
+        os.unlink(str(self.fh.resolve(STATE + "/" + bg.STATE_FILE)))
+        self.assertEqual(self.states(self.sync()), {lw: bg.COMPANION_PENDING})
+        self.assertTrue(self.fh.exists(LIBREWOLF + XPI_REL))
+
+    def test_removal_mark_parsed(self):
+        base = {"path": "/p", "files": {}, "prefs_original": None}
+        for value, expected in ((True, True), (False, False), (None, False), ("true", False),
+                                (1, False), ([True], False), ({"x": 1}, False)):
+            doc = dict(base, companion_removed=value)
+            self.assertIs(bg._norm_backup(doc)["companion_removed"], expected, repr(value))
+        self.assertIs(bg._norm_backup(base)["companion_removed"], False, "absent")
+        self.assertNotIn("garbage", bg._norm_backup(dict(base, garbage=True)))
 
     def test_never_seen_is_not_a_removal(self):
         # Deposited, never seen registered by a sync, then gone, on a build
@@ -963,6 +1028,16 @@ class ResiduesUnitTest(unittest.TestCase):
                          [(SIG, "false"), (AUTO, "0"), (SCAN, "1")])
         self.assertEqual(bg.companion_prefs({AUTO: '"odd"', SCAN: "true"}),
                          [(SIG, "false"), (AUTO, "14"), (SCAN, "1")])
+
+    def test_companion_guard(self):
+        everything = (SIG, AUTO, SCAN)
+        self.assertEqual(bg.companion_guard({}, everything),
+                         [(SIG, "true"), (AUTO, "15"), (SCAN, "0")])
+        originals = {SIG: {"value": "false"}, AUTO: {"value": "3"}, SCAN: {"absent": True}}
+        self.assertEqual(bg.companion_guard(originals, everything),
+                         [(SIG, "false"), (AUTO, "3"), (SCAN, "0")])
+        odd = {SIG: {"value": '"no"'}, AUTO: {"value": "true"}, SCAN: {"value": "1);x("}}
+        self.assertEqual(bg.companion_guard(odd, (SCAN, SIG)), [(SIG, "true"), (SCAN, "0")])
 
     def test_firefox_builds_from_the_env_argument(self):
         # The env given to main() wins over os.environ (a profile that

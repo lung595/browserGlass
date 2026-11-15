@@ -440,7 +440,35 @@ Item {
                     e = Logic.excludeFromClipboard("https://github.com/", [{
                             "domain": "www.GitHub.com."
                         }]);
-                    t.check("a listed www. form matches", e.reason, "already");
+                    t.check("a listed www. host does not cover the bare domain", [e.reason, e.domain, e.list.length], ["added", "github.com", 2]);
+                    e = Logic.excludeFromClipboard("https://example.org/", [{
+                            "domain": "www.example.org"
+                        }]);
+                    t.check("www.example.org listed, example.org copied: added", e.reason, "added");
+                    e = Logic.excludeFromClipboard("https://www.example.org/", [{
+                            "domain": "example.org"
+                        }]);
+                    t.check("example.org listed, www.example.org copied: already", e.reason, "already");
+                    t.check("www. is kept when dropping it would leave a public suffix", ["https://www.gov.uk/", "https://www.example.org/", "https://www.bbc.co.uk/", "https://www.co.jp/", "https://www.example.co/"].map(Logic.hostFromText), ["www.gov.uk", "example.org", "bbc.co.uk", "www.co.jp", "example.co"]);
+                    e = Logic.excludeFromClipboard("https://www.gov.uk/", []);
+                    t.check("www.gov.uk copied: saved as is, not the suffix", [e.reason, e.domain], ["added", "www.gov.uk"]);
+                    e = Logic.excludeFromClipboard("https://example.com/", [{
+                            "domain": "*.example.com"
+                        }]);
+                    t.check("*.example.com listed, example.com copied: already", e.reason, "already");
+                    e = Logic.excludeFromClipboard("https://example.com/a", [{
+                            "domain": "https://Example.com/"
+                        }]);
+                    t.check("a URL listed covers its host", e.reason, "already");
+                    e = Logic.excludeFromClipboard("https://Bücher.example/", [{
+                            "domain": "xn--bcher-kva.example"
+                        }]);
+                    t.check("an IDN listed in punycode, copied in Unicode: already", e.reason, "already");
+                    e = Logic.excludeFromClipboard("https://xn--bcher-kva.example/", [{
+                            "domain": "bücher.example"
+                        }]);
+                    t.check("an IDN listed in Unicode, copied in punycode: already", e.reason, "already");
+                    t.check("normDomain is shared", Logic.normDomain("https://user@Sub.Example.com:8080/p"), "sub.example.com");
                     e = Logic.excludeFromClipboard("not a url", undefined);
                     t.check("invalid clipboard", [e.ok, e.reason, e.list], [false, "invalid", []]);
 

@@ -17,6 +17,8 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Live control in frames** (`all_frames`): today only the main page switches at once; frames follow at the next restart.
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
+- **Dark pages decided by the helper**: send the *Dark pages* setting with the excluded sites, so the companion darkens only when the helper says so. Today, under a dark theme, a page can set the colour variables itself and switch the darkening on while *Dark pages* is off (what Dark Reader then fetches is limited to stylesheets, without cookies).
+- **Exclude copied URL and private suffixes**: `www.` is kept before country suffixes such as `gov.uk`, but not yet before private ones such as `github.io`; the helper, which has the Public Suffix List, could reduce the host instead.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.
 - **The DMS plugin registry**: submit the plugin once it has had wider use.

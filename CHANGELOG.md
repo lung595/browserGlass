@@ -7,13 +7,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
-- **Dark pages** (*Sites*, on by default, with *Live control*): under a dark theme, the companion add-on turns light pages dark with the bundled [Dark Reader](https://darkreader.org) engine (v4.9.135, MIT, `extension/vendor/`) in the DMS colours, and their background becomes glass, the large elements that paint it included (marked `data-browserglass-canvas`). Pages with a dark version, excluded sites and a light theme are left alone. Off, a light page gets the light glass as before.
-- **Page layers** (with *Live control*): the companion add-on makes the lowest layer that paints a page's background glass (a fixed full-window container, as in Jellyfin; marked `data-browserglass-canvas`) when the root and body are see-through already (looked for again after a click or a late render, as in TrueNAS), and gives every navigation bar fixed or stuck along a window edge (a header, a bottom bar, a sidebar) the same look on every site, close to the browser's own toolbar: a light veil of the DMS surface (35 %, over the page's tint) and a strong blur, so what scrolls under it stays unreadable (`data-browserglass-bar`).
+- **Dark pages** (*Sites*, on by default, with *Live control*): under a dark theme, the companion add-on turns light pages dark. It first tries the page's own dark theme (the usual marks on `<html>`: a `dark` class, `data-theme="dark"`, `data-bs-theme="dark"`…, kept only if the text turns light), and otherwise uses the bundled [Dark Reader](https://darkreader.org) engine (v4.9.135, MIT, `extension/vendor/`) in the DMS colours, and their background becomes glass, the large elements that paint it included (marked `data-browserglass-canvas`). Pages with a dark version, excluded sites and a light theme are left alone. Off, a light page gets the light glass as before.
+- **Page layers** (with *Live control*): the companion add-on makes the lowest layer that paints a page's background glass (a fixed full-window container, as in Jellyfin; marked `data-browserglass-canvas`) when the root and body are see-through already (looked for again after a click or a late render, as in TrueNAS), and gives every navigation bar fixed or stuck along a window edge (a header, a bottom bar, a sidebar) the same look on every site, close to the browser's own toolbar: a light veil of the DMS surface (35 %, over the page's tint) and a strong blur, so what scrolls under it stays unreadable (`data-browserglass-bar`). In a web app that does not scroll as a whole and scrolls a pane inside (a mail client, a chat), the sidebar and the header laid along the window's edges get the same look, even though they are neither fixed nor sticky (only nav-like blocks with links or buttons, fully in the window, outside a scrolling pane, and without a background picture).
 
 ### Fixed
 
 - **Background images** on sites with the generic style (the photo behind a banner, as on a WordPress hero `<section>`) are no longer removed: the generic style now clears background colours only.
 - **Pages with a dark version** (YouTube and other sites marked dark on `<html>`) never get the light glass, even when the companion measured them before their text appeared; the companion also measures again as a single-page app renders, and reads the colour of the visible text rather than the body's.
+- **Exclude copied URL** no longer reports a bare domain as excluded when only its `www.` form is listed (`www.example.org` covers `www.example.org` and its subdomains, not `example.org`), recognises listed entries written as `*.example.com`, a full URL or an IDN in either form, and keeps `www.` when dropping it would leave a public suffix (`www.gov.uk` is saved as is, not `gov.uk`).
+- **Status with many excluded sites**: the generated CSS is read with the larger data limit, so a profile with hundreds of exclusions is no longer reported as not applied.
+- **A companion removed in `about:addons`** stays removed even when `state.json` is lost: the mark is also kept in the profile's backup (`backup/<profile>/meta.json`).
+
+### Security
+
+- **Add-on signature checks** come back at the next browser start even when *Live control* is turned off while the browser runs: until the original prefs are restored in `prefs.js`, the `user.js` block holds their original values (or the browser defaults).
+- **Dark Reader's stylesheet fetch** sends no cookies or referrer and accepts only stylesheets, and a page can no longer switch the darkening on under a light system theme by setting its colour variables itself.
+- **Uninstall** ignores a file mode out of range in the backup records (it used to apply it as is, or stop on a huge value).
+- **A `chrome/` folder that is a dangling symlink** is left alone with a warning; sync used to create its target outside the profile.
 
 ### Changed
 

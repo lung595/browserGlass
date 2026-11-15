@@ -154,8 +154,8 @@ ATTR_TONE = "data-browserglass-tone"
 # The add-on also sets CANVAS on the large elements that paint the page's
 # background once it turned a light page dark (darkPages): they become glass.
 ATTR_CANVAS = "data-browserglass-canvas"
-# ... and BAR on a bar stuck to the top or bottom of the window (a sticky or
-# fixed header) left see-through, often by the generic style: glass tint.
+# ... and BAR on a navigation bar along an edge of the window (a header, a
+# bottom bar, a sidebar; see _CONTENT_LAYERS): a light veil over a blur.
 ATTR_BAR = "data-browserglass-bar"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
@@ -1779,7 +1779,8 @@ _CONTENT_DARKEN = (
 #   over most of the window (a fixed full-window container, a wrapper):
 #   glass;
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
-#   window (a header, a bottom bar, a sidebar), whatever its own colours.
+#   window (a header, a bottom bar, a sidebar), or laid along one in a page
+#   that does not scroll (a web app's shell), whatever its own colours.
 #   Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
 #   strong blur, the dark one on a dark (or darkened) page, the light one
 #   on a light page, by the theme otherwise. The page is tinted already,
@@ -4007,6 +4008,23 @@ def companion_prefs(originals):
     ]
 
 
+def companion_guard(originals, prefs):
+    """[(pref, JS literal)] of the companion prefs `prefs` at their value of
+    `originals` (record["prefs_original"]), the browser default for one
+    absent or odd: what the block holds for them while their restore in
+    prefs.js waits for the browser to close."""
+    defaults = {PREF_SIGNATURES: "true", PREF_AUTODISABLE: str(AUTODISABLE_DEFAULT),
+                PREF_STARTUP_SCAN: str(STARTUP_SCAN_DEFAULT)}
+    out = []
+    for pref in COMPANION_PREFS:
+        if pref in prefs:
+            value = originals.get(pref, {}).get("value")
+            valid = value in ("true", "false") if pref == PREF_SIGNATURES \
+                else value is not None and _SCOPE_LITERAL.fullmatch(value)
+            out.append((pref, value if valid else defaults[pref]))
+    return out
+
+
 def companion_xpi_path(profile_path):
     return os.path.join(profile_path, EXTENSIONS_DIR, COMPANION_XPI)
 
@@ -4996,14 +5014,15 @@ def _norm_backup(value):
         digest = item.get("sha256")
         files[name] = {
             "existed": item.get("existed") is True,
-            "mode": mode if isinstance(mode, int) and not isinstance(mode, bool) else None,
+            "mode": (mode if isinstance(mode, int) and not isinstance(mode, bool)
+                     and 0 <= mode <= 0o777 else None),
             "sha256": digest if isinstance(digest, str) else None,
         }
     path = value.get("path")
     originals = value.get("prefs_original")
     return {"path": path if isinstance(path, str) else None,
             "chrome_dir": value.get("chrome_dir") is True, "ext_dir": value.get("ext_dir") is True,
-            "files": files,
+            "companion_removed": value.get("companion_removed") is True, "files": files,
             "prefs_original": _norm_prefs_original(originals) if isinstance(originals, dict) else None}
 
 
@@ -5293,8 +5312,8 @@ def backup_take(sdir, pid, path, texts, prefs_original=None):
                     chrome_dir = True
             elif entry not in ours:
                 chrome_dir = True
-    record = {"path": path, "chrome_dir": chrome_dir, "ext_dir": False, "files": files,
-              "prefs_original": prefs_original}
+    record = {"path": path, "chrome_dir": chrome_dir, "ext_dir": False, "companion_removed": False,
+              "files": files, "prefs_original": prefs_original}
     os.makedirs(os.path.join(sdir, BACKUP_DIR), mode=0o700, exist_ok=True)
     os.mkdir(folder, 0o700)
     try:
@@ -6038,15 +6057,17 @@ def _restart_prefix(base):
     return base["restart_prefix"]
 
 
-def profile_output(base, profile, record=None, companion=None):
+def profile_output(base, profile, record=None, companion=None, guard=()):
     """What sync writes to `profile` (a Profile) and its fingerprints:
     {chrome, content, block, block_prefs, block_values, hash, restart_hash,
     excl_hash}. hash is applied_hash (applied_hash_of), the one
     profile_applied() finds again on disk. `record` is the profile's state
     record, None for a new one: an output it already describes keeps its
-    restart_hash. `companion` goes to userjs_prefs()."""
+    restart_hash. `companion` goes to userjs_prefs(). `guard`
+    (companion_guard) ends the block but is not in block_prefs: those
+    prefs are not owned."""
     prefs = userjs_prefs(base["settings"], base["opacity"], base["off"], profile, companion)
-    block = userjs_block_text(prefs)
+    block = userjs_block_text(prefs + list(guard))
     applied = applied_hash_of(base["chrome"], base["content"], block, base["hash_prefix"])
     if (record is not None and record.get("restart_hash") is not None
             and record.get("applied_hash") == applied
@@ -6090,6 +6111,11 @@ def _sync_profile(ctx, profile):
             "glass_loaded_since_start": False,
             "restart_hash": None, "excl_hash": None, "live": None, "companion": None,
         }
+        backup = state["backups"].get(pid)
+        if backup is not None and backup["companion_removed"]:
+            # Removed by the user before state.json was lost.
+            record["companion"] = {"dropped": None, "build": compat_values(path).get("LastVersion"),
+                                   "refused": None, "ext_dir": backup["ext_dir"], "seen": True}
         pend = ctx["pending"].get(pid)
         if pend is not None:
             # The deferred cleanup is dropped below: its prefs become H3
@@ -6119,7 +6145,17 @@ def _sync_profile(ctx, profile):
     state["profiles"][pid] = record
 
     comp_state, comp_originals = _companion_plan(ctx, profile, record, fresh, prefs_text)
-    out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals)
+    # Companion prefs leaving the block while the browser runs: it writes
+    # its values (unsigned add-ons allowed) to prefs.js, restored only once
+    # it is closed. Until then the block holds the originals: user.js
+    # overrides prefs.js at every start.
+    guard = []
+    if comp_originals is None:
+        waiting = [p for p in COMPANION_PREFS
+                   if p in record["owned_prefs"] or p in record["restore_prefs"]]
+        if waiting and lock_state(path) != LOCK_FREE:
+            guard = companion_guard(record["prefs_original"], waiting)
+    out = profile_output(ctx["base"], profile, None if fresh else record, comp_originals, guard)
     # What a running browser has loaded, probed before anything is written
     # (the writes would make every file newer than its start). Only an
     # exclusion change can be applied live, and only a live record can
@@ -6138,7 +6174,16 @@ def _sync_profile(ctx, profile):
                        0o600 if name == USER_JS else None))
     changed = False
     clean = True
+    # A dangling chrome/ link would make the writes create its target
+    # folders outside the profile.
+    chrome_dangling = os.path.islink(chrome_dir) and not os.path.exists(chrome_dir)
+    if chrome_dangling:
+        warnings.append(make_warning(WARN_DANGLING_LINK, "%s is a dangling symlink, left unchanged"
+                                     % CHROME_DIR, family, pid))
+        clean = False
     for target, text, mode in writes:
+        if chrome_dangling and os.path.dirname(target) == chrome_dir:
+            continue
         ctx["folders"].add(os.path.dirname(target))
         ctx["folders"].add(_target_dir(target))
         before = len(warnings)
@@ -6344,8 +6389,10 @@ def _companion_files(ctx, profile, record, state):
                                      "ext_dir": False, "seen": False} \
             and state not in COMPANION_DEPOSITED:
         record["companion"] = None
-    _backup_mark_ext_dir(ctx["sdir"], pid, backup, comp is not None and comp["ext_dir"], warnings,
-                         family)
+    _backup_mark(ctx["sdir"], pid, backup, "ext_dir", comp is not None and comp["ext_dir"],
+                 warnings, family)
+    _backup_mark(ctx["sdir"], pid, backup, "companion_removed", state == COMPANION_REMOVED,
+                 warnings, family)
     return changed
 
 
@@ -6361,17 +6408,19 @@ def _ext_dir_ours(folder, backup):
         return False
 
 
-def _backup_mark_ext_dir(sdir, pid, backup, ext_dir, warnings, family=None):
-    """Keep `ext_dir` (we created extensions/) in the backup record `backup`
-    and its meta.json, where it survives a lost or corrupt state.json."""
-    if backup is None or backup["ext_dir"] == ext_dir:
+def _backup_mark(sdir, pid, backup, key, value, warnings, family=None):
+    """Keep the flag `key` ("ext_dir": we created extensions/;
+    "companion_removed": the user removed the add-on) in the backup record
+    `backup` and its meta.json, where it survives a lost or corrupt
+    state.json."""
+    if backup is None or backup[key] == value:
         return
-    backup["ext_dir"] = ext_dir
+    backup[key] = value
     meta = os.path.join(backup_folder(sdir, pid), BACKUP_META)
     try:
         doc = json.loads(read_text(meta))
         if isinstance(doc, dict):
-            doc["ext_dir"] = ext_dir
+            doc[key] = value
             write_if_changed(meta, state_text(doc), warnings, mode=0o600, make_dirs=False)
     except (OSError, ValueError, RecursionError) as exc:
         reason = _oserror_text(exc) if isinstance(exc, OSError) else "unreadable"
@@ -6862,7 +6911,7 @@ def _uninstall_file(ctx, profile_path, pid, family, name, rel, backup):
             if item["mode"] is not None:
                 target = os.path.realpath(path)
                 if stat.S_IMODE(os.stat(target).st_mode) != item["mode"]:
-                    os.chmod(target, item["mode"])
+                    os.chmod(target, item["mode"] & 0o777)
             return removed, original != stripped, True
         ctx["keep_backup"].add(pid)
         if removed:
@@ -7506,6 +7555,7 @@ def cmd_uninstall(args, env):
                     if pid in ctx["keep_backup"]:
                         # Its prefs were restored: meta's originals are stale.
                         state["backups"][pid]["prefs_original"] = None
+                        state["backups"][pid]["companion_removed"] = False
                         _drop_meta_originals(sdir, pid, warnings)
                         continue
                     shutil.rmtree(backup_folder(sdir, pid), ignore_errors=True)
@@ -7559,11 +7609,15 @@ def cmd_uninstall(args, env):
 
 
 def _drop_meta_originals(sdir, pid, warnings):
+    """Drop the prefs originals and the companion removal mark of a backup
+    an uninstall keeps."""
     meta = os.path.join(backup_folder(sdir, pid), BACKUP_META)
     try:
         doc = json.loads(read_text(meta))
-        if isinstance(doc, dict) and doc.get("prefs_original") is not None:
+        if isinstance(doc, dict) and (doc.get("prefs_original") is not None
+                                      or "companion_removed" in doc):
             doc["prefs_original"] = None
+            doc.pop("companion_removed", None)
             write_if_changed(meta, state_text(doc), warnings, mode=0o600, make_dirs=False)
     except (OSError, ValueError, RecursionError):
         pass
@@ -7684,8 +7738,9 @@ def profile_applied(path, record):
     if record is None or record["applied_hash"] is None:
         return False
     try:
-        chrome = read_text(os.path.join(path, CHROME_DIR, CHROME_CSS_NAME))
-        content = read_text(os.path.join(path, CHROME_DIR, CONTENT_CSS_NAME))
+        # Our own files: the content CSS grows with the exclusion list.
+        chrome = read_text(os.path.join(path, CHROME_DIR, CHROME_CSS_NAME), DATA_READ_LIMIT)
+        content = read_text(os.path.join(path, CHROME_DIR, CONTENT_CSS_NAME), DATA_READ_LIMIT)
         for name, rel in PROFILE_FILES:
             if name in _FILE_IMPORT:
                 text = read_text(os.path.join(path, rel))
