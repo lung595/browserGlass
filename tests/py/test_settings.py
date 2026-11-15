@@ -138,7 +138,7 @@ class DomainListTest(unittest.TestCase):
 
 
 class MigrationTest(unittest.TestCase):
-    """v0 pluginData keys (H4)."""
+    """v0 pluginData keys."""
 
     def test_excluded_sites(self):
         out = parse({bg.V0_SETTING_EXCLUDED: [{"domain": "Old.org"}, {"domain": "x.net"},

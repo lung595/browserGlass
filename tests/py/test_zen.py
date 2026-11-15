@@ -1,4 +1,4 @@
-"""Zen Browser (H9): discovery, transparency mods, sync/uninstall round trip.
+"""Zen Browser: discovery, transparency mods, sync/uninstall round trip.
 
 Zen's mod manager keeps the registry of installed mods at the profile root,
 <profile>/zen-themes.json (chrome/ holds the generated zen-themes.css and the

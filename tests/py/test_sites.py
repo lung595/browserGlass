@@ -10,8 +10,8 @@ Golden files (regenerate with BG_REGEN_GOLDEN=1, then review the diff):
   - tests/py/golden/v0-sites-build.css.gz: the output of v0
     `browser-glass-sites build CACHE "example.org,www.my-site.net"` on data/
     (PYTHONHASHSEED=0, gzip mtime 0). It is regenerated only when the v0
-    script is available: $BG_V0_DIR/browser-glass-sites, else the repo's
-    browser-glass-sites while it still exists. The v0 script always runs
+    script is available: $BG_V0_DIR/browser-glass-sites, else
+    tests/fixtures/v0/browser-glass-sites. The v0 script always runs
     under a FakeHome, on a copy of data/ in the fake cache.
 
 Documented differences with v0 (normalised away by v0_normalize()):
@@ -30,7 +30,7 @@ Documented differences with v0 (normalised away by v0_normalize()):
   6. data/styles.json is the upstream file minus the keys whose name hits
      the project's denylist (see test_leaks.py); v0 runs on the same
      filtered data, so nothing is normalised here. tools/update_styles.py
-     (P8) must apply the same filter.
+     must apply the same filter.
   7. Every style (generic and dedicated) is gated on the colour scheme: as
      is under a light theme, only on pages declaring a dark version under a
      dark one (bg._scheme_gated), so light-only pages stay legible.
@@ -78,7 +78,9 @@ def matching(css, url):
 def v0_script():
     """Path of the v0 browser-glass-sites script, or None."""
     folder = os.environ.get("BG_V0_DIR")
-    path = os.path.join(folder, "browser-glass-sites") if folder else str(REPO / "browser-glass-sites")
+    if not folder:
+        folder = str(REPO / "tests" / "fixtures" / "v0")
+    path = os.path.join(folder, "browser-glass-sites")
     return path if os.path.isfile(path) else None
 
 
@@ -538,13 +540,8 @@ class V0ParityTest(unittest.TestCase):
     def test_live_v0(self):
         script = v0_script()
         if not script:
-            self.skipTest("v0 browser-glass-sites not available (set BG_V0_DIR)")
+            self.skipTest("v0 browser-glass-sites missing (tests/fixtures/v0 or BG_V0_DIR)")
         self.assertEqual(run_v0_build(script, DATA, V0_EXCLUSIONS), self.v0)
-
-
-if __name__ == "__main__":
-    unittest.main()
-
 
 
 class OwnNewStyleTest(unittest.TestCase):
@@ -560,6 +557,7 @@ class OwnNewStyleTest(unittest.TestCase):
             self.assertIn("/* %s */\n@-moz-document" % key, css)
             # The generic style skips the site: its name is in the lookahead.
             self.assertIn(name.replace(".", "\\\\."), generic, key)
+
 
 class OwnSitesTest(unittest.TestCase):
 
@@ -596,3 +594,7 @@ class OwnSitesTest(unittest.TestCase):
             # No network and no nested document rule (the block is one already).
             self.assertNotRegex(css, r"(?i)url\(|@-moz-document", key)
             self.assertTrue(css.startswith("/*"), "%s: begin with a comment" % key)
+
+
+if __name__ == "__main__":
+    unittest.main()

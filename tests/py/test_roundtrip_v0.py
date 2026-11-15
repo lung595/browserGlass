@@ -1,4 +1,4 @@
-"""Black-box round trips of the browserglass.py CLI (phase P3 gate).
+"""Black-box round trips of the browserglass.py CLI.
 
 Everything goes through the command line, inside a FakeHome: nothing of the
 script is imported.

@@ -1,4 +1,4 @@
-"""browserglass.py status --json (P4): contract, read-only, H1 held rule.
+"""browserglass.py status --json: contract, read-only, the held niri rule.
 
 Runs the command line inside a FakeHome, plus unit tests of the helpers
 (tilde_path, process_start, profile_applied, state.json "last_sync").
@@ -241,7 +241,7 @@ class GlassInputsTest(StatusCase):
                          (False, "opaque", "dms"))
 
     def test_profile_sync_keeps_the_global_record(self):
-        # A --profile sync (P10 captures) must not change what status shows
+        # A --profile sync (as the screenshot tools do) must not change what status shows
         # for the real profiles: no held rule, no restart, same opacity.
         self.home()
         self.sync()
@@ -345,7 +345,7 @@ class AppliedTest(StatusCase):
 class RestartTest(StatusCase):
 
     def test_held_rule(self):
-        # H1 (deferred from P3): glass off while a browser that loaded it
+        # glass off while a browser that loaded it
         # runs: the rule stays, status reports it and asks for a restart.
         self.home()
         self.sync()
@@ -381,7 +381,7 @@ class RestartTest(StatusCase):
         self.assertEqual(doc["warnings"], [])
 
     def test_held_instance_is_recorded(self):
-        # sync records that the running browser loaded glass (H1).
+        # sync records that the running browser loaded glass.
         self.home()
         self.sync()
         self.browser(WORK)
@@ -411,7 +411,7 @@ class RestartTest(StatusCase):
         _, profile = self.profile(doc, MAIN)
         self.assertFalse(profile["running"])
         self.assertFalse(profile["restart_needed"])
-        # It still holds the rule (H1 counts it as running): said so.
+        # It still holds the rule (counted as running): said so.
         self.sync()
         self.sync(glassEnabled=False)
         doc = self.status()

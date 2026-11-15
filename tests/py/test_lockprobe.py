@@ -1,4 +1,4 @@
-"""lockprobe (H5): F_GETLK on .parentlock, and the `lock` symlink fallback.
+"""lockprobe: F_GETLK on .parentlock, and the `lock` symlink fallback.
 
 A child process plays the browser: it takes the fcntl lock Firefox takes, or
 renames itself (comm) to look like a browser for the symlink fallback.
@@ -95,7 +95,7 @@ class ParentLockTest(LockCase):
     def test_no_parentlock_no_link_is_free_and_nothing_created(self):
         before = self.fh.snapshot(self.profile)
         self.assertEqual(bg.lock_state(self.profile), bg.LOCK_FREE)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.assertEqual(self.fh.snapshot(self.profile), before)
         self.assertFalse(os.path.lexists(self.parentlock))
 
@@ -126,21 +126,21 @@ class ParentLockTest(LockCase):
     def test_write_lock_held_by_a_process_then_released(self):
         child = self.holder("w")
         self.assertEqual(bg.lock_state(self.profile), bg.LOCK_RUNNING)
-        self.assertTrue(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         # Probing took no lock and dropped none: still held.
-        self.assertTrue(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.step(child, "released")
         self.assertEqual(bg.lock_state(self.profile), bg.LOCK_FREE)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.stop(child)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_lock_dropped_when_the_process_dies(self):
         child = self.holder("w")
-        self.assertTrue(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         child.kill()
         child.wait()
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_read_lock_counts_as_running(self):
         child = self.holder("r")
@@ -151,19 +151,19 @@ class ParentLockTest(LockCase):
     def test_readonly_parentlock(self):
         child = self.holder("w")
         os.chmod(self.parentlock, 0o444)
-        self.assertTrue(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.step(child, "released")
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_flatpak_profile(self):
         # Same inode whatever the mount: the probe works for any root.
         rel = ".var/app/org.mozilla.firefox/.mozilla/firefox"
         profile = str(self.fh.make_profile(rel, "fake0002.default-release"))
         child = self.holder("w", path=os.path.join(profile, ".parentlock"))
-        self.assertTrue(bg.profile_running(profile))
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(profile) == bg.LOCK_RUNNING)
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.step(child, "released")
-        self.assertFalse(bg.profile_running(profile))
+        self.assertFalse(bg.lock_state(profile) == bg.LOCK_RUNNING)
 
     def test_stale_link_ignored_when_parentlock_answers(self):
         # A browser-looking process and a local host, but .parentlock is free:
@@ -178,7 +178,7 @@ class ParentLockTest(LockCase):
         child = self.holder("w", path=str(target))
         os.symlink(str(target), self.parentlock)
         self.assertEqual(bg.lock_state(self.profile), bg.LOCK_UNKNOWN)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.step(child, "released")
 
     def test_dangling_symlinked_parentlock(self):
@@ -203,7 +203,7 @@ class ParentLockTest(LockCase):
         self.make_link("127.0.0.1:+%d" % child.pid)
         with mock.patch.object(bg, "_getlk", side_effect=OSError(errno.EINVAL, "bad")):
             self.assertEqual(bg.lock_state(self.profile), bg.LOCK_UNKNOWN)
-            self.assertFalse(bg.profile_running(self.profile))
+            self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_no_lockf_flock_or_create_in_lockprobe(self):
         # The code of the section (comments and strings aside) never locks,
@@ -225,12 +225,12 @@ class LockLinkFallbackTest(LockCase):
         # The shape seen in the wild: a LAN address and a pid long gone.
         self.make_link("192.0.2.177:+%d" % self.dead_pid())
         self.assertEqual(bg.lock_state(self.profile), bg.LOCK_FREE)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_stale_link_pid_reused_by_another_program(self):
         child = self.holder("-")                       # comm: python
         self.make_link("127.0.0.1:+%d" % child.pid)
-        self.assertFalse(bg.profile_running(self.profile))
+        self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_live_browser_on_loopback(self):
         child = self.holder("-", comm="firefox")
@@ -241,7 +241,7 @@ class LockLinkFallbackTest(LockCase):
     def test_live_browser_without_plus(self):
         child = self.holder("-", comm="librewolf")
         self.make_link("127.0.0.1:%d" % child.pid)
-        self.assertTrue(bg.profile_running(self.profile))
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
     def test_browser_comms(self):
         for comm in ("firefox-bin", "GeckoMain", "zen", "floorp", "waterfox", "LibreWolf"):
@@ -263,13 +263,13 @@ class LockLinkFallbackTest(LockCase):
         child = self.holder("-", comm="firefox")
         self.make_link("192.0.2.177:+%d" % child.pid)
         with mock.patch.object(bg, "_local_addresses", return_value={"127.0.0.1", "198.51.100.23"}):
-            self.assertFalse(bg.profile_running(self.profile))
+            self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         os.remove(self.link)
         self.make_link("198.51.100.23:+%d" % child.pid)
         with mock.patch.object(bg, "_local_addresses", return_value={"127.0.0.1", "198.51.100.23"}):
-            self.assertTrue(bg.profile_running(self.profile))
+            self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         with mock.patch.object(bg, "_local_addresses", return_value=None):
-            self.assertTrue(bg.profile_running(self.profile))   # cannot tell: trust the pid
+            self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)   # cannot tell: trust the pid
 
     def test_garbage_links(self):
         for target in ("", "nonsense", "host:+abc", "host:+-1", "127.0.0.1:+0",
@@ -301,8 +301,8 @@ class LockLinkFallbackTest(LockCase):
         # trusted: only the link decides.
         holder = self.holder("w")
         with mock.patch.object(bg, "_getlk", side_effect=OSError(errno.ENOLCK, "x")):
-            self.assertFalse(bg.profile_running(self.profile))
-        self.assertTrue(bg.profile_running(self.profile))
+            self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
+        self.assertTrue(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
         self.step(holder, "released")
 
     def test_fallback_reads_proc_comm(self):
@@ -311,7 +311,7 @@ class LockLinkFallbackTest(LockCase):
         self.assertIsNone(bg._proc_comm(self.dead_pid()))
         self.make_link("127.0.0.1:+%d" % child.pid)
         with mock.patch.object(bg, "_proc_comm", return_value="bash"):
-            self.assertFalse(bg.profile_running(self.profile))
+            self.assertFalse(bg.lock_state(self.profile) == bg.LOCK_RUNNING)
 
 
 class FibTrieTest(unittest.TestCase):

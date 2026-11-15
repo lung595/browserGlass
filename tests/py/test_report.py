@@ -1,4 +1,4 @@
-"""browserglass.py report (P4): contract lines, anonymity, read-only.
+"""browserglass.py report: contract lines, anonymity, read-only.
 
 The fake account is "alice" and every profile name and folder carries it:
 the report must never show it, nor the home path, a profile id, a path or

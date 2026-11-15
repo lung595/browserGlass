@@ -519,7 +519,7 @@ function settleTick(now) {
 }
 
 function apply(domains) {
-  off = Array.isArray(domains) && hostExcluded(location.hostname.toLowerCase(), domains);
+  off = Array.isArray(domains) && hostExcluded(location.hostname.toLowerCase().replace(/\.$/, ""), domains);
   darken();
   paint();
   watchLayers();

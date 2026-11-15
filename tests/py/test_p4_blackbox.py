@@ -1,4 +1,4 @@
-"""Black-box contract tests of `status --json`, `report` and `sites --json` (P4).
+"""Black-box contract tests of `status --json`, `report` and `sites --json`.
 
 Everything goes through the command line (FakeHome.run_script): nothing of
 browserglass.py is imported. Outputs are checked against
@@ -412,7 +412,7 @@ class StatusTest(BlackBoxCase):
         self.assertFalse(doc["restart_needed"])
 
     def test_held_niri_rule_counts_as_restart_needed(self):
-        # H1: glass turned off while a running browser still has it loaded:
+        # glass turned off while a running browser still has it loaded:
         # the niri rule stays, status shows it and asks for a restart.
         self.build_home()
         self.sync()
@@ -440,7 +440,7 @@ class StatusTest(BlackBoxCase):
 
 
 class ZenTest(BlackBoxCase):
-    """H9: a Zen transparency mod is reported as a warning, nothing broken."""
+    """A Zen transparency mod is reported as a warning, nothing broken."""
 
     def test_transparency_mod_warns(self):
         self.build_home(zen_mods=ZEN_MOD_TRANSPARENT)

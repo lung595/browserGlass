@@ -1,7 +1,7 @@
 """browserglass.py uninstall, through the command line inside a FakeHome.
 
 Nothing installed, a full install then uninstall, backups kept when the user
-edited a file, the deferred prefs.js cleanup of a running profile (H6) and
+edited a file, the deferred prefs.js cleanup of a running profile and
 the script run from its text alone (no file next to it, empty cwd).
 
 Run: python3 -B -m unittest discover -s tests/py -v
@@ -170,7 +170,7 @@ class FullUninstallTest(UninstallCase):
 
 
 class DeferredCleanupTest(UninstallCase):
-    """H6: a running browser rewrites prefs.js on exit, so the cleanup waits."""
+    """A running browser rewrites prefs.js on exit, so the cleanup waits."""
 
     def test_pending_profile_cleaned_after_exit(self):
         self.home(prefs={PREF_SCHEME: "1", "browser.startup.page": "3"})

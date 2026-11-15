@@ -96,7 +96,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('const OFF = "%s";' % bg.ATTR_OFF, js)
 
     def test_content_measures_the_tone(self):
-        # P2b: the tone of the page, from the colour of its text, in
+        # the tone of the page, from the colour of its text, in
         # ATTR_TONE; measured again on a change of the root attributes that
         # are not ours (so setting ours never loops), of the colour scheme,
         # and on load. Nothing is sent: no runtime message from here.
@@ -263,6 +263,9 @@ class ExtensionSourcesTest(unittest.TestCase):
         load = js[js.index("function load()"):js.index("let watched")]
         self.assertIn("Array.isArray(s.excluded)", load)
         self.assertNotIn("s.excluded ||", js)
+        # the host is matched lowercased, without the dot of a full FQDN
+        self.assertIn('hostExcluded(location.hostname.toLowerCase()'
+                      '.replace(/\\.$/, ""), domains)', js)
         bjs = strip_comments(read("background.js"))
         self.assertIn("stored = Array.isArray(s.excluded);", bjs)
         self.assertIn("if (!same || !stored)", bjs)

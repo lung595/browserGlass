@@ -237,7 +237,7 @@ class PrefsTest(unittest.TestCase):
         self.assertEqual(bg.prefs_originals(prefs, "")[PREF_SCHEME], {"value": "0"})
 
     def test_originals_under_a_v0_block(self):
-        # H2/H4: v0 rewrote every managed pref on each sync, so with its block
+        # v0 rewrote every managed pref on each sync, so with its block
         # in user.js any value v0 could write is ours, even one that differs
         # from the block (1 kept in prefs.js after a light -> dark switch).
         userjs = V0_BLOCK.replace('", 1);', '", 0);')
@@ -370,6 +370,46 @@ class StaleTmpTest(unittest.TestCase):
                 bg.tempfile.mkstemp = real
             self.assertEqual(len(seen), 1)
             self.assertTrue(bg._STALE_TMP.fullmatch(seen[0]), seen[0])
+
+
+class BadPathTest(unittest.TestCase):
+    """state.json paths holding a NUL or relative are dropped, and the
+    quiet removers never raise on them."""
+
+    def test_quiet_removers(self):
+        bg._rmdir_quiet("/x/\x00y")
+        self.assertFalse(bg._remove_file("/x/\x00y"))
+
+    def test_normalisers(self):
+        self.assertEqual(bg._abs_paths(["/a", "/b\x00", "rel", 3]), ["/a"])
+        self.assertIsNone(bg._norm_record({"path": "/p\x00"}))
+        self.assertIsNone(bg._norm_record({"path": "rel/p"}))
+        self.assertEqual(bg._norm_record({"path": "/p"})["path"], "/p")
+        backup = {"files": {}, "path": "/p\x00"}
+        self.assertIsNone(bg._norm_backup(backup)["path"])
+        self.assertEqual(bg._norm_backup(dict(backup, path="/p"))["path"], "/p")
+        pend = {"version": bg.STATE_VERSION, "path": "/p\x00", "created_dirs": ["/d", "/e\x00"]}
+        self.assertIsNone(bg._norm_pending(pend))
+        self.assertEqual(bg._norm_pending(dict(pend, path="/p"))["created_dirs"], ["/d"])
+
+    def test_stale_tmp_dirs_files(self):
+        for name in ("state-dirs.json", "native-dirs.json"):
+            self.assertTrue(bg._STALE_TMP.fullmatch(".browserglass-%s.abcd_ef1.tmp" % name))
+
+
+class CompanionOutdatedTest(unittest.TestCase):
+
+    def test_foreign_runtime_dir_not_read(self):
+        with FakeHome() as fh:
+            real = fh.resolve("run/real")
+            os.makedirs(str(real))
+            pid = os.getpid()
+            with open(bg.runtime_file(str(real), "active", pid), "w") as f:
+                json.dump({"outdated": True}, f)
+            self.assertTrue(bg.companion_outdated(str(real), pid))
+            link = fh.resolve("run/link")
+            os.symlink(str(real), str(link))
+            self.assertFalse(bg.companion_outdated(str(link), pid))
 
 
 if __name__ == "__main__":

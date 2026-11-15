@@ -1,7 +1,7 @@
 """browserglass.py sync, through the command line inside a FakeHome.
 
-Idempotence, --profile, --opacity / --off, the H1 deferral of the niri rule
-removal, siteTheme "none" (H3), @charset, permissions and symlinks, read-only
+Idempotence, --profile, --opacity / --off, the deferred removal of the niri rule
+(held while a browser has glass loaded), siteTheme "none", @charset, permissions and symlinks, read-only
 files, the state lock, the v0 cache and stale temporary files.
 
 Run: python3 -B -m unittest discover -s tests/py -v
@@ -290,7 +290,7 @@ class OptionsTest(SyncCase):
 
 
 class RunningProfileTest(SyncCase):
-    """H1 (rule removal deferred while a running browser has glass) and
+    """The niri rule (removal deferred while a running browser has glass) and
     running_changed. A LockHolder plays the browser on .parentlock."""
 
     def browser(self, rel=PROFILE):

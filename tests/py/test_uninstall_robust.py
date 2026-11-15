@@ -1,4 +1,4 @@
-"""Uninstall robustness: the H2 originals survive a killed deferred cleanup,
+"""Uninstall robustness: the prefs originals survive a killed deferred cleanup,
 a re-enable while the browser runs, a lost or corrupt state, and files that
 cannot be cleaned yet (read-only, unremovable); one bad profile never stops
 the others."""
@@ -262,7 +262,7 @@ class KeptBackupTest(RobustCase):
 class SyncEdgeTest(RobustCase):
 
     def test_owned_again_takes_the_users_new_value(self):
-        # H3: the user changed the pref while glass did not own it.
+        # the user changed the pref while glass did not own it.
         self.sync()
         self.browser_ran()
         self.sync(siteTheme="none")

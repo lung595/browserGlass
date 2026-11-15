@@ -1,4 +1,4 @@
-"""browserglass.py sites --json (P4): contract, embedded data, errors.
+"""browserglass.py sites --json: contract, embedded data, errors.
 
 The command reads only the --data folder (default: the installed plugin's
 data/ under $XDG_CONFIG_HOME), never the network, and writes nothing.

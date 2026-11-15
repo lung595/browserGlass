@@ -1,4 +1,4 @@
-"""browserglass.py clean-prefs PROFILE... (internal, H6), inside a FakeHome.
+"""browserglass.py clean-prefs PROFILE... (internal: the deferred prefs cleanup), inside a FakeHome.
 
 It waits until each profile is free, cleans prefs.js, prints nothing and
 exits 0: with a v1 state it restores the recorded originals, without one it

@@ -1,4 +1,4 @@
-"""Frozen CLI contract of browserglass.py (phase P0).
+"""Frozen CLI contract of browserglass.py.
 
 Validates every fixture in tests/fixtures/contract/ against schema.json with a
 tiny stdlib validator, and checks the browserglass.py skeleton: it compiles,
@@ -55,7 +55,7 @@ SECTIONS = ("consts", "fsio", "discover", "lockprobe", "inputs", "settings",
             "cmd_* / main")
 
 # sha256 over b"\0".join(UTF-8 of these consts, in this order). Verified
-# against the v0 scripts in P0; keeps guarding the bytes after P5 deletes them.
+# against the v0 scripts (tests/fixtures/v0) by test_v0_markers_in_v0_scripts.
 V0_MARKER_NAMES = (
     "V0_USERJS_BEGIN", "V0_USERJS_END", "V0_USERJS_BLOCK_TEMPLATE",
     "V0_IMPORT_CHROME", "V0_IMPORT_CONTENT", "V0_NIRI_INCLUDE", "V0_NIRI_KDL",
@@ -465,7 +465,7 @@ class ScriptTest(unittest.TestCase):
     def test_app_ids(self):
         m = self.mod
         self.assertEqual(len(m.APP_IDS), len(set(m.APP_IDS)))
-        self.assertNotIn("firefox_firefox", m.APP_IDS)  # unverified (H7)
+        self.assertNotIn("firefox_firefox", m.APP_IDS)  # not confirmed on a real Snap install
         for app_id in m.APP_IDS:
             self.assertRegex(app_id, r"^[a-z][a-z0-9._-]*$")
         v0_ids = re.search(r"\^\((.*)\)\$", m.V0_NIRI_KDL).group(1).replace("\\.", ".").split("|")
@@ -496,10 +496,11 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("\u2014", m.V0_NIRI_KDL)
 
     def test_v0_markers_in_v0_scripts(self):
-        sync = REPO / "browser-glass-sync"
-        sites = REPO / "browser-glass-sites"
+        v0_dir = REPO / "tests" / "fixtures" / "v0"
+        sync = v0_dir / "browser-glass-sync"
+        sites = v0_dir / "browser-glass-sites"
         if not (sync.is_file() and sites.is_file()):
-            self.skipTest("v0 scripts removed (P5); covered by test_v0_markers_frozen")
+            self.skipTest("v0 scripts missing from tests/fixtures/v0")
         m = self.mod
         sync_b, sites_b = sync.read_bytes(), sites.read_bytes()
         for name in ("V0_USERJS_BEGIN", "V0_USERJS_END", "V0_IMPORT_CHROME", "V0_IMPORT_CONTENT",
