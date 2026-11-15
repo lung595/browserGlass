@@ -59,14 +59,15 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertEqual(scripts[0]["run_at"], "document_start")
         self.assertIs(scripts[0]["all_frames"], True)
         # Dark Reader first: content.js uses its global
-        self.assertEqual(scripts[1]["js"], ["vendor/darkreader.js", "content.js"])
+        self.assertEqual(scripts[1]["js"], ["vendor/darkreader.js", "theme.js", "content.js"])
         self.assertEqual(scripts[1]["run_at"], "document_start")
         self.assertNotIn("all_frames", scripts[1])  # main document only (v1.1)
         for script in scripts:
             self.assertEqual(script["matches"], ["http://*/*", "https://*/*"])
         self.assertEqual(self.manifest["background"]["scripts"], ["background.js"])
         self.assertEqual(sorted(p.name for p in EXT.iterdir()),
-                         ["background.js", "content.js", "frame.js", "manifest.json", "vendor"])
+                         ["background.js", "content.js", "frame.js", "manifest.json", "theme.js",
+                          "vendor"])
         self.assertEqual(sorted(p.name for p in (EXT / "vendor").iterdir()),
                          ["darkreader-LICENSE.txt", "darkreader.js"])
 
@@ -146,12 +147,19 @@ class ExtensionSourcesTest(unittest.TestCase):
         paint_ = js[js.index("function paint()"):js.index("function apply(")]
         self.assertIn("pass < 2", paint_)
         self.assertLess(paint_.index("setAttribute(TONE"), paint_.index("measure()"))
-        self.assertIn('matchMedia("(prefers-color-scheme: dark)").addEventListener("change", update)',
+        self.assertIn('matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {',
                       js)
+        scheme = js[js.index('addEventListener("change", () => {'):]
+        scheme = scheme[:scheme.index("});")]
+        self.assertIn("themeRun(themeCfg, false);", scheme)
+        self.assertIn("update();", scheme)
         self.assertIn('addEventListener("DOMContentLoaded", update)', js)
         self.assertIn('addEventListener("load", update)', js)
         self.assertNotIn("sendMessage", js)
-        self.assertNotIn("setTimeout", js)
+        # one timer only: the judgment of a theme written early (theme.js)
+        self.assertEqual(js.count("setTimeout"), 1)
+        self.assertIn("if (typeof themeState !== \"undefined\" && themeState.early)\n"
+                      "    setTimeout(update, THEME_JUDGE_MS + 50);", js)
         self.assertNotIn("setInterval", js)
         # ATTR_TONE only once the list is known, as LIVE.
         paint = js[js.index("function paint()"):js.index("function apply(")]
@@ -271,7 +279,62 @@ class ExtensionSourcesTest(unittest.TestCase):
         throttle = throttle[:throttle.index("\n}")]
         self.assertIn("requestAnimationFrame(", throttle)
         self.assertIn("now - inkAt < INK_MS", throttle)
-        self.assertNotIn("setTimeout", js)
+        self.assertNotIn("setTimeout", throttle)
+
+    def test_theme_writer_static(self):
+        # theme.js: synchronous, guarded, loadable twice; the record goes
+        # in before the value; a restore only takes back our own value;
+        # the generic rule never touches a cookie
+        raw = read("theme.js")
+        js = strip_comments(raw)
+        for word in ("setTimeout", "setInterval", "sendMessage", "browser.", "MutationObserver",
+                     ".observe(", "fetch("):
+            self.assertNotIn(word, js)
+        for line in js.splitlines():
+            self.assertFalse(re.match(r"(const|let|class)\b", line), line)
+        self.assertIn('var THEME_RECORD = "browserGlass.theme";', js)
+        self.assertIn('var THEME_MARK = "data-browserglass-theme";', js)
+        self.assertTrue("data-browserglass-theme".startswith("data-browserglass-"))  # OWN: unwatched
+        run = js[js.index("function themeRun("):js.index("function themeFailed(")]
+        self.assertLess(run.index("themeSaveRecord(rec)"), run.index("themeWrite(themeTarget(id, entry), value)"))
+        self.assertIn('window.matchMedia("(prefers-color-scheme: dark)").matches', js)
+        ours = js[js.index("function themeOurs("):js.index("function themeTarget(")]
+        self.assertIn("cur === entry.wrote", ours)
+        restore = js[js.index("function themeRestoreAll("):js.index("function themeMark(")]
+        self.assertIn("if (themeOurs(entry, cur))", restore)
+        self.assertIn("rec.declined.push(id)", restore)
+        generic = js[js.index("var gen = themes && themes.generic;"):js.index("function themeOurs(")]
+        self.assertNotIn("cookie", generic)
+        self.assertIn('store: "local"', generic)
+        self.assertNotIn("document.cookie", generic)
+        # a reload: early only, once per origin and session, never with a hash
+        self.assertIn("if (reload && early && !location.hash)", run)
+        self.assertIn("location.replace(location.href)", run)
+        self.assertEqual(js.count("location.replace("), 1)
+        self.assertTrue(js.rstrip().endswith('if (typeof BG_THEME !== "undefined")\n  themeRun(BG_THEME, true);'))
+
+    def test_native_marks_match_the_dark_markers(self):
+        # content.js's marks are the class and attribute markers the glass
+        # styles read as a page with a dark version (_DARK_PAGE_MARKERS),
+        # minus the color-scheme meta and pdf.js
+        js = read("content.js")
+        classes = json.loads(re.search(r"const NATIVE_CLASSES = (\[[^\]]*\]);", js).group(1))
+        attrs = re.search(r"const NATIVE_ATTRS = (\[.*?\]\]);", js, re.S).group(1)
+        attrs = json.loads(re.sub(r"\s+", " ", attrs))
+        want_classes, want_attrs = [], []
+        for m in bg._DARK_PAGE_MARKERS:
+            if m.startswith(":"):
+                continue
+            c = re.fullmatch(r"\.([a-z-]+)", m)
+            a = re.fullmatch(r'\[([a-z-]+)(?:~?="([a-z]+)" i)?\]', m)
+            if c:
+                want_classes.append(c.group(1))
+            elif a:
+                want_attrs.append([a.group(1), a.group(2) or ""])
+            else:
+                self.fail("unknown marker " + m)
+        self.assertEqual(sorted(classes), sorted(want_classes))
+        self.assertEqual(sorted(map(tuple, attrs)), sorted(map(tuple, want_attrs)))
 
     def test_frame_keeps_embedded_pages_off(self):
         # an embedded page keeps its own look: <html> of every frame but the
@@ -308,9 +371,13 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("helperDark = dark === true;", apply_)
         self.assertLess(apply_.index("helperDark ="), apply_.index("darken()"))
         load = js[js.index("function load()"):js.index("let watched")]
-        self.assertIn('browser.storage.local.get(["excluded", "darken"])', load)
-        self.assertIn("apply(s.excluded, s.darken)", load)
-        self.assertIn("apply(msg.domains, msg.darken)", js)
+        self.assertIn('browser.storage.local.get(["excluded", "darken", "themes"])', load)
+        self.assertIn("apply(s.excluded, s.darken, s.themes)", load)
+        self.assertIn("apply(msg.domains, msg.darken, msg.themes)", js)
+        # the site's own stored theme: run again once the list is known
+        # (a restore, a late write), before the marks and Dark Reader
+        self.assertIn("themeRun(themeCfg, false);", apply_)
+        self.assertLess(apply_.index("themeRun(themeCfg, false);"), apply_.index("darken()"))
         self.assertIn('typeof DarkReader === "undefined"', theme)
         self.assertIn("darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg", theme)
         # a page can set the colours itself: never under a light theme
@@ -322,6 +389,11 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("native && (off !== false || !helperDark ||", darken)
         self.assertIn('tone === "light"', darken)
         self.assertIn('sampled >= ENOUGH_TEXT || document.readyState === "complete"', darken)
+        # an early write that left the page light is taken back first,
+        # then the marks, then Dark Reader (still once)
+        self.assertIn("themeState.early && tone === \"light\"", darken)
+        self.assertLess(darken.index("themeFailed()"), darken.index("nativeTried"))
+        self.assertEqual(js.count("DarkReader.enable("), 1)
         # the add-on's fetch, which the page can read through Dark Reader's
         # copies: no credentials or referrer, stylesheets only
         self.assertIn("DarkReader.setFetchMethod(fetchStylesheet)", darken)
@@ -391,7 +463,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         wait = int(re.search(r"const TAB_WAIT_MS = (\d+);", js).group(1))
         self.assertLess(wait / 1000.0, bg.LIVE_ACK_TIMEOUT / 2)
         self.assertRegex(js, r"Promise\.race\(\[\s*browser\.tabs\.sendMessage\(tab\.id, "
-                             r"\{type: \"excluded\", domains, darken: dark\}\)\.catch\(\(\) => \{\}\),\s*"
+                             r"\{type: \"excluded\", domains, darken: dark, themes: theme\}\)\.catch\(\(\) => \{\}\),\s*"
                              r"new Promise\(\(resolve\) => setTimeout\(resolve, TAB_WAIT_MS\)\)")
         # Fix B: lists are applied one at a time.
         self.assertIn("queue = queue.then(job)", js)
@@ -400,19 +472,30 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("const gen = ++reportGen;\n  const tabs = await browser.tabs.query", js)
         self.assertEqual(js.count("++reportGen"), 1)
         # "applied" goes back only on the port the list came on.
-        self.assertIn("applyList(cleanList(msg.domains), msg.darken === true, msg.seq, self)", js)
+        self.assertIn("applyList(cleanList(msg.domains), msg.darken === true, "
+                      "cleanThemes(msg.themes), msg.seq, self)", js)
         self.assertIn("&& from === port)", js)
         # darken (the darkPages setting) is stored with the list and read
         # back at startup: only true counts.
-        self.assertIn("browser.storage.local.set({excluded: domains, darken: dark})", js)
-        self.assertIn('browser.storage.local.get(["excluded", "darken"])', js)
+        self.assertIn("browser.storage.local.set({excluded: domains, darken: dark, themes: theme})", js)
+        self.assertIn('browser.storage.local.get(["excluded", "darken", "themes"])', js)
+        self.assertIn("themes = cleanThemes(s.themes);", js)
         self.assertIn("darken = s.darken === true;", js)
         # a failed write is retried by the next list, even an identical one:
         # storage must not keep an old darken the helper switched off
         self.assertIn("let saved = false;", js)
         self.assertIn("if (changed || !saved)", js)
-        self.assertIn("saved = await browser.storage.local.set({excluded: domains, darken: dark})"
-                      ".then(() => true, () => false);", js)
+        self.assertIn("saved = await browser.storage.local.set({excluded: domains, darken: dark, themes: theme})"
+                      "\n      .then(() => true, () => false);", js)
+        # the theme payload: data for theme.js before the page's scripts,
+        # registered again when the list, darken or the recipes change
+        reg = js[js.index("async function replaceThemeRegistration()"):js.index("async function replaceRegistration(")]
+        self.assertIn('matches: ["http://*/*", "https://*/*"]', reg)
+        self.assertIn('runAt: "document_start"', reg)
+        self.assertIn("JSON.stringify({dark: darken, excluded, themes})", reg)
+        self.assertIn('"var BG_THEME = " + cfg + ";typeof themeRun === \'function\' && themeRun(BG_THEME, true);"', reg)
+        self.assertIn("const key = JSON.stringify([domains, dark, theme.rev]);", js)
+        self.assertIn("if (key !== themeKey || !themeRegistered)", js)
         self.assertIn("stored = stored || saved;", js)
         self.assertIn("saved = stored;", js)
         self.assertNotIn("() => stored)", js)
@@ -448,7 +531,7 @@ class XpiTest(unittest.TestCase):
             self.assertIsNone(zf.testzip())
             names = zf.namelist()
             self.assertEqual(names, ["background.js", "content.js", "frame.js", "manifest.json",
-                                     "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
+                                     "theme.js", "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
             self.assertIn("manifest.json", names)  # at the root, no folder prefix
             for info in zf.infolist():
                 self.assertEqual(info.compress_type, zipfile.ZIP_STORED)
@@ -467,7 +550,7 @@ class XpiTest(unittest.TestCase):
         os.symlink(os.path.join(ext, "icons"), os.path.join(ext, "linked-dir"))
         with zipfile.ZipFile(io.BytesIO(bg.companion_xpi(ext))) as zf:
             self.assertEqual(zf.namelist(), ["a.txt", "background.js", "content.js", "frame.js",
-                                             "icons/a.svg", "icons/b.svg", "manifest.json",
+                                             "icons/a.svg", "icons/b.svg", "manifest.json", "theme.js",
                                              "vendor/darkreader-LICENSE.txt", "vendor/darkreader.js"])
 
     def test_missing_manifest(self):

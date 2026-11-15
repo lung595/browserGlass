@@ -26,7 +26,7 @@
     },
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["vendor/darkreader.js", "content.js"],
+      "js": ["vendor/darkreader.js", "theme.js", "content.js"],
       "run_at": "document_start"
     }
   ]

@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Each site's own dark mode** (with *Live control* and *Dark pages*): many sites with their own theme menu keep the choice in the page's storage or a cookie and show their light theme to a visitor. Under a dark theme the add-on now writes that value before the page's scripts run, so the site starts in its own dark theme instead of being darkened by Dark Reader. A generic rule covers common storage keys (`theme`, `color-mode`, `colorScheme`, `appearance`…) already set to a light value; recipes for given sites live in `data/themes.json` (see `data/themes.md`). The prior value is recorded and put back under a light theme, once the site is excluded, or with *Dark pages* off; a value you change in the site's menu wins and is never written again; a site that stays light after the write gets its value back and Dark Reader as before.
+
 ## [1.3.3] - 2026-11-15
 
 The companion add-on is still unsigned in this release, as in 1.3.0 to 1.3.2.

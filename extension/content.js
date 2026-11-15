@@ -30,6 +30,10 @@
 // the dark glass) gets data-browserglass-ink, a readable colour, and a
 // picture multiplied into a background now dark (a black logo whose white
 // a site wipes out with mix-blend-mode) gets data-browserglass-blend.
+// Before all that, theme.js (loaded before this script) sets the site's
+// own stored theme to dark at document_start: this script runs it again
+// once the list is known (a restore under a light theme, a late write),
+// and gives the values back when the page stayed light (themeFailed).
 "use strict";
 
 const LIVE = "data-browserglass-live";
@@ -68,6 +72,13 @@ let darkened = false;
 // while it shows (native: {classes, attrs}, what was added, to take back).
 let nativeTried = false;
 let native = null;
+// What theme.js gets here: the list, the helper's darken and the themes.
+let themeCfg = null;
+// A page whose own dark value theme.js set before its scripts ran is
+// judged THEME_JUDGE_MS after its load event (an app may apply its theme
+// late; a failure is remembered for the site), Dark Reader waiting.
+const THEME_JUDGE_MS = 1400;
+let loadedAt = 0;
 
 // sRGB channel (0-1) to linear light.
 function linear(c) {
@@ -280,6 +291,16 @@ function nativeDark() {
 // Its own dark theme is tried first; the marks are taken back with a light
 // theme, once the page is excluded or once the helper stops the darkening.
 function darken() {
+  // the site's own stored theme was set before its scripts ran and the
+  // page still shows light once loaded: the values go back, then the
+  // marks or Dark Reader below
+  let themeWait = false;
+  if (typeof themeState !== "undefined" && themeState.early && tone === "light") {
+    if (loadedAt && performance.now() - loadedAt >= THEME_JUDGE_MS)
+      themeFailed();
+    else
+      themeWait = true;
+  }
   // a light theme, an excluded page, the darkening stopped, or the page
   // took its dark theme back
   if (native && (off !== false || !helperDark || tone === "light"
@@ -296,7 +317,7 @@ function darken() {
     for (const el of document.querySelectorAll("[" + CANVAS + "]"))
       el.removeAttribute(CANVAS);
     measure();
-  } else if (!darkened && theme && tone === "light"
+  } else if (!darkened && theme && tone === "light" && !themeWait
       && (sampled >= ENOUGH_TEXT || document.readyState === "complete")) {
     if (!nativeTried) {
       nativeTried = true;
@@ -749,9 +770,12 @@ function settleTick(now) {
     settleFrame = requestAnimationFrame(settleTick);
 }
 
-function apply(domains, dark) {
+function apply(domains, dark, themes) {
   helperDark = dark === true;
   off = Array.isArray(domains) && hostExcluded(location.hostname.toLowerCase().replace(/\.$/, ""), domains);
+  themeCfg = {dark: helperDark, excluded: Array.isArray(domains) ? domains : [], themes: themes || {}};
+  if (typeof themeRun === "function")
+    themeRun(themeCfg, false);
   darken();
   paint();
   watchLayers();
@@ -766,9 +790,9 @@ function apply(domains, dark) {
 // of turning on the live styles of a site excluded at sync. darken is
 // stored with it (no darken stored: an older add-on's list, false).
 function load() {
-  browser.storage.local.get(["excluded", "darken"]).then((s) => {
+  browser.storage.local.get(["excluded", "darken", "themes"]).then((s) => {
     if (!fromMessage && Array.isArray(s.excluded))
-      apply(s.excluded, s.darken);
+      apply(s.excluded, s.darken, s.themes);
   }, () => {});
 }
 
@@ -807,7 +831,7 @@ watch();
 browser.runtime.onMessage.addListener((msg) => {
   if (msg && msg.type === "excluded") {
     fromMessage = true;
-    apply(msg.domains, msg.darken);
+    apply(msg.domains, msg.darken, msg.themes);
   }
 });
 
@@ -825,8 +849,18 @@ window.addEventListener("pageshow", (e) => {
 // transition of the text colour of the root or the body (a theme switch
 // that animates).
 document.addEventListener("DOMContentLoaded", update);
+window.addEventListener("load", () => {
+  loadedAt = performance.now();
+  // a page whose theme was written early is judged once, a little later
+  if (typeof themeState !== "undefined" && themeState.early)
+    setTimeout(update, THEME_JUDGE_MS + 50);
+});
 window.addEventListener("load", update);
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", update);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (themeCfg && typeof themeRun === "function")
+    themeRun(themeCfg, false);
+  update();
+});
 document.addEventListener("transitionend", (e) => {
   if (e.propertyName === "color"
       && (e.target === document.body || e.target === document.documentElement))

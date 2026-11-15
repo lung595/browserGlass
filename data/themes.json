@@ -1,0 +1,7 @@
+{
+  "generic": {
+    "keys": ["appearance", "color-mode", "color-scheme", "colorMode", "colorScheme", "theme"],
+    "map": {"light": "dark", "Light": "Dark", "LIGHT": "DARK", "\"light\"": "\"dark\""}
+  },
+  "sites": {}
+}

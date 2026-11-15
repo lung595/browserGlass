@@ -19,7 +19,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Lighter companion script**: handle `scroll` once per frame at most and group the tone checks that follow changes on `<html>`; load Dark Reader only in the pages it darkens.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.
-- **Site theme presets** (later version): for sites with their own theme menu that show their light theme to visitors (Proton, for example), pick their dark theme for you under a dark theme, rather than darkening the page. Not done in 1.3: the choice lives in the page's storage, and Proton answers a stored choice by writing a cookie of its own, while Browser Glass writes no cookie; a stored choice of the default also cannot be told from no choice at all, and a signed-in account's theme comes from the server. Until then, see *Sites with their own theme menu* in the [user guide](docs/GUIDE.md#light-pages-under-a-dark-theme).
+- ~~**Site theme presets**~~ (done in 1.4): under a dark theme the add-on writes a site's own stored theme value (a generic rule for common storage keys, recipes per site in `data/themes.json`, cookies included) and puts it back afterwards. Still out of reach: a signed-in account whose theme comes from the server (a recipe skips the write), cookies the site sets `HttpOnly`, and a stored choice of the default that cannot be told from no choice at all. See *Sites with their own theme menu* in the [user guide](docs/GUIDE.md#light-pages-under-a-dark-theme).
 - **The DMS plugin registry**: submit the plugin once it has had wider use.
 
 ## Not planned

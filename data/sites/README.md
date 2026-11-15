@@ -20,5 +20,8 @@ fix or improve how a site looks under the glass.
   page's own tone (see "Light pages under a dark theme" in
   [the user guide](../../docs/GUIDE.md#light-pages-under-a-dark-theme)).
 
+`data/themes.json` holds the site theme recipes (each site's own dark mode,
+see [themes.md](../themes.md)); it is Browser Glass's own, like this folder.
+
 Everything else in `data/` is copied from my-internet by a weekly job: do not
 edit `styles.json` or `css-mapping.json`; send those changes upstream.

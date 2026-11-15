@@ -127,6 +127,7 @@ BACKUP_DIR = "backup"  # backup/<profile-hash>/{userChrome.css,userContent.css,u
 
 # Embedded data (relative to the --data folder, <plugin>/data).
 PSL_FILE = "public_suffix_list.dat"   # Mozilla Public Suffix List (section psl)
+THEMES_FILE = "themes.json"           # site theme recipes (section themes)
 
 # Companion add-on and native messaging host (section companion).
 # The add-on's sources sit in <plugin>/<EXTENSION_DIR>; the sync zips them
@@ -2595,6 +2596,132 @@ def _site_key_name(key):
     return name if _SITE_NAME.fullmatch(name) else None
 
 
+# ---------------------------------------------------------------------------
+# themes: each site's own dark mode (data/themes.json)
+# ---------------------------------------------------------------------------
+# Under a dark theme the add-on's theme.js writes, before the page's scripts
+# run, the value a site reads to pick its dark theme, and puts the prior
+# value back under a light theme (see extension/theme.js and data/themes.md).
+# The file holds the generic rule (page localStorage keys that already
+# exist, light -> dark) and per-site recipes; the native host relays the
+# cleaned result to the add-on with the list ("themes"). A bad entry is
+# dropped, never the whole file.
+
+_THEME_KEY = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
+_THEME_BAD_VALUE = re.compile(r"[;,\x00-\x1f\x7f]")
+_THEME_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_THEME_STORES = ("local", "cookie")
+_THEME_OPS = ("set", "swap")
+_THEMES_CACHE = {}
+
+
+def _theme_value(v):
+    """A storable theme value: a string of at most 64 characters with no
+    ";", "," or control character (a cookie value or a localStorage one)."""
+    return isinstance(v, str) and len(v) <= 64 and not _THEME_BAD_VALUE.search(v)
+
+
+def _theme_date(v):
+    if not isinstance(v, str) or not _THEME_DATE.fullmatch(v):
+        return False
+    try:
+        time.strptime(v, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
+def _theme_recipe(host, r):
+    """The cleaned recipe `r` of `host` (only the keys theme.js reads), or
+    None when any field is bad."""
+    if not isinstance(r, dict):
+        return None
+    store, key, op, to = r.get("store"), r.get("key"), r.get("op", "set"), r.get("to")
+    frm = r.get("from")
+    if (store not in _THEME_STORES or op not in _THEME_OPS
+            or not isinstance(key, str) or not _THEME_KEY.fullmatch(key)
+            or not _theme_value(to) or not to
+            or not isinstance(frm, list) or not frm
+            or not _theme_date(r.get("verified"))
+            or not isinstance(r.get("note"), str) or not r["note"].strip()):
+        return None
+    if any(not (f is None or _theme_value(f)) or f == to for f in frm):
+        return None
+    if op == "swap" and (len(frm) != 1 or not frm[0]):
+        return None
+    out = {"store": store, "key": key, "op": op, "from": list(frm), "to": to}
+    if store == "cookie":
+        # no domain: a host-only cookie, as most sites set theirs
+        path, domain = r.get("path", "/"), r.get("domain")
+        if not isinstance(path, str) or not path.startswith("/") or not _theme_value(path):
+            return None
+        out["path"] = path
+        if domain is not None:
+            bare = domain[1:] if isinstance(domain, str) and domain.startswith(".") else domain
+            if (not isinstance(bare, str) or normalize_domain(bare) != bare
+                    or not (host == bare or host.endswith("." + bare))):
+                return None
+            out["domain"] = domain
+    elif any(k in r for k in ("path", "domain", "reload")):
+        return None  # cookie fields on a localStorage recipe
+    for flag in ("reload",):
+        if flag in r:
+            if not isinstance(r[flag], bool):
+                return None
+            out[flag] = r[flag]
+    if "skipIfCookie" in r:
+        if not isinstance(r["skipIfCookie"], str) or not _THEME_KEY.fullmatch(r["skipIfCookie"]):
+            return None
+        out["skipIfCookie"] = r["skipIfCookie"]
+    return out
+
+
+def themes_clean(doc):
+    """The themes `doc` (data/themes.json, parsed) as the add-on gets it:
+    {"rev", "generic": {"keys", "map"}, "sites": {host: [recipe]}}, bad
+    entries dropped; {} when `doc` is not an object. "rev" is the first 12
+    hex digits of the SHA-256 of the rest, as canonical JSON."""
+    if not isinstance(doc, dict):
+        return {}
+    gen = doc.get("generic") if isinstance(doc.get("generic"), dict) else {}
+    keys = [k for k in gen.get("keys", []) if isinstance(k, str) and _THEME_KEY.fullmatch(k)]
+    raw_map = gen.get("map") if isinstance(gen.get("map"), dict) else {}
+    tmap = {a: b for a, b in raw_map.items()
+            if _theme_value(a) and _theme_value(b) and a and b and a != b}
+    sites = {}
+    raw_sites = doc.get("sites") if isinstance(doc.get("sites"), dict) else {}
+    for host, recipes in raw_sites.items():
+        if (not isinstance(host, str) or normalize_domain(host) != host
+                or not isinstance(recipes, list)):
+            continue
+        clean = [c for c in (_theme_recipe(host, r) for r in recipes) if c]
+        if clean:
+            sites[host] = clean
+    out = {"generic": {"keys": sorted(set(keys)), "map": dict(sorted(tmap.items()))},
+           "sites": dict(sorted(sites.items()))}
+    canon = json.dumps(out, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    out["rev"] = hashlib.sha256(canon.encode("ascii")).hexdigest()[:12]
+    return out
+
+
+def themes_load(data_dir):
+    """themes_clean() of `data_dir`/<THEMES_FILE>, read again only when the
+    file changes; {} when it is missing, unreadable or not JSON."""
+    path = os.path.abspath(os.path.join(data_dir, THEMES_FILE))
+    try:
+        st = os.stat(path)
+        signature = (st.st_mtime_ns, st.st_size, st.st_ino)
+        cached = _THEMES_CACHE.get(path)
+        if cached is not None and cached[0] == signature:
+            return cached[1]
+        doc = json.loads(read_text(path))
+    except (OSError, ValueError):
+        return {}
+    out = themes_clean(doc)
+    _THEMES_CACHE[path] = (signature, out)
+    return out
+
+
 def sites_load(data_dir):
     """Sites from `data_dir`/styles.json (required) and css-mapping.json
     (optional: missing or corrupt gives no mapping, as in v0), plus
@@ -4351,7 +4478,7 @@ def host_wrapper_text(plugin_dir):
 # A host removes its own files when the browser closes (EOF on stdin), and
 # exits quietly when the folder disappears (uninstall).
 #
-# The add-on gets {"type": "excluded", "seq", "domains", "darken"}: the
+# The add-on gets {"type": "excluded", "seq", "domains", "darken", "themes"}: the
 # excluded sites and the darken flag of the last sync (live_darken():
 # darkPages, only when the style file holds the darkening colours; false
 # before any sync). darken is the one switch of the darkening: the colour
@@ -4359,7 +4486,9 @@ def host_wrapper_text(plugin_dir):
 # colours, since a page can set them itself. A socket line without a
 # boolean darken (an older sync) means false. Adding the key keeps
 # NM_PROTO: an add-on that does not know it ignores it, and one that does
-# reads its absence as false.
+# reads its absence as false. "themes" (themes_load(): the generic rule and
+# the per-site recipes of data/themes.json, {} without the file) was added
+# the same way: an add-on that does not know it ignores it.
 
 NM_PROTO = 1
 NM_MAX_MESSAGE = 1024 * 1024   # larger incoming frame: the host exits
@@ -4623,11 +4752,14 @@ class _NativeHost:
 
     def send_list(self, domains, darken):
         """Send the exclusion list `domains` and the darkPages flag
-        `darken` (True only for True); returns its seq."""
+        `darken` (True only for True), with the site theme recipes
+        (themes_load(), read again when data/themes.json changes); returns
+        its seq."""
         self.current = domains
         self.darken = darken is True
         self.seq += 1
-        self.send({"type": "excluded", "seq": self.seq, "domains": domains, "darken": self.darken})
+        self.send({"type": "excluded", "seq": self.seq, "domains": domains, "darken": self.darken,
+                   "themes": themes_load(self.data_dir) if self.data_dir else {}})
         return self.seq
 
     def startup_list(self):
