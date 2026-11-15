@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-11-15
+
+The companion add-on is still unsigned in this release, as in 1.3.0 to 1.3.2.
+
+### Fixed
+
+- **Black logos on a dark page** (with *Live control*): sites often wipe a logo's white background with `mix-blend-mode: multiply`, which leaves the logo black on black once the page is dark (the glass, or a page Browser Glass darkened). The add-on now marks such a picture over a dark background (`data-browserglass-blend`), and it is inverted and blended with `screen` instead, so it shows light. A dark logo on a transparent background with no blending is not detected.
+
 ## [1.3.2] - 2026-11-15
 
 The companion add-on is still unsigned in this release, as in 1.3.0 and 1.3.1.
@@ -164,7 +172,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/lung595/browserGlass/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/lung595/browserGlass/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/lung595/browserGlass/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/lung595/browserGlass/compare/v1.2.0...v1.3.0

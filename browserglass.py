@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -164,6 +164,9 @@ ATTR_BAR = "data-browserglass-bar"
 # ... and INK, "dark" or "light", on text left without contrast once the
 # background behind it went (see _CONTENT_LAYERS): a readable colour.
 ATTR_INK = "data-browserglass-ink"
+# ... and BLEND on a picture blended with multiply into a background now
+# dark (see _CONTENT_LAYERS): inverted and blended with screen instead.
+ATTR_BLEND = "data-browserglass-blend"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1780,13 +1783,16 @@ _CONTENT_DARKEN = (
 # - text without contrast on what is now behind it (ATTR_INK): the dark
 #   surface ("dark") or the light one ("light"). The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
-#   to measure it.
+#   to measure it;
+# - a picture multiplied into a background now dark (ATTR_BLEND, a black
+#   logo whose white the site wipes out): inverted, blended with screen.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.65
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
+_BLEND_SELECTOR = "[" + ATTR_BLEND + "]:not(#browserglass-a):not(#browserglass-b)"
 _CONTENT_LAYERS = (
     "  :root {{ --browserglass-glass: rgb({dark}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
@@ -1795,6 +1801,8 @@ _CONTENT_LAYERS = (
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
+    "  " + _BLEND_SELECTOR
+    + " {{ filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }}\n"
     "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"

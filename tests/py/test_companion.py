@@ -248,6 +248,21 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("contrast(fg, bg) < INK_RATIO", mark)
         self.assertIn("i < INK_NODES && seen.size < INK_ELEMENTS", mark)
         self.assertIn("const INK_RATIO = 2;", js)
+
+    def test_content_marks_blend(self):
+        # a picture multiplied into a dark background gets ATTR_BLEND, in the
+        # same throttled pass as the text, and loses it with the page's marks
+        js = strip_comments(read("content.js"))
+        self.assertIn('const BLEND = "%s";' % bg.ATTR_BLEND, js)
+        self.assertTrue(bg.ATTR_BLEND.startswith("data-browserglass-"))
+        self.assertIn("[%s]:not(#browserglass-a):not(#browserglass-b) {{ filter: invert(1) hue-rotate(180deg)"
+                      " !important; mix-blend-mode: screen !important; }}" % bg.ATTR_BLEND, bg._CONTENT_LAYERS)
+        ink = js[js.index("function markInk()"):js.index("function markBlend(")]
+        self.assertIn("removeAttribute(BLEND)", ink)
+        self.assertIn("markBlend(near);", ink)
+        mark = js[js.index("function markBlend("):js.index("function ink()")]
+        self.assertIn("i < pictures.length && i < BLEND_ELEMENTS", mark)
+        self.assertIn("bg !== null && bg <= DARK_BG", mark)
         behind = js[js.index("function behind(el)"):js.index("function markInk()")]
         # an image behind the text: no guess
         self.assertIn('if (style.backgroundImage !== "none")\n      return null;', behind)

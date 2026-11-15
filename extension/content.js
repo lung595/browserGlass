@@ -27,7 +27,9 @@
 // that haze on the glass's colour, as on a page with a background of its
 // own: the text under the bar is blurred like a picture. Text left
 // without contrast once its background went (dark text on
-// the dark glass) gets data-browserglass-ink, a readable colour.
+// the dark glass) gets data-browserglass-ink, a readable colour, and a
+// picture multiplied into a background now dark (a black logo whose white
+// a site wipes out with mix-blend-mode) gets data-browserglass-blend.
 "use strict";
 
 const LIVE = "data-browserglass-live";
@@ -37,6 +39,7 @@ const OWN = "data-browserglass-";
 const CANVAS = "data-browserglass-canvas";
 const BAR = "data-browserglass-bar";
 const INK = "data-browserglass-ink";
+const BLEND = "data-browserglass-blend";
 const GLASS = "--browserglass-glass";
 const DARKEN_BG = "--browserglass-darken-bg";
 const DARKEN_FG = "--browserglass-darken-fg";
@@ -597,8 +600,8 @@ function markInk() {
   if (!root || !document.body)
     return;
   if (off !== false) {
-    for (const el of document.querySelectorAll("[" + INK + "]"))
-      el.removeAttribute(INK);
+    for (const el of document.querySelectorAll("[" + INK + "], [" + BLEND + "]"))
+      el.removeAttribute(INK), el.removeAttribute(BLEND);
     return;
   }
   const h = window.innerHeight;
@@ -626,6 +629,32 @@ function markInk() {
     const bg = behind(el);
     if (bg !== null && contrast(fg, bg) < INK_RATIO)
       el.setAttribute(INK, bg > 0.179 ? "dark" : "light");
+  }
+  markBlend(near);
+}
+
+// A picture blended with multiply (or darken) into its background: a site
+// shows a black logo on a white card that way, its white wiped out. On a
+// background now dark it turns black on black. Over a dark background
+// (DARK_BG at most), it gets BLEND: inverted and blended with screen, the
+// same logo, light, its black wiped out. Checked as the text is, at most
+// BLEND_ELEMENTS pictures, near the window.
+const BLEND_ELEMENTS = 500;
+const DARK_BG = 0.179;
+const DARKENING = new Set(["multiply", "darken"]);
+
+function markBlend(near) {
+  for (const el of document.querySelectorAll("[" + BLEND + "]"))
+    if (near(el))
+      el.removeAttribute(BLEND);
+  const pictures = document.body.querySelectorAll("img, svg, canvas");
+  for (let i = 0; i < pictures.length && i < BLEND_ELEMENTS; i++) {
+    const el = pictures[i];
+    if (!DARKENING.has(getComputedStyle(el).mixBlendMode) || !near(el))
+      continue;
+    const bg = behind(el);
+    if (bg !== null && bg <= DARK_BG)
+      el.setAttribute(BLEND, "");
   }
 }
 

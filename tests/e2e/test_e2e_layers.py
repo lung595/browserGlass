@@ -129,13 +129,18 @@ LOCK = ("document.body.style = 'position:fixed; top:0; left:0; right:0';"
         "const s = document.createElement('div'); s.id = 'lockside';"
         "s.style = 'position:fixed; top:0; bottom:0; right:0; width:200px; background:rgb(30,30,30)';"
         "document.body.append(s);")
-# Dark text on see-through layers (the glass behind it), and on a white card.
+# Dark text on see-through layers (the glass behind it), and on a white card;
+# a black logo blended with multiply on each.
+LOGO = ("<img id=\"%s\" width=\"40\" height=\"20\" style=\"mix-blend-mode:multiply\" src=\"data:image/svg+xml,"
+        "%%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%%3E%%3Crect width='40' height='20'/%%3E%%3C/svg%%3E\">")
 INK_PAGE = STYLE + """
 html, body {background:transparent}
 #dim, #oncard {color:rgb(20,20,20)}
 #card {background:rgb(255,255,255)}
-</style></head><body><p id="dim">Notice</p><div id="card"><p id="oncard">Card</p></div></body></html>"""
+</style></head><body><p id="dim">Notice</p>""" + LOGO % "logo" + """
+<div id="card"><p id="oncard">Card</p>""" + LOGO % "cardlogo" + """</div></body></html>"""
 INK = bg.ATTR_INK
+BLEND = bg.ATTR_BLEND
 
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
 
@@ -263,6 +268,12 @@ class LayersE2E(unittest.TestCase):
             self.assertFalse(self.marked(b, "oncard", INK), "text on its own white card marked")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('oncard')).color;"),
                              "rgb(20, 20, 20)")
+            # the logo multiplied into the dark glass: inverted, blended with screen
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "logo", BLEND), "black logo on the glass not marked")
+            self.assertEqual(b.js("const s = getComputedStyle(document.getElementById('logo'));"
+                                  "return [s.mixBlendMode, s.filter];"),
+                             ["screen", "invert(1) hue-rotate(180deg)"])
+            self.assertFalse(self.marked(b, "cardlogo", BLEND), "logo on its own white card marked")
 
 
 if __name__ == "__main__":
