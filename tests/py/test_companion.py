@@ -128,11 +128,28 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('m[1] === "color"', lum)
         # the visible text votes (not the body's colour alone: YouTube),
         # the body's colour only without visible text
-        self.assertIn("createTreeWalker(document.body, NodeFilter.SHOW_TEXT)", measure)
-        self.assertIn("i < SAMPLE_NODES", measure)
+        self.assertIn("createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,", measure)
+        self.assertIn("tally(document.body, menus);", measure)
+        self.assertIn("read < SAMPLE_NODES", measure)
         self.assertIn("checkVisibility(", measure)
-        self.assertIn("isLight(getComputedStyle(p).color)", measure)
-        self.assertIn("sampled ? dark > light : isLight(getComputedStyle(el).color)", measure)
+        self.assertIn("y = luminance(getComputedStyle(p).color);", measure)
+        self.assertIn("sampled ? light > dark : isLight(getComputedStyle(el).color)", measure)
+        # the text outside the site's menus and the mid-grey band decides
+        # first (Hacker News' grey meta lines, a portal's long dark menu),
+        # then the rest; the menus are skipped whole (Le Monde's header
+        # holds more text nodes than SAMPLE_WALK) and read only on a page
+        # with no other text
+        self.assertIn("const isFirm = y <= MID_LOW || y >= MID_HIGH;", measure)
+        self.assertIn("if (menus && siteChrome(node)) {", measure)
+        self.assertIn("return NodeFilter.FILTER_REJECT;", measure)
+        self.assertIn("if (main[0] + main[1] === 0)\n      for (const m of menus)\n        tally(m, null);", measure)
+        self.assertIn("[mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all", measure)
+        self.assertIn("walked < SAMPLE_WALK", measure)
+        self.assertIn("sampled = all[0] + all[1];", measure)
+        chrome = js[js.index("function siteChrome("):js.index("function measure()")]
+        self.assertIn('if (name === "nav")', chrome)
+        self.assertIn('role === "navigation" || role === "banner" || role === "contentinfo"', chrome)
+        self.assertIn('closest("article, aside, main, nav, section")', chrome)
         # a page still rendering: each resize of the body measures again,
         # until the text settles the tone or RESIZE_MEASURES
         upd = js[js.index("const sizes = new ResizeObserver"):js.index("function paint()")]
@@ -275,6 +292,8 @@ class ExtensionSourcesTest(unittest.TestCase):
         # an image behind the text: no guess
         self.assertIn('if (style.backgroundImage !== "none")\n      return null;', behind)
         self.assertIn("getPropertyValue(GLASS)", behind)
+        # a translucent root over the glass, mixed in sRGB as the browser does
+        self.assertIn("linear(a * encoded(own) + (1 - a) * encoded(glass))", behind)
         # a face of its own (a ::before, or a covering absolute child, as
         # buttons often are) comes before the element's own background
         self.assertLess(behind.index("face(p)"), behind.index("style.backgroundImage"))
@@ -390,7 +409,14 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("themeRun(themeCfg, false);", apply_)
         self.assertLess(apply_.index("themeRun(themeCfg, false);"), apply_.index("darken()"))
         self.assertIn('typeof DarkReader === "undefined"', theme)
-        self.assertIn("darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg", theme)
+        # their saturation capped (Dark Reader gives grey text the text
+        # colour's: #f7f9ff turned Hacker News' grey lines bright blue)
+        self.assertIn("darkSchemeBackgroundColor: muted(bg), darkSchemeTextColor: muted(fg)", theme)
+        mute = js[js.index("const POLE_SAT"):js.index("function darken()")]
+        self.assertIn("const POLE_SAT = 0.1;", mute)
+        self.assertIn("if (!m)\n    return color;", mute)
+        self.assertIn("const k = POLE_SAT / s;", mute)
+        self.assertIn("(l + (v - l) * k)", mute)
         # a page can set the colours itself: never under a light theme
         self.assertIn('!window.matchMedia("(prefers-color-scheme: dark)").matches', theme)
         darken = js[js.index("function darken()"):js.index("const GRID")]

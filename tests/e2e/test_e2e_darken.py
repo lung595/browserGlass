@@ -17,6 +17,7 @@ the list). Checked:
     see-through, the full-page wrapper marked as canvas and see-through, a
     small card dark but opaque, not marked; the fetch Dark Reader gets
     returns a stylesheet, and refuses another type or a missing file;
+    grey text stays grey (the text colour's tint is muted);
   - a light theme gives the page its own colours back (no Dark Reader
     style, tone light), the wrapper, its lowest layer, still glass; a dark
     theme darkens it again; the helper turning darken off live (a message)
@@ -58,7 +59,9 @@ WRAPPED_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #wrap {background:rgb(255,255,255); min-height:100vh}
 #card {background:rgb(240,240,240); width:200px; height:100px}
-</style></head><body><div id="wrap">""" + TEXT + """<div id="card">Card</div></div></body></html>"""
+.meta {color:rgb(130,130,130)}
+</style></head><body><div id="wrap">""" + TEXT + """<p id="grey" class="meta">120 points by someone</p>
+<div id="card">Card</div></div></body></html>"""
 
 # A light page with its own dark theme, on a "dark" class of <html>; the
 # text colour is animated, as theme switches often are.
@@ -143,6 +146,13 @@ def stylesheet(dark_pages, sites=None):
     return css
 
 
+def saturation(rgba):
+    """The HSL saturation of an (r, g, b, a) colour."""
+    hi, lo = max(rgba[:3]) / 255, min(rgba[:3]) / 255
+    light = (hi + lo) / 2
+    return 0.0 if hi == lo else (hi - lo) / (1 - abs(2 * light - 1))
+
+
 def read(name):
     with open(os.path.join(EXT, name), encoding="utf-8") as f:
         return f.read()
@@ -208,6 +218,11 @@ class DarkenE2E(unittest.TestCase):
             self.assertLess(tone.luminance(card), 0.05, card)
             self.assertFalse(b.js(MARKED, "card", CANVAS))
             self.assertGreaterEqual(tone.contrast(text, self.bg_of(b, "card")), 4.5)
+            # grey text stays grey: Dark Reader gives it the hue and
+            # saturation of the text colour, whose near-white (#f7f9ff) has
+            # a saturation of 100%
+            grey = tone.rgba(b.js("return getComputedStyle(document.getElementById('grey')).color;"))
+            self.assertLessEqual(saturation(grey), 0.15, grey)
             # a light theme: the page's own colours, the wrapper (its lowest
             # layer) still glass, the card white again
             tone.set_scheme(b, False)

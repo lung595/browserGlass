@@ -124,8 +124,37 @@ function isLight(color) {
   return y === null ? null : y > 0.179;
 }
 
+// The sRGB value (0-1) of a linear one: the inverse of linear().
+function encoded(y) {
+  return y <= 0.0031308 ? y * 12.92 : 1.055 * y ** (1 / 2.4) - 0.055;
+}
+
+// Grey text between these two luminances (#666 to #aaa: Hacker News'
+// #828282 meta lines, a dark theme's muted labels) reads on both a light
+// and a dark page: it votes only when no other text does.
+const MID_LOW = 0.15;
+const MID_HIGH = 0.4;
+
+// The site's own menus: a nav, the page's header and footer (not those of
+// an article or a section), and their ARIA roles. A portal's dark header
+// can hold hundreds of links before the light content: they vote only when
+// no other text does.
+function siteChrome(el) {
+  const name = el.localName;
+  if (name === "nav")
+    return true;
+  const role = el.getAttribute("role");
+  if (role === "navigation" || role === "banner" || role === "contentinfo")
+    return true;
+  return (name === "header" || name === "footer")
+    && !(el.parentElement && el.parentElement.closest("article, aside, main, nav, section"));
+}
+
 // The text nodes read per measure, at most.
 const SAMPLE_NODES = 400;
+// The text nodes walked per measure (hidden and empty ones included), at
+// most.
+const SAMPLE_WALK = 2000;
 // Characters of visible text that settle the tone; until then (a
 // single-page app still rendering), each resize of the body measures again,
 // at most RESIZE_MEASURES times.
@@ -136,9 +165,11 @@ let resizeMeasures = 0;
 
 // The tone from the colour of the text shown, the site styles included:
 // the visible text of the body votes, each node by its length (capped, so
-// one long paragraph does not outweigh the page). Many pages leave the
-// body's own colour at the default black and colour their text through
-// classes (YouTube's dark theme): the body alone would read as light. A
+// one long paragraph does not outweigh the page); the text outside the
+// site's menus and the mid-grey band decides first (siteChrome, MID_LOW).
+// Many pages leave the body's own colour at the default black and colour
+// their text through classes (YouTube's dark theme): the body alone would
+// read as light. A
 // page without visible text falls back to the body's colour (the root's
 // before there is a body); an unknown colour keeps the last tone.
 function measure() {
@@ -153,27 +184,65 @@ function measure() {
   const el = document.body || document.documentElement;
   if (!el)
     return;
-  let light = 0, dark = 0;
+  // [light text, dark text] in characters: all of it, the text outside
+  // the mid-grey band, and the same outside the site's menus
+  const all = [0, 0], firm = [0, 0], main = [0, 0], mainFirm = [0, 0];
   if (document.body) {
     const parents = new Map();
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    for (let i = 0, n = walker.nextNode(); n && i < SAMPLE_NODES; i++, n = walker.nextNode()) {
-      const p = n.parentElement;
-      const len = Math.min(n.data.trim().length, 80);
-      if (!len || !p)
-        continue;
-      if (!parents.has(p))
-        parents.set(p, p.checkVisibility({visibilityProperty: true, opacityProperty: true})
-          ? isLight(getComputedStyle(p).color) : null);
-      const v = parents.get(p);
-      if (v === true)
-        dark += len;
-      else if (v === false)
-        light += len;
-    }
+    let read = 0, walked = 0;
+    // tallies the text under root; with menus, the site's menus met on the
+    // way are skipped whole (a portal's header can hold thousands of text
+    // nodes before the content) and listed there
+    const tally = (root, menus) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+        (node) => {
+          if (node.nodeType === Node.TEXT_NODE)
+            return NodeFilter.FILTER_ACCEPT;
+          if (menus && siteChrome(node)) {
+            menus.push(node);
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_SKIP;
+        });
+      for (let n = walker.nextNode(); n && read < SAMPLE_NODES && walked < SAMPLE_WALK;
+           walked++, n = walker.nextNode()) {
+        const p = n.parentElement;
+        const len = Math.min(n.data.trim().length, 80);
+        if (!len || !p)
+          continue;
+        if (!parents.has(p)) {
+          let y = null;
+          if (p.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+            y = luminance(getComputedStyle(p).color);
+          parents.set(p, y);
+        }
+        const y = parents.get(p);
+        if (y === null)
+          continue;
+        const side = y > 0.179 ? 0 : 1;
+        const isFirm = y <= MID_LOW || y >= MID_HIGH;
+        all[side] += len;
+        if (isFirm)
+          firm[side] += len;
+        if (menus) {
+          main[side] += len;
+          if (isFirm)
+            mainFirm[side] += len;
+        }
+        read++;
+      }
+    };
+    const menus = [];
+    tally(document.body, menus);
+    // the menus vote only on a page with no other text
+    if (main[0] + main[1] === 0)
+      for (const m of menus)
+        tally(m, null);
   }
-  sampled = light + dark;
-  const v = sampled ? dark > light : isLight(getComputedStyle(el).color);
+  const votes = [mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all;
+  const [light, dark] = votes;
+  sampled = all[0] + all[1];
+  const v = sampled ? light > dark : isLight(getComputedStyle(el).color);
   if (v !== null)
     tone = v ? "dark" : "light";
 }
@@ -229,7 +298,28 @@ function darkTheme() {
   const style = getComputedStyle(root);
   const bg = style.getPropertyValue(DARKEN_BG).trim();
   const fg = style.getPropertyValue(DARKEN_FG).trim();
-  return bg && fg ? {darkSchemeBackgroundColor: bg, darkSchemeTextColor: fg} : null;
+  return bg && fg ? {darkSchemeBackgroundColor: muted(bg), darkSchemeTextColor: muted(fg)} : null;
+}
+
+// Dark Reader gives grey text (and grey backgrounds) the hue and
+// saturation of its two colours: a near-white with a hint of blue
+// (#f7f9ff, a saturation of 100%) turns mid-grey text bright blue. Their
+// saturation is capped at POLE_SAT (that of Dark Reader's own text
+// colour, #e8e6e3), hue and lightness kept (a near-white stays one).
+const POLE_SAT = 0.1;
+function muted(color) {
+  const m = /^#([0-9a-f]{6})$/i.exec(color);
+  if (!m)
+    return color;
+  const c = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  const hi = Math.max(...c), lo = Math.min(...c), l = (hi + lo) / 2;
+  const s = hi === lo ? 0 : (hi - lo) / (1 - Math.abs(2 * l - 1));
+  if (s <= POLE_SAT)
+    return color;
+  // each channel drawn towards the lightness: the chroma, so the
+  // saturation, scales by k, the hue and the lightness stay
+  const k = POLE_SAT / s;
+  return "#" + c.map((v) => Math.round((l + (v - l) * k) * 255).toString(16).padStart(2, "0")).join("");
 }
 
 // Dark Reader reads the page's cross-origin stylesheets with this script's
@@ -700,7 +790,8 @@ function behind(el) {
   const own = a > 0 ? luminance(style.backgroundColor) : null;
   if (glass === null)
     return a >= OWN_BG ? own : null;
-  return own === null ? glass : a * own + (1 - a) * glass;
+  // the browser mixes the root's colour over the glass in sRGB
+  return own === null ? glass : linear(a * encoded(own) + (1 - a) * encoded(glass));
 }
 
 function markInk() {

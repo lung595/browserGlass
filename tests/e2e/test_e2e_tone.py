@@ -30,6 +30,11 @@ declared) and dark.test (light text on a dark background). Checked:
     (a class on <html>) and when the colour scheme changes; text coloured
     in oklch() or color(display-p3) too; a page whose body keeps the default
     black and whose text shown is white through classes (YouTube) is dark;
+  - grey text between the two tones (Hacker News' #828282 meta lines) does
+    not vote while black or white text is shown, and the site's own menus
+    (nav, the page's header and footer: a portal's long dark menu) do not
+    vote while there is other text; a page with only grey text, or only a
+    menu, is still measured from it;
   - a site style that makes the text white (white.test.css) on a light
     page: under a dark theme the tone is that of the text shown, "dark"
     (the site style applies once the tone is set), so the page is glass
@@ -97,6 +102,28 @@ CLASSES_PAGE = """<!doctype html><html dark><head><meta charset="utf-8"><style>
 html{background:rgb(15,15,15)} body{margin:0} .t{color:rgb(241,241,241)}
 </style></head><body><div class="t"><h1>Video title</h1><p>Channel name</p></div>
 <div style="display:none">""" + "Hidden dark text " * 50 + """</div></body></html>"""
+# Hacker News: a light page whose grey meta lines (#828282, between the
+# two tones) outweigh its black titles.
+NEWS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(246,246,239)} body{margin:0;color:rgb(0,0,0)} .sub{color:rgb(130,130,130)}
+</style></head><body>""" + ("<p><a>A title</a></p><p class=\"sub\">120 points by someone 3 hours ago"
+                           " | hide | 45 comments</p>") * 20 + "</body></html>"
+# A news portal (Le Monde): a dark header whose long menu (light links,
+# more text nodes than SAMPLE_WALK) comes before the light page's content
+# in the document.
+PORTAL_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(250,250,250)} body{margin:0;color:rgb(20,20,20)}
+header{background:rgb(20,20,30);color:rgb(240,240,240)} header a{display:inline-block;margin:2px}
+</style></head><body><header><nav>""" + "<a>Rubrique</a>" * 2500 + """</nav></header>
+<main>""" + "<p>Un article sur fond clair.</p>" * 30 + "</main></body></html>"
+# Only a menu, light on dark: the menu still decides.
+MENU_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(18,18,18)} body{margin:0;color:rgb(235,235,235)}
+</style></head><body><nav>""" + "<a>Link</a> " * 30 + """</nav></body></html>"""
+# Only mid-grey text on a dark page: the grey still decides.
+GREY_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(18,18,18)} body{margin:0;color:rgb(136,136,136)}
+</style></head><body><p>Grey text on a dark page.</p></body></html>"""
 # A light page with a web component: a light section in a shadow root.
 SHADOW_PAGE = LIGHT_PAGE.replace("<p>Readable text</p>", """<p>Readable text</p><div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML =
@@ -284,7 +311,11 @@ class ToneE2E(unittest.TestCase):
         routes = {"/p.html": ("text/html; charset=utf-8", LIGHT_PAGE.encode("utf-8")),
                   "/d.html": ("text/html; charset=utf-8", DARK_PAGE.encode("utf-8")),
                   "/o.html": ("text/html; charset=utf-8", OKLCH_PAGE.encode("utf-8")),
-                  "/c.html": ("text/html; charset=utf-8", CLASSES_PAGE.encode("utf-8"))}
+                  "/c.html": ("text/html; charset=utf-8", CLASSES_PAGE.encode("utf-8")),
+                  "/n.html": ("text/html; charset=utf-8", NEWS_PAGE.encode("utf-8")),
+                  "/portal.html": ("text/html; charset=utf-8", PORTAL_PAGE.encode("utf-8")),
+                  "/menu.html": ("text/html; charset=utf-8", MENU_PAGE.encode("utf-8")),
+                  "/g.html": ("text/html; charset=utf-8", GREY_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -325,6 +356,13 @@ class ToneE2E(unittest.TestCase):
             text, html, body = colors(b)
             self.assertEqual((text, html), (WHITE, "rgba(0, 0, 0, 0)"))
             self.readable(text, "rgb(%d, %d, %d)" % bg.surface_rgb(None, "dark"))
+            # mid-grey text does not vote while black or white text does
+            for path, want in (("/n.html", "light"), ("/portal.html", "light"),
+                               ("/menu.html", "dark"), ("/g.html", "dark")):
+                b.navigate(srv.url(path, "light.test"))
+                b.js(RUN_CONTENT, self.content_js)
+                with self.subTest(page=path):
+                    self.tone_is(b, want)
 
 
 if __name__ == "__main__":

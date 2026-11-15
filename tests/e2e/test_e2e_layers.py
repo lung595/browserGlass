@@ -30,6 +30,8 @@ test_e2e_darken.py. Checked:
     plain block along an edge (no link, no nav role) are left alone;
   - a header in the flow of a page whose body is fixed to lock its scroll
     (a dialog open) is left alone;
+  - black text straight on the root of a dark page under a light theme
+    (the dark tint at 88 % over the light glass, mixed in sRGB) is inked;
   - dark text straight on the dark glass gets the light surface colour,
     the same text on its own white card is left alone.
 """
@@ -150,6 +152,14 @@ html, body {background:transparent}
 </body></html>"""
 INK = bg.ATTR_INK
 BLEND = bg.ATTR_BLEND
+# A dark page (light text) with one black line straight on the root: under
+# a light theme the root is the dark tint at 88 % over the light glass,
+# which the browser mixes in sRGB, so the black line sits on dark grey.
+INK_ROOT_PAGE = STYLE + """
+html, body {background:transparent} body {color:rgb(235,235,235)}
+#black {color:rgb(0,0,0)}
+</style></head><body>""" + "<p>Light text of a dark page.</p>" * 8 + """
+<p id="black">Black</p></body></html>"""
 
 # A cookie banner: a see-through fixed wrapper over the page's text, and in
 # it a large opaque form; a modal fixed itself. Neither is the page's
@@ -191,6 +201,7 @@ class LayersE2E(unittest.TestCase):
                   "/split.html": ("text/html; charset=utf-8", SPLIT_PAGE.encode("utf-8")),
                   "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8")),
                   "/ink.html": ("text/html; charset=utf-8", INK_PAGE.encode("utf-8")),
+                  "/inkroot.html": ("text/html; charset=utf-8", INK_ROOT_PAGE.encode("utf-8")),
                   "/banner.html": ("text/html; charset=utf-8", BANNER_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
@@ -313,6 +324,17 @@ class LayersE2E(unittest.TestCase):
             self.assertFalse(self.marked(b, "layered", INK), "text on a light child face marked")
             # text over a picture: no guess
             self.assertFalse(self.marked(b, "onpic", INK), "text over a picture marked")
+
+            # a dark page under a light theme: the root's translucent tint
+            # over the light glass, mixed as the browser mixes it (sRGB)
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/inkroot.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.documentElement.getAttribute(arguments[0]) === 'dark';",
+                                       mn.WAIT_TIMEOUT, tone.TONE), "dark page not measured dark")
+            self.assertTrue(b.wait_for("return document.getElementById('black').getAttribute(arguments[0]) === 'light';",
+                                       mn.WAIT_TIMEOUT, INK), "black text on the dark tint not marked")
+            tone.set_scheme(b, True)
 
 
 if __name__ == "__main__":

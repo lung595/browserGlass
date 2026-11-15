@@ -38,7 +38,10 @@ localStorage). Checked:
   - a composite cookie read by an inline <head> script (MediaWiki's
     clientprefs, "a-clientpref-1%2Cskin-theme-clientpref-day"): the day
     theme is swapped in place and the other prefs kept, an absent cookie is
-    created, and a light theme puts the day theme back.
+    created, and a light theme puts the day theme back;
+  - a localStorage recipe whose `from` holds null (npm's npm-color-mode,
+    light when absent): the key is created dark before the page reads it,
+    and removed again under a light theme.
 """
 
 import json
@@ -60,7 +63,7 @@ import test_e2e_darken as dk  # noqa: E402
 bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
-         "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test")
+         "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -140,6 +143,9 @@ def themes_doc(sites=None):
 
 COOKIE_RECIPE = {"store": "cookie", "key": "mode", "op": "set", "from": [None, "light"], "to": "dark",
                  "reload": True, "verified": "2026-11-15", "note": "test fixture"}
+
+CREATE_RECIPE = {"store": "local", "key": "theme", "op": "set", "from": [None, "light"], "to": "dark",
+                 "verified": "2026-11-15", "note": "test fixture"}
 
 
 class Server:
@@ -426,6 +432,18 @@ class ThemeE2E(unittest.TestCase):
             self.assertTrue(s["night"], s)
             tone.set_scheme(b, False)
             self.assertTrue(b.wait_for("return !document.cookie.includes('wikiprefs=');"), self.state(b))
+            tone.set_scheme(b, True)
+            self.feed(b)
+
+            # 11. a localStorage recipe that creates the key
+            url = srv.url("create.test")
+            self.preset(b, url, {})
+            self.feed(b, sites={"create.test": [CREATE_RECIPE]})
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["theme"]), ("dark", "dark"), s)
+            self.assertEqual(s["record"]["keys"], {"local:theme": {"prior": None, "wrote": "dark"}})
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('theme') === null;"), self.state(b))
             tone.set_scheme(b, True)
             self.feed(b)
 
