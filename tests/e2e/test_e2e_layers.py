@@ -19,6 +19,8 @@ test_e2e_darken.py. Checked:
     page), under a dark theme and a light one;
   - a fixed left sidebar with its own colour is marked too, a see-through
     fixed bar is not;
+  - a tall see-through fixed header is left alone over nothing, and marked
+    once content lies under its lower row only (its top row a notice);
   - a background rendered late inside an existing element (as an Angular
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
@@ -36,7 +38,10 @@ test_e2e_darken.py. Checked:
     the same text on its own white card is left alone; so is dark text
     over a light face at opacity 0 (a hover state) or a gradient underline
     2px high, but not over a full gradient; text with a colour transition
-    keeps its mark from pass to pass, its style attribute put back.
+    keeps its mark from pass to pass, its style attribute put back;
+  - a black logo blended with multiply on the dark glass is shown on a
+    white tile (not blended, not inverted), the same logo on its own
+    white card is left alone.
 """
 
 import os
@@ -170,7 +175,7 @@ html, body {background:transparent}
 <p>Plain <span id="clip">highlighted</span></p>
 </body></html>"""
 INK = bg.ATTR_INK
-BLEND = bg.ATTR_BLEND
+TILE = bg.ATTR_TILE
 # A dark page (light text) with one black line straight on the root: under
 # a light theme the root is the dark tint at 88 % over the light glass,
 # which the browser mixes in sRGB, so the black line sits on dark grey.
@@ -189,6 +194,16 @@ BANNER_PAGE = STYLE + """
 #modal {position:fixed; inset:0; background:rgb(50,40,40); z-index:6; display:none}
 </style></head><body><div id="long">""" + dk.TEXT + """</div>
 <div id="wrap"><form id="consent">Cookies</form></div><div id="modal">Modal</div></body></html>"""
+# A tall see-through fixed header: its top row a notice with a colour of
+# its own (a country redirect), its links in the row below; the content
+# starts below the header, then is scrolled under the row of links only.
+TALL_PAGE = STYLE + """
+#tall {position:fixed; top:0; left:0; right:0; height:110px; background:transparent; z-index:2}
+#notice {height:60px; background:rgb(40,40,60)}
+#cells {display:flex; margin-top:170px}
+#cells div {flex:1; height:200px; margin:0 2px; background:rgb(40,40,40)}
+</style></head><body><header id="tall"><div id="notice">Notice</div><a href="#">Home</a></header>
+<div id="cells">""" + "<div>Cell</div>" * 5 + """</div><div id="long">""" + dk.TEXT + """</div></body></html>"""
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
 
 
@@ -221,7 +236,8 @@ class LayersE2E(unittest.TestCase):
                   "/lock.html": ("text/html; charset=utf-8", LOCK_PAGE.encode("utf-8")),
                   "/ink.html": ("text/html; charset=utf-8", INK_PAGE.encode("utf-8")),
                   "/inkroot.html": ("text/html; charset=utf-8", INK_ROOT_PAGE.encode("utf-8")),
-                  "/banner.html": ("text/html; charset=utf-8", BANNER_PAGE.encode("utf-8"))}
+                  "/banner.html": ("text/html; charset=utf-8", BANNER_PAGE.encode("utf-8")),
+                  "/tall.html": ("text/html; charset=utf-8", TALL_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -260,6 +276,18 @@ class LayersE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
             tone.set_scheme(b, True)
+
+            # a tall see-through header: left alone over nothing, marked once
+            # content lies under its lower row only (its middle line on its
+            # own notice)
+            b.navigate(srv.url("/tall.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, tone.LIVE))
+            self.assertFalse(b.wait_for(dk.MARKED, 2.0, "tall", BAR), "a see-through header over nothing marked")
+            b.js("window.scrollTo(0, 110);")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "tall", BAR),
+                            "a tall see-through header over content under its lower row not marked")
 
             # a cookie banner over the text keeps its colour, and a modal
             b.navigate(srv.url("/banner.html", "dark.test"))
@@ -328,12 +356,15 @@ class LayersE2E(unittest.TestCase):
             self.assertFalse(self.marked(b, "oncard", INK), "text on its own white card marked")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('oncard')).color;"),
                              "rgb(20, 20, 20)")
-            # the logo multiplied into the dark glass: inverted, blended with screen
-            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "logo", BLEND), "black logo on the glass not marked")
+            # the logo multiplied into the dark glass: on a white tile, not
+            # blended (black on black) nor inverted
+            self.assertTrue(b.wait_for("return document.getElementById('logo').getAttribute(arguments[0])"
+                                       " === 'blend';", mn.WAIT_TIMEOUT, TILE),
+                            "black logo on the glass not tiled")
             self.assertEqual(b.js("const s = getComputedStyle(document.getElementById('logo'));"
-                                  "return [s.mixBlendMode, s.filter];"),
-                             ["screen", "invert(1) hue-rotate(180deg)"])
-            self.assertFalse(self.marked(b, "cardlogo", BLEND), "logo on its own white card marked")
+                                  "return [s.mixBlendMode, s.filter, s.backgroundColor];"),
+                             ["normal", "none", "rgb(255, 255, 255)"])
+            self.assertFalse(self.marked(b, "cardlogo", TILE), "logo on its own white card tiled")
             # a button whose light face is its ::before: its dark label keeps
             # its colour (white on white otherwise)
             self.assertFalse(self.marked(b, "pill", INK), "text on a light ::before face marked")

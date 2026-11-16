@@ -165,9 +165,9 @@ ATTR_BAR = "data-browserglass-bar"
 # ... and INK, "dark" or "light", on text left without contrast once the
 # background behind it went (see _CONTENT_LAYERS): a readable colour.
 ATTR_INK = "data-browserglass-ink"
-# ... and BLEND on a picture blended with multiply into a background now
-# dark (see _CONTENT_LAYERS): inverted and blended with screen instead.
-ATTR_BLEND = "data-browserglass-blend"
+# ... and TILE on a picture made for a white page on a background now dark
+# (see _CONTENT_LAYERS): shown on a white tile.
+ATTR_TILE = "data-browserglass-tile"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1786,15 +1786,33 @@ _CONTENT_DARKEN = (
 #   clipped to the text is drawn under that fill). The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
-# - a picture multiplied into a background now dark (ATTR_BLEND, a black
-#   logo whose white the site wipes out): inverted, blended with screen.
+# - a picture made for a white page on a background now dark (ATTR_TILE: a
+#   product photo whose white the site wipes out with multiply, a black
+#   logo on a page Dark Reader darkens): on a white tile, as shops show
+#   their photos in a dark theme: a white background, a white margin
+#   TILE_PAD wide drawn by a shadow (the layout stays), its outer corners
+#   rounded to TILE_RADIUS by a clip-path, no blending, no filter. The
+#   picture keeps square corners: rounded ones (the shadow's hole rounded
+#   alike) would let the dark background through where the two smoothed
+#   edges meet, a grey dot at each corner.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.65
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
-_BLEND_SELECTOR = "[" + ATTR_BLEND + "]:not(#browserglass-a):not(#browserglass-b)"
+_TILE_SELECTOR = "[" + ATTR_TILE + "]:not(#browserglass-a):not(#browserglass-b)"
+TILE_PAD = 6
+TILE_RADIUS = 8
+_TILE_RULE = (
+    "  " + _TILE_SELECTOR + " {{\n"
+    "    filter: none !important; mix-blend-mode: normal !important;\n"
+    "    background-color: rgb(255, 255, 255) !important;\n"
+    "    border-radius: 0 !important;\n"
+    "    box-shadow: 0 0 0 " + str(TILE_PAD) + "px rgb(255, 255, 255) !important;\n"
+    "    clip-path: inset(-" + str(TILE_PAD) + "px round " + str(TILE_RADIUS) + "px) !important;\n"
+    "  }}\n"
+)
 _CONTENT_LAYERS = (
     "  :root {{ --browserglass-glass: rgb({dark}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
@@ -1803,9 +1821,8 @@ _CONTENT_LAYERS = (
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
-    "  " + _BLEND_SELECTOR
-    + " {{ filter: invert(1) hue-rotate(180deg) !important; mix-blend-mode: screen !important; }}\n"
-    "  " + _BAR_SELECTOR + " {{\n"
+    + _TILE_RULE
+    + "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
     "  }}\n"
@@ -2609,6 +2626,9 @@ def _site_key_name(key):
 # dropped, never the whole file.
 
 _THEME_KEY = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
+# a localStorage key may also hold "/" ("site/feature/darkmode"); a cookie
+# name may not (a separator in RFC 6265)
+_THEME_LOCAL_KEY = re.compile(r"[A-Za-z0-9_./:-]{1,64}")
 _THEME_BAD_VALUE = re.compile(r"[;,\x00-\x1f\x7f]")
 _THEME_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _THEME_STORES = ("local", "cookie")
@@ -2640,7 +2660,8 @@ def _theme_recipe(host, r):
     store, key, op, to = r.get("store"), r.get("key"), r.get("op", "set"), r.get("to")
     frm = r.get("from")
     if (store not in _THEME_STORES or op not in _THEME_OPS
-            or not isinstance(key, str) or not _THEME_KEY.fullmatch(key)
+            or not isinstance(key, str)
+            or not (_THEME_LOCAL_KEY if store == "local" else _THEME_KEY).fullmatch(key)
             or not _theme_value(to) or not to
             or not isinstance(frm, list) or not frm
             or not _theme_date(r.get("verified"))

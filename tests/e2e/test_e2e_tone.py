@@ -35,6 +35,13 @@ declared) and dark.test (light text on a dark background). Checked:
     (nav, the page's header and footer: a portal's long dark menu) do not
     vote while there is other text; a page with only grey text, or only a
     menu, is still measured from it;
+  - text on cards painting an opaque background of their own (a news
+    site's dark video cards on its white page) does not outvote the text
+    on the page's background, under either colour scheme, nor on the
+    mirror (white cards on a dark page); nor does the white text of a
+    shop's banners drawn over pictures, nor a dark band below the first
+    screen (a shop's tall footer) that is as wide as the page and taller
+    than most of the window: both are read like cards;
   - a site style that makes the text white (white.test.css) on a light
     page: under a dark theme the tone is that of the text shown, "dark"
     (the site style applies once the tone is set), so the page is glass
@@ -124,6 +131,41 @@ html{background:rgb(18,18,18)} body{margin:0;color:rgb(235,235,235)}
 GREY_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html{background:rgb(18,18,18)} body{margin:0;color:rgb(136,136,136)}
 </style></head><body><p>Grey text on a dark page.</p></body></html>"""
+# A news site (RTS): a white page whose dark video cards, each painting
+# its own opaque background, hold more light text than the page holds dark
+# text (mid-grey captions aside). The text on the cards tells their tone,
+# not the page's: light. With class "night" on <html>, the mirror: a dark
+# page whose white cards hold more dark text: dark.
+CARDS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(255,255,255)} body{margin:0;color:rgb(45,45,45)}
+main{background:rgb(255,255,255)} .sub{color:rgb(130,130,130)}
+.lane{display:flex;flex-wrap:wrap} .card{width:180px;margin:4px;background:rgb(45,45,45)}
+.card h3{color:rgb(255,255,255);font-size:12px}
+html.night, html.night main{background:rgb(18,18,18)} html.night body{color:rgb(235,235,235)}
+html.night .card{background:rgb(255,255,255)} html.night .card h3{color:rgb(20,20,20)}
+</style></head><body><main>""" + ("<p>Un article sur fond clair.</p><p class=\"sub\">Il y a 3 heures"
+                                  " | Suisse</p>") * 15 + """<div class="lane">""" + (
+    "<div class=\"card\"><h3>Le titre d'une video du jour</h3></div>") * 40 + "</div></main></body></html>"
+# A shop (Amazon): a light page whose banners hold white headlines drawn
+# over pictures, whose dark text sits on white cards, and whose dark footer
+# band below the first screen is as wide as the page and taller than the
+# window, its white links more text than the page's own dark titles. The
+# banners and the band are read like cards: the page's titles decide, light.
+SHOP_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(234,237,237)} body{margin:0;color:rgb(15,17,17)}
+.heroes{display:flex;flex-wrap:wrap} .hero{position:relative;width:240px;height:280px;margin:4px}
+.hero img{position:absolute;left:0;top:0;width:100%;height:100%}
+.hero h2,.hero p{position:relative;margin:0;padding:8px;color:rgb(255,255,255);font-size:18px}
+.grid{display:flex;flex-wrap:wrap;min-height:100vh} .card{width:200px;margin:6px;background:rgb(255,255,255)}
+.band{min-height:100vh;padding:20px;background:rgb(35,47,62)} .band a{display:block;color:rgb(255,255,255)}
+</style></head><body><div class="heroes">""" + (
+    "<div class=\"hero\"><img alt=\"\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'"
+    " width='24' height='28'%3E%3Crect width='24' height='28' fill='%23b03a10'/%3E%3C/svg%3E\">"
+    "<h2>Les offres de la semaine</h2><p>Casques, audio et plus encore</p></div>") * 5 + (
+    "</div><h2>Pour la maison</h2><h2>Pour la cuisine</h2><div class=\"grid\">") + (
+    "<div class=\"card\"><h3>Lampe de chevet en bois</h3><p>Livraison gratuite d\u00e8s demain</p></div>") * 40 + (
+    "</div><div class=\"band\">") + "<a href=\"#\">Informations sur la livraison</a>" * 40 + (
+    "</div></body></html>")
 # A light page with a web component: a light section in a shadow root.
 SHADOW_PAGE = LIGHT_PAGE.replace("<p>Readable text</p>", """<p>Readable text</p><div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML =
@@ -315,7 +357,9 @@ class ToneE2E(unittest.TestCase):
                   "/n.html": ("text/html; charset=utf-8", NEWS_PAGE.encode("utf-8")),
                   "/portal.html": ("text/html; charset=utf-8", PORTAL_PAGE.encode("utf-8")),
                   "/menu.html": ("text/html; charset=utf-8", MENU_PAGE.encode("utf-8")),
-                  "/g.html": ("text/html; charset=utf-8", GREY_PAGE.encode("utf-8"))}
+                  "/g.html": ("text/html; charset=utf-8", GREY_PAGE.encode("utf-8")),
+                  "/cards.html": ("text/html; charset=utf-8", CARDS_PAGE.encode("utf-8")),
+                  "/shop.html": ("text/html; charset=utf-8", SHOP_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -363,6 +407,23 @@ class ToneE2E(unittest.TestCase):
                 b.js(RUN_CONTENT, self.content_js)
                 with self.subTest(page=path):
                     self.tone_is(b, want)
+            # text on cards of its own does not outvote the page's text,
+            # under either scheme, nor on the mirrored dark page
+            for dark in (True, False):
+                set_scheme(b, dark)
+                b.navigate(srv.url("/cards.html", "light.test"))
+                b.js(RUN_CONTENT, self.content_js)
+                with self.subTest(page="/cards.html", dark=dark):
+                    self.tone_is(b, "light")
+                    b.js("document.documentElement.classList.add('night');")
+                    self.tone_is(b, "dark")
+            # nor do a shop's banners over pictures and its tall footer band
+            for dark in (True, False):
+                set_scheme(b, dark)
+                b.navigate(srv.url("/shop.html", "light.test"))
+                b.js(RUN_CONTENT, self.content_js)
+                with self.subTest(page="/shop.html", dark=dark):
+                    self.tone_is(b, "light")
 
 
 if __name__ == "__main__":

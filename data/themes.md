@@ -38,7 +38,7 @@ host with recipes skips the generic rule). Each recipe:
 | Field | |
 |---|---|
 | `store` | `local` (the page's `localStorage`) or `cookie`. |
-| `key` | The key or cookie name (letters, digits, `_ . : -`, at most 64). |
+| `key` | The key or cookie name (letters, digits, `_ . : -`, at most 64; a `localStorage` key may also hold `/`). |
 | `op` | `set`: a value of `from` becomes `to`. `swap`: the substring `from[0]` of a composite value (`"…-day-…"`) becomes `to`. |
 | `from` | The values meaning light. `null` stands for "absent" (`set` only): the key is then created. Never `to` itself. `swap` takes exactly one non-empty string. |
 | `to` | The dark value (no `;`, `,` or control character, at most 64). |
@@ -62,6 +62,10 @@ added by the helper: a page where a write failed is tried again only once
    in a fresh window, set it from the console on the site, then reload.
    For a cookie, check whether the first response is already dark (then the
    server draws it, and the recipe needs `reload`).
+   A cookie the site sets `HttpOnly` cannot be seen or replaced by the
+   add-on: when a visitor already has one, the write is refused and the
+   page reloads once; a page still light is then marked failed (Dark
+   Reader takes over).
 3. Check that the light value (or none) gives the light theme, so that
    putting it back restores the site.
 4. Write the recipe with today's date in `verified`, and run

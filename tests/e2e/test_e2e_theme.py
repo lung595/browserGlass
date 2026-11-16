@@ -41,7 +41,15 @@ localStorage). Checked:
     created, and a light theme puts the day theme back;
   - a localStorage recipe whose `from` holds null (npm's npm-color-mode,
     light when absent): the key is created dark before the page reads it,
-    and removed again under a light theme.
+    and removed again under a light theme;
+  - a localStorage key with "/" read by a script at the end of <body>
+    (RTS's rts/feature/darkmode, "none" when absent): created dark, the
+    page judged dark, removed under a light theme;
+  - a cookie named with a leading dot that the server renders from
+    (Galaxus's .themeshade): one reload, then dark, removed under a light
+    theme; the same cookie already set HttpOnly by the server (unseen by
+    scripts, the write refused): one reload at most, then failed and Dark
+    Reader, never reloaded again.
 """
 
 import json
@@ -63,7 +71,8 @@ import test_e2e_darken as dk  # noqa: E402
 bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
-         "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test")
+         "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test",
+         "slash.test", "shade.test", "hidden.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -97,6 +106,18 @@ WIKI_RECIPES = [
     {"store": "cookie", "key": "wikiprefs", "op": "swap", "from": ["skin-theme-clientpref-day"],
      "to": "skin-theme-clientpref-night", "verified": "2026-11-15", "note": "test fixture"},
 ]
+
+# Reads a key with "/" in a script at the end of <body>, as RTS does.
+SLASH_KEY = "site/feature/darkmode"
+SLASH_PAGE = ("""<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+body[data-dark-mode=dark] {background:rgb(17,17,17); color:rgb(230,230,230)}
+</style></head><body>""" + TEXT + """<script>
+window.__boot = localStorage.getItem("site/feature/darkmode");
+document.body.setAttribute("data-dark-mode", window.__boot || "none");
+</script></body></html>""")
+SLASH_RECIPE = {"store": "local", "key": SLASH_KEY, "op": "set", "from": [None, "none"], "to": "dark",
+                "verified": "2026-11-16", "note": "test fixture"}
 
 TEST_FEED = """// test only: a list sent by the page (test-relay.js), applied as one
 // from the helper
@@ -144,13 +165,19 @@ def themes_doc(sites=None):
 COOKIE_RECIPE = {"store": "cookie", "key": "mode", "op": "set", "from": [None, "light"], "to": "dark",
                  "reload": True, "verified": "2026-11-15", "note": "test fixture"}
 
+# The server renders its theme from ".shade" (/g.html); /hide.html sets
+# it HttpOnly, as Galaxus does once a visitor picks a theme.
+SHADE_RECIPE = {"store": "cookie", "key": ".shade", "op": "set", "from": [None, "light"], "to": "dark",
+                "reload": True, "verified": "2026-11-16", "note": "test fixture"}
+
 CREATE_RECIPE = {"store": "local", "key": "theme", "op": "set", "from": [None, "light"], "to": "dark",
                  "verified": "2026-11-15", "note": "test fixture"}
 
 
 class Server:
-    """Pages of the cases; /c.html renders its theme from the "mode" cookie
-    (counted per load)."""
+    """Pages of the cases; /c.html and /g.html render their theme from the
+    "mode" and ".shade" cookies (counted per load); /hide.html sets
+    ".shade=light" HttpOnly."""
 
     def __init__(self):
         self.hits = []
@@ -160,14 +187,19 @@ class Server:
             def do_GET(self):
                 path = self.path.split("?")[0]
                 cookie = self.headers.get("Cookie") or ""
-                if path == "/c.html":
+                extra = []
+                if path in ("/c.html", "/g.html"):
                     hits.append(cookie)
-                    night = "mode=dark" in cookie.replace(" ", "").split(";")
+                    night = ("mode=dark" if path == "/c.html" else ".shade=dark") \
+                        in cookie.replace(" ", "").split(";")
                     body = ('<!doctype html><html class="%s"><head><meta charset="utf-8">'
                             % ("night" if night else "")) + STYLE + "</head><body>" + TEXT + "</body></html>"
                 else:
-                    body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE,
-                            "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE}.get(path)
+                    if path == "/hide.html":
+                        extra.append(("Set-Cookie", ".shade=light; HttpOnly; Path=/"))
+                    body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE, "/hide.html": LS_PAGE,
+                            "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE,
+                            "/rts.html": SLASH_PAGE}.get(path)
                     if body is None:
                         self.send_error(404)
                         return
@@ -176,6 +208,8 @@ class Server:
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(data)))
+                for k, v in extra:
+                    self.send_header(k, v)
                 self.end_headers()
                 self.wfile.write(data)
 
@@ -445,6 +479,63 @@ class ThemeE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             self.assertTrue(b.wait_for("return localStorage.getItem('theme') === null;"), self.state(b))
             tone.set_scheme(b, True)
+            self.feed(b)
+
+            # 12. a key with "/" read at the end of <body>: created, judged dark
+            url = srv.url("slash.test", "/rts.html")
+            self.preset(b, url, {})
+            self.feed(b, sites={"slash.test": [SLASH_RECIPE]})
+            s = self.load(b, url)
+            self.assertEqual(s["boot"], "dark", s)
+            self.assertEqual(b.js("return document.body.getAttribute('data-dark-mode');"), "dark")
+            self.assertEqual(s["record"]["keys"], {"local:" + SLASH_KEY: {"prior": None, "wrote": "dark"}})
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
+            self.assertNotIn("failed", s["record"])
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem(arguments[0]) === null"
+                                       " && localStorage.getItem(arguments[1]) === null;",
+                                       mn.WAIT_TIMEOUT, SLASH_KEY, RECORD), self.state(b))
+            tone.set_scheme(b, True)
+            self.feed(b)
+
+            # 13. a cookie named with a dot, rendered by the server: one
+            # reload, then dark; removed under a light theme
+            url = srv.url("shade.test", "/g.html")
+            self.load(b, srv.url("absent.test"))
+            self.feed(b, sites={"shade.test": [SHADE_RECIPE]})
+            del srv.hits[:]
+            s = self.load(b, url)
+            self.assertEqual(srv.hits, ["", ".shade=dark"])
+            self.assertTrue(s["night"], s)
+            self.assertEqual(s["record"]["keys"]["cookie:.shade"], {"prior": None, "wrote": "dark", "path": "/"})
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.cookie.includes('.shade=')"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            tone.set_scheme(b, True)
+
+            # 14. the same cookie already set HttpOnly by the server: unseen
+            # by scripts, and Firefox refuses the write but shows it to the
+            # page's own scripts: one reload, the page stays light, failed,
+            # Dark Reader; never reloaded again
+            self.load(b, srv.url("hidden.test", "/hide.html"))  # no recipe yet
+            self.load(b, srv.url("absent.test"))
+            self.feed(b, sites={"hidden.test": [SHADE_RECIPE]})
+            url = srv.url("hidden.test", "/g.html")
+            del srv.hits[:]
+            s = self.load(b, url)
+            self.assertEqual(srv.hits, [".shade=light", ".shade=light"])
+            s = self.settled(b)
+            self.assertFalse(s["night"], s)
+            self.assertEqual((s["record"]["keys"], s["record"]["failed"]),
+                             ({}, themes_doc({"hidden.test": [SHADE_RECIPE]})["rev"]), s)
+            self.assertTrue(b.wait_for(dk.DARKENED), "refused cookie: page not darkened by Dark Reader")
+            for _ in range(2):
+                del srv.hits[:]
+                s = self.load(b, url)
+                self.assertEqual(srv.hits, [".shade=light"])
+                self.assertFalse(s["night"], s)
             self.feed(b)
 
 

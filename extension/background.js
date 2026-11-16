@@ -74,6 +74,8 @@ function cleanList(domains) {
 // The themes as theme.js reads them: the same shape as the helper sends,
 // every string short and plain; anything else is dropped.
 const THEME_KEY = /^[A-Za-z0-9_.:-]{1,64}$/;
+// a localStorage key may also hold "/"; a cookie name may not
+const THEME_LOCAL_KEY = /^[A-Za-z0-9_./:-]{1,64}$/;
 const THEME_BAD = /[;,\u0000-\u001f\u007f]/;
 
 function themeValue(v) {
@@ -82,7 +84,8 @@ function themeValue(v) {
 
 function cleanRecipe(r) {
   if (!r || typeof r !== "object" || (r.store !== "local" && r.store !== "cookie")
-      || (r.op !== "set" && r.op !== "swap") || typeof r.key !== "string" || !THEME_KEY.test(r.key)
+      || (r.op !== "set" && r.op !== "swap") || typeof r.key !== "string"
+      || !(r.store === "local" ? THEME_LOCAL_KEY : THEME_KEY).test(r.key)
       || !themeValue(r.to) || !r.to || !Array.isArray(r.from) || !r.from.length
       || !r.from.every((f) => f === null || themeValue(f)))
     return null;

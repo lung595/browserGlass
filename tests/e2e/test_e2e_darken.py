@@ -35,7 +35,15 @@ the list). Checked:
   - a site style of data/sites/ on a darkened page: Stack Overflow's
     filled buttons and search field (the real Stacks var() fallback chains,
     which Dark Reader maps to the page's white) keep a fill of their own
-    under a dark theme, and the site's own colours under a light one.
+    under a dark theme, and the site's own colours under a light one;
+  - pictures on a white card Dark Reader darkens: a photo blended with
+    multiply is shown on a white tile (not blended, not inverted, a white
+    margin drawn by a shadow, rounded outside, with no seam of the dark
+    background at the photo's corners), and so is see-through black ink of the
+    page's origin or a data: URL; left alone: a photo as wide as the page,
+    the same ink from another origin (its pixels cannot be read), a light
+    logo, an opaque picture, an icon under 24 px; a light theme takes the
+    tiles off.
 """
 
 import json
@@ -44,6 +52,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -52,7 +61,7 @@ import marionette as mn  # noqa: E402
 import test_e2e_tone as tone  # noqa: E402
 
 bg = tone.bg
-CANVAS, OFF = bg.ATTR_CANVAS, bg.ATTR_OFF
+CANVAS, OFF, TILE = bg.ATTR_CANVAS, bg.ATTR_OFF, bg.ATTR_TILE
 EXT = os.path.join(tone.REPO, "extension")
 
 TEXT = "<p>" + "Some readable dark text on a light page. " * 8 + "</p>"
@@ -94,6 +103,65 @@ FETCHED = ("return window.bgFetch(arguments[0]).then((r) => r.text(), () => 'ref
 SPOOF_PAGE = WRAPPED_PAGE.replace(
     "</style>", ":root {--browserglass-darken-bg: #000; --browserglass-darken-fg: #fff}</style>")
 MARKED = "return document.getElementById(arguments[0]).hasAttribute(arguments[1]);"
+
+
+def svg(width, height, body):
+    """A data: URL of an SVG picture."""
+    return "data:image/svg+xml," + urllib.parse.quote(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">%s</svg>' % (width, height, body))
+
+
+# Pictures on a white shop card Dark Reader darkens: a product photo whose
+# white the site wipes out with multiply (#photo), and one as wide as the
+# page (#hero); see-through black ink of the page's origin (#ink, from
+# /ink.svg) and of a data: URL (#mark), and the same ink from another
+# origin (#far, its source set by the test: its pixels cannot be read);
+# a see-through light logo (#sun), an opaque picture (#opaque) and a
+# black icon under 24 px (#icon).
+INK_RECT = '<rect x="10" y="10" width="100" height="20" fill="black"/>'
+INK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">' + INK_RECT + '</svg>'
+PHOTO = svg(120, 80, '<rect width="120" height="80" fill="white"/>'
+                     '<circle cx="60" cy="40" r="30" fill="rgb(200,40,40)"/>')
+PICTURES = (
+    ("photo", PHOTO, 'class="blend" width="120" height="80"'),
+    ("hero", PHOTO, 'class="blend" style="width:100%; height:80px; margin:0"'),
+    ("ink", "/ink.svg", 'width="120" height="40"'),
+    ("mark", svg(120, 40, INK_RECT), 'width="120" height="40"'),
+    ("far", "", 'width="120" height="40"'),
+    ("sun", svg(120, 40, INK_RECT.replace("black", "rgb(255,200,0)")), 'width="120" height="40"'),
+    ("opaque", svg(120, 40, '<rect width="120" height="40" fill="white"/>' + INK_RECT), 'width="120" height="40"'),
+    ("icon", svg(16, 16, '<rect x="2" y="2" width="12" height="12" fill="black"/>'), 'width="16" height="16"'),
+)
+TILE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#shop {background:rgb(255,255,255); padding:20px 0}
+#shop img {display:block; margin:12px}
+.blend {mix-blend-mode:multiply}
+</style></head><body>""" + TEXT + '<div id="shop">' + "".join(
+    '<img id="%s"%s %s>' % (name, ' src="%s"' % src if src else "", attrs)
+    for name, src, attrs in PICTURES) + "</div></body></html>"
+TILED = "return document.getElementById(arguments[0]).getAttribute(arguments[1])"
+# The tile around a picture as shown (drawn in the chrome): the darkest
+# channel within 3 px of each corner of the picture (the picture's own
+# corner meeting the margin), and that of the tile's outer corner pixel.
+CORNERS = """
+const [x, y, w, h, pad] = arguments;
+const win = gBrowser.selectedBrowser.browsingContext.currentWindowGlobal;
+return win.drawSnapshot(new DOMRect(x - pad, y - pad, w + 2 * pad, h + 2 * pad), 1, "rgb(0, 0, 0)").then((bmp) => {
+  const c = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  c.width = bmp.width; c.height = bmp.height;
+  const g = c.getContext("2d");
+  g.drawImage(bmp, 0, 0);
+  const px = g.getImageData(0, 0, c.width, c.height).data;
+  const at = (i, j) => Math.min(px[(j * c.width + i) * 4], px[(j * c.width + i) * 4 + 1], px[(j * c.width + i) * 4 + 2]);
+  let inner = 255;
+  for (const [cx, cy] of [[pad, pad], [pad + w, pad], [pad, pad + h], [pad + w, pad + h]])
+    for (let i = cx - 3; i < cx + 3; i++)
+      for (let j = cy - 3; j < cy + 3; j++)
+        inner = Math.min(inner, at(i, j));
+  return [inner, at(0, 0)];
+});"""
+LOADED = "return [...document.images].every((i) => !i.src || i.complete);"
 
 
 # A Stacks page as Stack Overflow serves it signed out (no dark theme):
@@ -180,6 +248,7 @@ class DarkenE2E(unittest.TestCase):
                 self.check_left_alone(binary)
                 self.check_native(binary)
                 self.check_stacks(binary)
+                self.check_tiles(binary)
 
     def run_content(self, b, excluded=(), darken=True):
         """content.js with the stored list `excluded` and darken flag
@@ -282,6 +351,53 @@ class DarkenE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader');"))
             self.assertEqual(self.bg_of(b, "ask"), "rgb(27, 117, 208)", "the site's own blue")
+
+    def check_tiles(self, binary):
+        routes = {"/t.html": ("text/html; charset=utf-8", TILE_PAGE.encode("utf-8")),
+                  "/ink.svg": ("image/svg+xml", INK_SVG.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/t.html", "light.test"))
+            b.js("document.getElementById('far').src = arguments[0];", srv.url("/ink.svg", "dark.test"))
+            self.assertTrue(b.wait_for(LOADED), "pictures not loaded")
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            shop = tone.rgba(self.bg_of(b, "shop"))
+            self.assertLess(tone.luminance(shop), 0.05, shop)
+            # the multiplied photo on a white tile, not inverted or blended
+            self.assertTrue(b.wait_for(TILED + " === 'blend';", mn.WAIT_TIMEOUT, "photo", TILE),
+                            "multiplied photo not tiled")
+            look = b.js("const s = getComputedStyle(document.getElementById('photo'));"
+                        "return [s.mixBlendMode, s.filter, s.backgroundColor, s.boxShadow];")
+            self.assertEqual(look[:3], ["normal", "none", "rgb(255, 255, 255)"])
+            self.assertIn("0px 0px 0px %dpx" % bg.TILE_PAD, look[3])
+            # white all through the corners where the photo meets its
+            # margin (no seam of the dark background), rounded outside
+            box = b.js("const el = document.getElementById('photo'); el.scrollIntoView({block: 'center'});"
+                       "const r = el.getBoundingClientRect();"
+                       "return [r.left + scrollX, r.top + scrollY, r.width, r.height];")
+            inner, outer = b.chrome_js(CORNERS, *box, bg.TILE_PAD)
+            self.assertGreaterEqual(inner, 250, "a seam at the photo's corners")
+            self.assertLess(outer, 128, "the tile's outer corner not rounded")
+            # see-through black ink, of the page's origin or a data: URL
+            for name in ("ink", "mark"):
+                self.assertTrue(b.wait_for(TILED + " === 'ink';", mn.WAIT_TIMEOUT, name, TILE),
+                                name + ": dark ink not tiled")
+            # left as they are: a full-bleed photo, a picture of another
+            # origin (unreadable), a light logo, an opaque picture, an icon
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            for name in ("hero", "far", "sun", "opaque", "icon"):
+                self.assertFalse(b.js(MARKED, name, TILE), name + " tiled")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('hero')).mixBlendMode;"),
+                             "multiply")
+            # a light theme: the page's own white, no tile left
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, TILE), "still tiled under a light theme")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('photo')).mixBlendMode;"),
+                             "multiply")
 
     def check_native(self, binary):
         routes = {"/n.html": ("text/html; charset=utf-8", NATIVE_PAGE.encode("utf-8"))}

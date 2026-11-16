@@ -82,6 +82,12 @@ class CleanTest(unittest.TestCase):
         self.assertNotIn("domain", self.clean(recipe(store="cookie"))["example.org"][0])
         swap = self.clean(recipe(op="swap", key="x", **{"from": ["-day"]}, to="-os"))
         self.assertEqual(swap["example.org"][0]["op"], "swap")
+        # a localStorage key may hold "/" (RTS's rts/feature/darkmode)
+        slash = self.clean(recipe(key="rts/feature/darkmode", **{"from": [None, "none"]}))
+        self.assertEqual(slash["example.org"][0]["key"], "rts/feature/darkmode")
+        # a cookie name may start with a dot (Galaxus's .themeshade)
+        self.assertEqual(self.clean(recipe(store="cookie", key=".themeshade"))["example.org"][0]["key"],
+                         ".themeshade")
 
     def test_bad_rows_are_dropped(self):
         bad = [
@@ -94,6 +100,7 @@ class CleanTest(unittest.TestCase):
             recipe(store="cookie", path="x"), recipe(store="cookie", domain="other.org"),
             recipe(store="cookie", domain=".org.example"), recipe(store="cookie", reload="yes"),
             recipe(path="/"), recipe(reload=True), recipe(skipIfCookie="a b"), "x", None,
+            recipe(store="cookie", key="a/b"), recipe(skipIfCookie="a/b"),
         ]
         for r in bad:
             with self.subTest(r=r):

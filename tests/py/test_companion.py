@@ -138,12 +138,26 @@ class ExtensionSourcesTest(unittest.TestCase):
         # first (Hacker News' grey meta lines, a portal's long dark menu),
         # then the rest; the menus are skipped whole (Le Monde's header
         # holds more text nodes than SAMPLE_WALK) and read only on a page
-        # with no other text
+        # with no other text; the text on the page's own background votes
+        # before the text on cards painting a background of their own
+        # (a news site's dark video cards on its white page) or drawn over
+        # pictures (a shop's banners); a band like the page's background
+        # that starts below the first screen (a shop's dark footer) is a card
         self.assertIn("const isFirm = y <= MID_LOW || y >= MID_HIGH;", measure)
         self.assertIn("if (menus && siteChrome(node)) {", measure)
         self.assertIn("return NodeFilter.FILTER_REJECT;", measure)
         self.assertIn("if (main[0] + main[1] === 0)\n      for (const m of menus)\n        tally(m, null);", measure)
-        self.assertIn("[mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all", measure)
+        self.assertIn("[pageFirm, page, mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all",
+                      measure)
+        self.assertIn("if (!onCard(p, cards) && !onPicture(p, pictures)) {", measure)
+        card = js[js.index("function onCard("):js.index("function measure()")]
+        self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= OWN_BG", card)
+        self.assertIn("? !backdrop(el) : onCard(el.parentElement, cards);", card)
+        self.assertIn("(el.hasAttribute(CANVAS) || large(el))\n"
+                      "    && el.getBoundingClientRect().top + window.scrollY < window.innerHeight;", card)
+        self.assertIn('const PICTURES = new Set(["img", "picture", "video", "canvas", "svg"]);', card)
+        self.assertIn("pictures.size < PICTURE_TESTS", card)
+        self.assertIn("document.elementsFromPoint(x, y)", card)
         self.assertIn("walked < SAMPLE_WALK", measure)
         self.assertIn("sampled = all[0] + all[1];", measure)
         chrome = js[js.index("function siteChrome("):js.index("function measure()")]
@@ -295,20 +309,48 @@ class ExtensionSourcesTest(unittest.TestCase):
         # the ink's colour is the fill too (a gradient is drawn under it)
         self.assertIn("-webkit-text-fill-color: currentcolor !important;", bg._CONTENT_LAYERS)
 
-    def test_content_marks_blend(self):
-        # a picture multiplied into a dark background gets ATTR_BLEND, in the
-        # same throttled pass as the text, and loses it with the page's marks
+    def test_content_marks_tiles(self):
+        # a picture made for a white page on a background now dark gets
+        # ATTR_TILE (a white tile), in the same throttled pass as the text,
+        # and loses it with the page's marks
         js = strip_comments(read("content.js"))
-        self.assertIn('const BLEND = "%s";' % bg.ATTR_BLEND, js)
-        self.assertTrue(bg.ATTR_BLEND.startswith("data-browserglass-"))
-        self.assertIn("[%s]:not(#browserglass-a):not(#browserglass-b) {{ filter: invert(1) hue-rotate(180deg)"
-                      " !important; mix-blend-mode: screen !important; }}" % bg.ATTR_BLEND, bg._CONTENT_LAYERS)
-        ink = js[js.index("function markInk()"):js.index("function markBlend(")]
-        self.assertIn("removeAttribute(BLEND)", ink)
-        self.assertIn("markBlend(near);", ink)
-        mark = js[js.index("function markBlend("):js.index("function ink()")]
-        self.assertIn("i < pictures.length && i < BLEND_ELEMENTS", mark)
-        self.assertIn("bg !== null && bg <= DARK_BG", mark)
+        self.assertIn('const TILE = "%s";' % bg.ATTR_TILE, js)
+        self.assertTrue(bg.ATTR_TILE.startswith("data-browserglass-"))
+        rule = bg._TILE_RULE.format()
+        for part in ("[%s]:not(#browserglass-a):not(#browserglass-b) {" % bg.ATTR_TILE,
+                     "filter: none !important; mix-blend-mode: normal !important;",
+                     "background-color: rgb(255, 255, 255) !important;",
+                     # square inside (no seam at the picture's corners),
+                     # rounded outside by the clip-path
+                     "border-radius: 0 !important;",
+                     "box-shadow: 0 0 0 %dpx rgb(255, 255, 255) !important;" % bg.TILE_PAD,
+                     "clip-path: inset(-%dpx round %dpx) !important;" % (bg.TILE_PAD, bg.TILE_RADIUS)):
+            self.assertIn(part, rule)
+        self.assertIn(bg._TILE_RULE, bg._CONTENT_LAYERS)
+        # no longer inverted
+        self.assertNotIn("invert(1)", bg._CONTENT_LAYERS)
+        ink = js[js.index("function markInk()"):js.index("function markTiles(")]
+        self.assertIn("removeAttribute(TILE)", ink)
+        self.assertIn("markTiles(near);", ink)
+        mark = js[js.index("function markTiles("):js.index("function sample(")]
+        for part in ("i < pictures.length && i < TILE_ELEMENTS",
+                     "r.width < TILE_MIN && r.height < TILE_MIN || r.width >= TILE_WIDE * window.innerWidth",
+                     'el.getAttribute(TILE) === "blend" || DARKENING.has(getComputedStyle(el).mixBlendMode)',
+                     # ink is read on Dark Reader's pages only, from <img>
+                     'blended || !darkened || el.localName !== "img" ? null : sample(el)',
+                     "behind(el.parentElement || document.documentElement)",
+                     "if (bg === null || bg > DARK_BG)",
+                     "unread >= TILE_INK * s.inks.length"):
+            self.assertIn(part, mark)
+        # never taken off and set again in the same pass
+        self.assertIn("else if (el.getAttribute(TILE) !== kind)", mark)
+        pixels = js[js.index("function sample("):js.index("function ink()")]
+        for part in ('img.addEventListener("load", ink, {once: true});',
+                     "if (samples.size >= SAMPLES_MAX)",
+                     "Math.min(1, SAMPLE_SIDE / Math.max(r.width, r.height))",
+                     # another origin: unreadable, left as it is
+                     "} catch (e) {\n    return null;"):
+            self.assertIn(part, pixels)
         behind = js[js.index("function behind(el)"):js.index("function markInk()")]
         # an image behind the text: no guess
         self.assertIn("if (picture(style))\n      return null;", behind)
@@ -340,7 +382,7 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "if (parseFloat(style.opacity) < CLEAR)\n    return undefined;"):
             self.assertIn(part, faces)
         # looked for again on every pass
-        self.assertIn("faces = new Map();", js[js.index("function markInk()"):js.index("function markBlend(")])
+        self.assertIn("faces = new Map();", js[js.index("function markInk()"):js.index("function markTiles(")])
         throttle = js[js.index("function ink()"):]
         throttle = throttle[:throttle.index("\n}")]
         self.assertIn("requestAnimationFrame(", throttle)
@@ -540,6 +582,16 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("stored = Array.isArray(s.excluded);", bjs)
         self.assertIn("const first = !stored;", bjs)
         self.assertIn("if (!same || first)", bjs)
+
+    def test_background_theme_keys(self):
+        # the add-on keeps the helper's key rules: "/" in a localStorage
+        # key only, never in a cookie name
+        js = read("background.js")
+        self.assertIn("const THEME_KEY = /^%s$/;" % bg._THEME_KEY.pattern, js)
+        self.assertIn("const THEME_LOCAL_KEY = /^%s$/;" % bg._THEME_LOCAL_KEY.pattern, js)
+        self.assertIn('!(r.store === "local" ? THEME_LOCAL_KEY : THEME_KEY).test(r.key)', js)
+        self.assertIn("/", bg._THEME_LOCAL_KEY.pattern)
+        self.assertNotIn("/", bg._THEME_KEY.pattern)
 
     def test_background_protocol(self):
         js = strip_comments(read("background.js"))

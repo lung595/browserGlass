@@ -25,8 +25,17 @@
     "gemini.google.com": [
       {"store": "local", "key": "Bard-Color-Theme", "op": "set", "from": ["Bard-Light-Theme"], "to": "Bard-Dark-Theme", "verified": "2026-11-15", "note": "signed out, Settings > Theme writes Bard-Color-Theme; absent, the page follows the system colour scheme"}
     ],
+    "www.digitec.ch": [
+      {"store": "cookie", "key": ".themeshade", "op": "set", "from": [null, "light"], "to": "dark", "path": "/", "reload": true, "verified": "2026-11-16", "note": "the server renders <html class=\"digitec light-mode\"> when absent, even on a dark system, and dark-mode from .themeshade=dark (light, dark, system); the theme menu sets it HttpOnly and host-only: then the write is refused, one reload, failed"}
+    ],
+    "www.galaxus.ch": [
+      {"store": "cookie", "key": ".themeshade", "op": "set", "from": [null, "light"], "to": "dark", "path": "/", "reload": true, "verified": "2026-11-16", "note": "the server renders <html class=\"galaxus light-mode\"> when absent, even on a dark system, and dark-mode from .themeshade=dark (light, dark, system); the theme menu sets it HttpOnly and host-only: then the write is refused, one reload, failed"}
+    ],
     "www.npmjs.com": [
       {"store": "local", "key": "npm-color-mode", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-15", "note": "an inline head script reads npm-color-mode, light when absent; the moon toggle writes it"}
+    ],
+    "www.rts.ch": [
+      {"store": "local", "key": "rts/feature/darkmode", "op": "set", "from": [null, "none"], "to": "dark", "verified": "2026-11-16", "note": "a script at the end of body sets body data-dark-mode from rts/feature/darkmode (none when absent; dark, dark-blue, auto), no reload; rts.ch redirects to www.rts.ch"}
     ]
   }
 }

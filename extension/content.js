@@ -28,8 +28,9 @@
 // own: the text under the bar is blurred like a picture. Text left
 // without contrast once its background went (dark text on
 // the dark glass) gets data-browserglass-ink, a readable colour, and a
-// picture multiplied into a background now dark (a black logo whose white
-// a site wipes out with mix-blend-mode) gets data-browserglass-blend.
+// picture made for a white page on a background now dark (a product photo
+// whose white a site wipes out with mix-blend-mode, a black logo on a
+// page Dark Reader darkens) gets data-browserglass-tile: a white tile.
 // Before all that, theme.js (loaded before this script) sets the site's
 // own stored theme to dark at document_start: this script runs it again
 // once the list is known (a restore under a light theme, a late write),
@@ -43,7 +44,7 @@ const OWN = "data-browserglass-";
 const CANVAS = "data-browserglass-canvas";
 const BAR = "data-browserglass-bar";
 const INK = "data-browserglass-ink";
-const BLEND = "data-browserglass-blend";
+const TILE = "data-browserglass-tile";
 const GLASS = "--browserglass-glass";
 const DARKEN_BG = "--browserglass-darken-bg";
 const DARKEN_FG = "--browserglass-darken-fg";
@@ -163,10 +164,76 @@ const RESIZE_MEASURES = 20;
 let sampled = 0;
 let resizeMeasures = 0;
 
+// Text on a card: inside an element below the body that paints an opaque
+// background colour of its own and is not a layer of the page's
+// background (backdrop), as a news site's dark video cards on its white
+// page. That text is read on its card, whatever the glass behind the page
+// shows: it tells the card's tone, not the page's. The root, the body and
+// <main> are the page. Looked up once per element and measure.
+function onCard(el, cards) {
+  if (!el || el === document.body || el === document.documentElement || el.localName === "main")
+    return false;
+  if (cards.has(el))
+    return cards.get(el);
+  const value = alpha(getComputedStyle(el).backgroundColor) >= OWN_BG
+    ? !backdrop(el) : onCard(el.parentElement, cards);
+  cards.set(el, value);
+  return value;
+}
+
+// A layer of the page's background (CANVAS, or large and not yet marked)
+// starts within the first screen of the document: a band as wide and
+// almost as tall that starts below it is a card, as a shop's dark footer
+// under its light page.
+function backdrop(el) {
+  return (el.hasAttribute(CANVAS) || large(el))
+    && el.getBoundingClientRect().top + window.scrollY < window.innerHeight;
+}
+
+// Text drawn over a picture (an <img>, a <video>, a <canvas>, an <svg> or
+// a background image sized to cover its box, not a texture nor an icon,
+// under its middle: a shop's white headlines on its banners) is read on
+// the picture, as on a card. One hit test per element in the window, at
+// most PICTURE_TESTS elements per measure; text out of the window is on
+// the page.
+const PICTURES = new Set(["img", "picture", "video", "canvas", "svg"]);
+const PICTURE_TESTS = 200;
+
+function onPicture(el, pictures) {
+  if (pictures.has(el))
+    return pictures.get(el);
+  let value = false;
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  if (r.width && pictures.size < PICTURE_TESTS
+      && x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight) {
+    for (const e of document.elementsFromPoint(x, y)) {
+      if (e === document.body || e === document.documentElement || e.hasAttribute(CANVAS))
+        break;
+      if (el.contains(e))
+        continue;
+      const style = getComputedStyle(e);
+      if ((/url\(/.test(style.backgroundImage) && /cover|contain/.test(style.backgroundSize))
+          || (!e.contains(el) && PICTURES.has(e.localName))) {
+        value = true;
+        break;
+      }
+      // a card under the text: onCard's
+      if (alpha(style.backgroundColor) >= OWN_BG)
+        break;
+    }
+  }
+  pictures.set(el, value);
+  return value;
+}
+
 // The tone from the colour of the text shown, the site styles included:
 // the visible text of the body votes, each node by its length (capped, so
-// one long paragraph does not outweigh the page); the text outside the
-// site's menus and the mid-grey band decides first (siteChrome, MID_LOW).
+// one long paragraph does not outweigh the page); the text on the page's
+// background (not on a card nor a picture, onCard, onPicture), outside
+// the site's menus, decides
+// first, the mid-grey band aside (siteChrome, MID_LOW), then the text
+// outside the menus, cards included.
 // Many pages leave the body's own colour at the default black and colour
 // their text through classes (YouTube's dark theme): the body alone would
 // read as light. A
@@ -185,10 +252,12 @@ function measure() {
   if (!el)
     return;
   // [light text, dark text] in characters: all of it, the text outside
-  // the mid-grey band, and the same outside the site's menus
+  // the mid-grey band, the same outside the site's menus, and the same
+  // outside the menus, the cards and the pictures
   const all = [0, 0], firm = [0, 0], main = [0, 0], mainFirm = [0, 0];
+  const page = [0, 0], pageFirm = [0, 0];
   if (document.body) {
-    const parents = new Map();
+    const parents = new Map(), cards = new Map(), pictures = new Map();
     let read = 0, walked = 0;
     // tallies the text under root; with menus, the site's menus met on the
     // way are skipped whole (a portal's header can hold thousands of text
@@ -228,6 +297,11 @@ function measure() {
           main[side] += len;
           if (isFirm)
             mainFirm[side] += len;
+          if (!onCard(p, cards) && !onPicture(p, pictures)) {
+            page[side] += len;
+            if (isFirm)
+              pageFirm[side] += len;
+          }
         }
         read++;
       }
@@ -239,7 +313,7 @@ function measure() {
       for (const m of menus)
         tally(m, null);
   }
-  const votes = [mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all;
+  const votes = [pageFirm, page, mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all;
   const [light, dark] = votes;
   sampled = all[0] + all[1];
   const v = sampled ? light > dark : isLight(getComputedStyle(el).color);
@@ -484,15 +558,18 @@ function mark(el, attr) {
   layerSizes.observe(el);
 }
 
+// Whether an element covers most of the window: a layer of the page's
+// background, not a card or a panel drawn over it.
+function large(el) {
+  const r = el.getBoundingClientRect();
+  return r.width >= 0.9 * document.documentElement.clientWidth && r.height >= 0.6 * window.innerHeight;
+}
+
 function markCanvas() {
   const root = document.documentElement;
   if (off !== false || !root || !document.body)
     return;
   const w = root.clientWidth, h = window.innerHeight;
-  const large = (el) => {
-    const r = el.getBoundingClientRect();
-    return r.width >= 0.9 * w && r.height >= 0.6 * h;
-  };
   const clear = (el) => alpha(getComputedStyle(el).backgroundColor) < CLEAR;
   const pinned = (el) => {
     for (let e = el; e && e !== root; e = e.parentElement)
@@ -591,24 +668,30 @@ function veil(root) {
   root.appendChild(svg);
 }
 
-// Whether page content lies under a see-through bar: along its middle
-// line, an element below it that is neither its own, one of its
-// ancestors, a layer of the page's background (CANVAS) nor a wrapper the
-// size of the window. Runs on scroll (layers) only while such a bar is
-// still unmarked: at most GRID hit tests per bar.
+// Whether page content lies under a see-through bar: along OVER_LINES
+// lines across its height (a tall header whose top row is a notice of its
+// own, its links in the row below, over the content), an element below it
+// that is neither its own, one of its ancestors, a layer of the page's
+// background (CANVAS) nor a wrapper the size of the window. Runs on scroll
+// (layers) only while such a bar is still unmarked: at most
+// GRID * OVER_LINES hit tests per bar.
+const OVER_LINES = 3;
+
 function over(bar, w, h) {
   const r = bar.getBoundingClientRect();
-  const y = r.top + r.height / 2;
-  for (let i = 0; i < GRID; i++) {
-    for (const el of document.elementsFromPoint(r.left + (i + 0.5) * r.width / GRID, y)) {
-      if (el === document.documentElement || el === document.body || el.hasAttribute(CANVAS))
-        break;
-      if (bar.contains(el) || el.contains(bar))
-        continue;
-      const e = el.getBoundingClientRect();
-      if (e.width >= 0.9 * w && e.height >= 0.6 * h)
-        continue;
-      return true;
+  for (let j = 0; j < OVER_LINES; j++) {
+    const y = Math.min(Math.max(r.top + (j + 0.5) * r.height / OVER_LINES, 0), h - 1);
+    for (let i = 0; i < GRID; i++) {
+      for (const el of document.elementsFromPoint(r.left + (i + 0.5) * r.width / GRID, y)) {
+        if (el === document.documentElement || el === document.body || el.hasAttribute(CANVAS))
+          break;
+        if (bar.contains(el) || el.contains(bar))
+          continue;
+        const e = el.getBoundingClientRect();
+        if (e.width >= 0.9 * w && e.height >= 0.6 * h)
+          continue;
+        return true;
+      }
     }
   }
   return false;
@@ -890,8 +973,8 @@ function markInk() {
   if (!root || !document.body)
     return;
   if (off !== false) {
-    for (const el of document.querySelectorAll("[" + INK + "], [" + BLEND + "]"))
-      el.removeAttribute(INK), el.removeAttribute(BLEND);
+    for (const el of document.querySelectorAll("[" + INK + "], [" + TILE + "]"))
+      el.removeAttribute(INK), el.removeAttribute(TILE);
     return;
   }
   const h = window.innerHeight;
@@ -932,32 +1015,122 @@ function markInk() {
     getComputedStyle(held[0][0]).color;
   for (const [el, style] of held)
     style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
-  markBlend(near);
+  markTiles(near);
 }
 
-// A picture blended with multiply (or darken) into its background: a site
-// shows a black logo on a white card that way, its white wiped out. On a
-// background now dark it turns black on black. Over a dark background
-// (DARK_BG at most), it gets BLEND: inverted and blended with screen, the
-// same logo, light, its black wiped out. Checked as the text is, at most
-// BLEND_ELEMENTS pictures, near the window.
-const BLEND_ELEMENTS = 500;
+// Pictures made for a white page, on a background now dark, are shown on
+// a white tile (TILE), as shops show product photos in a dark theme: a
+// white background and a white margin TILE_PAD wide drawn by a shadow
+// (the layout stays), round corners, no blending, no filter. Two kinds,
+// checked as the text is, at most TILE_ELEMENTS pictures near the window:
+// - a picture blended with multiply (or darken) into its background: a
+//   site wipes out the white of a product photo or a logo that way, and on
+//   a dark background the picture turns dark or black on black;
+// - on a page Dark Reader darkens, an <img> with see-through parts whose
+//   ink (its opaque pixels) reads under INK_RATIO against the background
+//   for at least TILE_INK of it: a black logo or line drawing. Its pixels
+//   are read on a small canvas (sample), which only a picture of the
+//   page's origin (or a data: URL) allows: one from another origin stays
+//   as it is.
+// Neither a picture under TILE_MIN px both ways (an icon) nor one nearly
+// as wide as the window (a full-bleed photo) is tiled.
+const TILE_ELEMENTS = 500;
+const TILE_MIN = 24;
+const TILE_WIDE = 0.9;
+const TILE_INK = 0.4;
+const TILE_CLEAR = 0.1;
 const DARK_BG = 0.179;
 const DARKENING = new Set(["multiply", "darken"]);
 
-function markBlend(near) {
-  for (const el of document.querySelectorAll("[" + BLEND + "]"))
-    if (near(el))
-      el.removeAttribute(BLEND);
+function markTiles(near) {
   const pictures = document.body.querySelectorAll("img, svg, canvas");
-  for (let i = 0; i < pictures.length && i < BLEND_ELEMENTS; i++) {
+  for (let i = 0; i < pictures.length && i < TILE_ELEMENTS; i++) {
     const el = pictures[i];
-    if (!DARKENING.has(getComputedStyle(el).mixBlendMode) || !near(el))
+    if (!near(el))
       continue;
-    const bg = behind(el);
-    if (bg !== null && bg <= DARK_BG)
-      el.setAttribute(BLEND, "");
+    const kind = tile(el);
+    if (kind === null)
+      el.removeAttribute(TILE);
+    else if (el.getAttribute(TILE) !== kind)
+      el.setAttribute(TILE, kind);
   }
+}
+
+// How a picture is tiled: "blend" (multiplied), "ink" (dark ink) or null.
+// A tile changes the picture's own background and blending: what is behind
+// it is read from its parent, and a picture tiled for its blending stays
+// so (its blending is the tile's now). Never taken off and set again in
+// turn: a site's transition would read the tile's white halfway. Pixels
+// are read before what is behind (most pictures are opaque photos).
+function tile(el) {
+  const r = el.getBoundingClientRect();
+  if (r.width < TILE_MIN && r.height < TILE_MIN || r.width >= TILE_WIDE * window.innerWidth)
+    return null;
+  const blended = el.getAttribute(TILE) === "blend" || DARKENING.has(getComputedStyle(el).mixBlendMode);
+  const s = blended || !darkened || el.localName !== "img" ? null : sample(el);
+  if (!blended && !(s && s.clear >= TILE_CLEAR))
+    return null;
+  const bg = behind(el.parentElement || document.documentElement);
+  if (bg === null || bg > DARK_BG)
+    return null;
+  if (blended)
+    return "blend";
+  const unread = s.inks.filter((y) => contrast(y, bg) < INK_RATIO).length;
+  return unread >= TILE_INK * s.inks.length ? "ink" : null;
+}
+
+// A picture's pixels, read once per source on a canvas SAMPLE_SIDE px at
+// most: {clear: the share of see-through pixels (alpha under CLEAR),
+// inks: the luminance of the others at INK_STEPS quantiles}. null when
+// they cannot be read (a picture of another origin, an empty one); a
+// picture still loading is read once loaded (a new pass).
+const SAMPLE_SIDE = 96;
+const INK_STEPS = 20;
+const SAMPLES_MAX = 1000;
+const samples = new Map();
+
+function sample(img) {
+  const src = img.currentSrc;
+  if (!src)
+    return null;
+  if (samples.has(src))
+    return samples.get(src);
+  if (!img.complete) {
+    img.addEventListener("load", ink, {once: true});  // added once
+    return null;
+  }
+  if (samples.size >= SAMPLES_MAX)
+    samples.clear();
+  samples.set(src, pixels(img));
+  return samples.get(src);
+}
+
+function pixels(img) {
+  const r = img.getBoundingClientRect();
+  const k = Math.min(1, SAMPLE_SIDE / Math.max(r.width, r.height));
+  const w = Math.max(1, Math.round(r.width * k)), h = Math.max(1, Math.round(r.height * k));
+  let data;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const g = canvas.getContext("2d", {willReadFrequently: true});
+    g.drawImage(img, 0, 0, w, h);
+    data = g.getImageData(0, 0, w, h).data;
+  } catch (e) {
+    return null;  // another origin (SecurityError), or not decodable
+  }
+  const ys = [];
+  for (let i = 0; i < data.length; i += 4)
+    if (data[i + 3] >= CLEAR * 255)
+      ys.push(rgbLuminance(linear(data[i] / 255), linear(data[i + 1] / 255), linear(data[i + 2] / 255)));
+  if (!ys.length)
+    return null;
+  ys.sort((a, b) => a - b);
+  const inks = [];
+  for (let q = 0; q < INK_STEPS; q++)
+    inks.push(ys[Math.floor((q + 0.5) * ys.length / INK_STEPS)]);
+  return {clear: 1 - ys.length / (w * h), inks};
 }
 
 function ink() {
