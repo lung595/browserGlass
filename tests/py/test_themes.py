@@ -88,11 +88,19 @@ class CleanTest(unittest.TestCase):
         # a cookie name may start with a dot (Galaxus's .themeshade)
         self.assertEqual(self.clean(recipe(store="cookie", key=".themeshade"))["example.org"][0]["key"],
                          ".themeshade")
+        # a localStorage value may hold JSON, commas included (Home Assistant's
+        # demo_theme); a cookie value may not
+        light, auto = '{"theme":"default","dark":false}', '{"theme":"default"}'
+        js = self.clean(recipe(key="demo_theme", **{"from": [None, light]}, to=auto))
+        self.assertEqual(js["example.org"][0]["from"], [None, light])
+        self.assertEqual(js["example.org"][0]["to"], auto)
+        self.assertEqual(self.clean(recipe(key="x", to="a;b,c"))["example.org"][0]["to"], "a;b,c")
+        self.assertEqual(self.clean(recipe(store="cookie", **{"from": [None, light]}, to="dark")), {})
 
     def test_bad_rows_are_dropped(self):
         bad = [
             recipe(store="session"), recipe(op="toggle"), recipe(key="a b"), recipe(key="k" * 65),
-            recipe(to="a;b"), recipe(to="a,b"), recipe(to="a\nb"), recipe(to="x" * 65), recipe(to=""),
+            recipe(store="cookie", to="a;b"), recipe(store="cookie", to="a,b"), recipe(to="a\nb"), recipe(to="x" * 65), recipe(to=""),
             recipe(**{"from": []}), recipe(**{"from": "light"}), recipe(**{"from": ["dark"]}),
             recipe(**{"from": [1]}), recipe(verified="2026-13-01"), recipe(verified=None),
             recipe(note=""), recipe(note=None),

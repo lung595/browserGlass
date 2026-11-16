@@ -166,7 +166,8 @@ ATTR_BAR = "data-browserglass-bar"
 # background behind it went (see _CONTENT_LAYERS): a readable colour.
 ATTR_INK = "data-browserglass-ink"
 # ... and TILE on a picture made for a white page on a background now dark
-# (see _CONTENT_LAYERS): shown on a white tile.
+# (see _CONTENT_LAYERS): shown on a white tile, or, "invert", flat grey ink
+# inverted to light ink.
 ATTR_TILE = "data-browserglass-tile"
 # ... and UNINVERT on an inline SVG logo Dark Reader inverts though its
 # shapes already paint light (see _CONTENT_LAYERS): no filter.
@@ -174,6 +175,24 @@ ATTR_UNINVERT = "data-browserglass-uninvert"
 # ... and FILLED, "before", "after" or both, on a fixed or sticky element
 # whose empty pseudo-element paints the page's background: glass too.
 ATTR_FILLED = "data-browserglass-filled"
+# ... and GLYPH, "self", "before", "after" or several, on an empty element
+# whose parts draw a glyph with a background (a menu button's bars) left
+# without contrast (see _CONTENT_LAYERS): painted in the text colour.
+ATTR_GLYPH = "data-browserglass-glyph"
+# ... and BLOCK, "veil" or "glass", on a block Dark Reader turned into an
+# opaque near-black panel (a white card; see _CONTENT_LAYERS): a light veil,
+# or see-through inside one.
+ATTR_BLOCK = "data-browserglass-block"
+# ... and RULE on a thin rule in a neutral colour (a separator) Dark Reader
+# left without contrast (see _CONTENT_LAYERS): a light neutral.
+ATTR_RULE = "data-browserglass-rule"
+# ... and BRAND, "self", "before" or "after", on a small button in a
+# saturated colour, just before Dark Reader dulls it (see _CONTENT_LAYERS),
+# with its fill and its label's colour in BRAND_FILL and BRAND_INK, inline:
+# both painted back.
+ATTR_BRAND = "data-browserglass-brand"
+BRAND_FILL = "--browserglass-brand-fill"
+BRAND_INK = "--browserglass-brand-ink"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1808,20 +1827,54 @@ _CONTENT_DARKEN = (
 #   rounded to TILE_RADIUS by a clip-path, no blending, no filter. The
 #   picture keeps square corners: rounded ones (the shadow's hole rounded
 #   alike) would let the dark background through where the two smoothed
-#   edges meet, a grey dot at each corner;
+#   edges meet, a grey dot at each corner. Dark ink in shades of grey (a
+#   black word mark; ATTR_TILE "invert") is inverted to light ink instead,
+#   TILE_INVERT of the way (a light grey like Dark Reader's text), with no
+#   tile: the logo stays whole beside its coloured parts;
 # - an inline SVG logo Dark Reader inverts, its shapes painted light by a
 #   style sheet Dark Reader lightened (ATTR_UNINVERT): no filter, so the
-#   light ink is not turned dark again.
+#   light ink is not turned dark again;
+# - a glyph drawn with a background (ATTR_GLYPH: the bars of a menu button,
+#   which Dark Reader darkens as a background) left without contrast: the
+#   parts it names painted in the text colour;
+# - a thin rule in a neutral colour Dark Reader left without contrast
+#   (ATTR_RULE: a separator): white at RULE_OPACITY, a light neutral rule
+#   that reads on any dark background, as dark themes draw fine separators;
+# - a block Dark Reader turned into an opaque near-black panel (ATTR_BLOCK:
+#   a white card, a panel, in a plain colour close to the page's): "veil",
+#   the dark surface at BLOCK_VEIL_OPACITY, lighter than a bar, its border
+#   kept, as dense content is slightly veiled on the glass; "glass", a
+#   block inside a veiled one, see-through (veils do not stack).
+# - a small button in a saturated colour (ATTR_BRAND, the part painting its
+#   fill named): that fill and its label's colour as the page had them
+#   before Dark Reader ran (a brand yellow it turns olive), the label's on
+#   the whole button. Without the two ids: a site style that gives such a
+#   button colours of its own (data/sites/) wins, and so does ATTR_INK.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.65
+BLOCK_VEIL_OPACITY = 0.35
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
-_TILE_SELECTOR = "[" + ATTR_TILE + "]:not(#browserglass-a):not(#browserglass-b)"
+_TILE_SELECTOR = "[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not(#browserglass-a):not(#browserglass-b)"
+_INVERT_SELECTOR = "[" + ATTR_TILE + "=\"invert\"]:not(#browserglass-a):not(#browserglass-b)"
+_RULE_SELECTOR = "[" + ATTR_RULE + "]:not(#browserglass-a):not(#browserglass-b)"
+_BLOCK_SELECTOR = "[" + ATTR_BLOCK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _UNINVERT_SELECTOR = "[" + ATTR_UNINVERT + "]:not(#browserglass-a):not(#browserglass-b)"
+_BRAND_SELECTOR = "[" + ATTR_BRAND + "=\"%s\"]"
+_BRAND_RULE = (
+    "  " + _BRAND_SELECTOR % "self" + ", " + _BRAND_SELECTOR % "before" + "::before, "
+    + _BRAND_SELECTOR % "after" + "::after {{ background-color: var(" + BRAND_FILL + ") !important; }}\n"
+    "  [" + ATTR_BRAND + "], [" + ATTR_BRAND + "] * {{ color: var(" + BRAND_INK + ") !important; }}\n"
+)
+_GLYPH_SELECTOR = ("[" + ATTR_GLYPH + "~=\"self\"]:not(#browserglass-a):not(#browserglass-b), "
+                   "[" + ATTR_GLYPH + "~=\"before\"]:not(#browserglass-a):not(#browserglass-b)::before, "
+                   "[" + ATTR_GLYPH + "~=\"after\"]:not(#browserglass-a):not(#browserglass-b)::after")
 TILE_PAD = 6
 TILE_RADIUS = 8
+TILE_INVERT = 0.9
+RULE_OPACITY = 0.25
 _TILE_RULE = (
     "  " + _TILE_SELECTOR + " {{\n"
     "    filter: none !important; mix-blend-mode: normal !important;\n"
@@ -1836,13 +1889,20 @@ _CONTENT_LAYERS = (
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    :root {{ --browserglass-glass: rgb({light}); }}\n"
     "  }}\n"
+    + _BRAND_RULE +
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  [" + ATTR_FILLED + "~=\"before\"]::before, [" + ATTR_FILLED + "~=\"after\"]::after"
     " {{ background-color: transparent !important; }}\n"
     + _TILE_RULE
+    + "  " + _INVERT_SELECTOR + " {{ filter: invert(" + str(TILE_INVERT) + ") !important;"
+    " mix-blend-mode: normal !important; }}\n"
     + "  " + _UNINVERT_SELECTOR + " {{ filter: none !important; }}\n"
+    + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"
+    + "  " + _RULE_SELECTOR + " {{ background-color: rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
+    + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + ") !important; }}\n"
+    + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
@@ -2651,16 +2711,20 @@ _THEME_KEY = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
 # name may not (a separator in RFC 6265)
 _THEME_LOCAL_KEY = re.compile(r"[A-Za-z0-9_./:-]{1,64}")
 _THEME_BAD_VALUE = re.compile(r"[;,\x00-\x1f\x7f]")
+# a localStorage value may hold ";" and "," (JSON: '{"theme":"default"}')
+_THEME_BAD_LOCAL_VALUE = re.compile(r"[\x00-\x1f\x7f]")
 _THEME_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _THEME_STORES = ("local", "cookie")
 _THEME_OPS = ("set", "swap")
 _THEMES_CACHE = {}
 
 
-def _theme_value(v):
+def _theme_value(v, store="cookie"):
     """A storable theme value: a string of at most 64 characters with no
-    ";", "," or control character (a cookie value or a localStorage one)."""
-    return isinstance(v, str) and len(v) <= 64 and not _THEME_BAD_VALUE.search(v)
+    control character, and for a cookie (`store` other than "local") no
+    ";" or ","."""
+    bad = _THEME_BAD_LOCAL_VALUE if store == "local" else _THEME_BAD_VALUE
+    return isinstance(v, str) and len(v) <= 64 and not bad.search(v)
 
 
 def _theme_date(v):
@@ -2683,12 +2747,12 @@ def _theme_recipe(host, r):
     if (store not in _THEME_STORES or op not in _THEME_OPS
             or not isinstance(key, str)
             or not (_THEME_LOCAL_KEY if store == "local" else _THEME_KEY).fullmatch(key)
-            or not _theme_value(to) or not to
+            or not _theme_value(to, store) or not to
             or not isinstance(frm, list) or not frm
             or not _theme_date(r.get("verified"))
             or not isinstance(r.get("note"), str) or not r["note"].strip()):
         return None
-    if any(not (f is None or _theme_value(f)) or f == to for f in frm):
+    if any(not (f is None or _theme_value(f, store)) or f == to for f in frm):
         return None
     if op == "swap" and (len(frm) != 1 or not frm[0]):
         return None

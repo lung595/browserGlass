@@ -77,17 +77,20 @@ const THEME_KEY = /^[A-Za-z0-9_.:-]{1,64}$/;
 // a localStorage key may also hold "/"; a cookie name may not
 const THEME_LOCAL_KEY = /^[A-Za-z0-9_./:-]{1,64}$/;
 const THEME_BAD = /[;,\u0000-\u001f\u007f]/;
+// a localStorage value may hold ";" and "," (JSON: '{"theme":"default"}')
+const THEME_BAD_LOCAL = /[\u0000-\u001f\u007f]/;
 
-function themeValue(v) {
-  return typeof v === "string" && v.length <= 64 && !THEME_BAD.test(v);
+function themeValue(v, store) {
+  return typeof v === "string" && v.length <= 64
+    && !(store === "local" ? THEME_BAD_LOCAL : THEME_BAD).test(v);
 }
 
 function cleanRecipe(r) {
   if (!r || typeof r !== "object" || (r.store !== "local" && r.store !== "cookie")
       || (r.op !== "set" && r.op !== "swap") || typeof r.key !== "string"
       || !(r.store === "local" ? THEME_LOCAL_KEY : THEME_KEY).test(r.key)
-      || !themeValue(r.to) || !r.to || !Array.isArray(r.from) || !r.from.length
-      || !r.from.every((f) => f === null || themeValue(f)))
+      || !themeValue(r.to, r.store) || !r.to || !Array.isArray(r.from) || !r.from.length
+      || !r.from.every((f) => f === null || themeValue(f, r.store)))
     return null;
   const out = {store: r.store, key: r.key, op: r.op, from: r.from.slice(), to: r.to};
   if (r.store === "cookie") {

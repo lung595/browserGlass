@@ -32,9 +32,18 @@
 // the dark glass) gets data-browserglass-ink, a readable colour, and a
 // picture made for a white page on a background now dark (a product photo
 // whose white a site wipes out with mix-blend-mode, a black logo on a
-// page Dark Reader darkens) gets data-browserglass-tile: a white tile.
+// page Dark Reader darkens) gets data-browserglass-tile: a white tile, or
+// light ink for a monochrome one.
 // An inline SVG logo Dark Reader inverts though its shapes already paint
-// light gets data-browserglass-uninvert: no filter.
+// light gets data-browserglass-uninvert: no filter. A glyph drawn with a
+// background (the bars of a menu button) left without contrast gets
+// data-browserglass-glyph, naming its parts: they are painted in the text
+// colour. A thin rule in a neutral colour (a separator) Dark Reader left
+// without contrast gets data-browserglass-rule: a light neutral.
+// A block Dark Reader turns into an opaque near-black panel (a white
+// card, a strip) gets data-browserglass-block: a light veil, or glass.
+// A small button in a saturated colour gets data-browserglass-brand,
+// before Dark Reader dulls it: it keeps its fill and its label's colour.
 // Before all that, theme.js (loaded before this script) sets the site's
 // own stored theme to dark at document_start: this script runs it again
 // once the list is known (a restore under a light theme, a late write),
@@ -51,6 +60,10 @@ const INK = "data-browserglass-ink";
 const TILE = "data-browserglass-tile";
 const UNINVERT = "data-browserglass-uninvert";
 const FILLED = "data-browserglass-filled";
+const GLYPH = "data-browserglass-glyph";
+const BLOCK = "data-browserglass-block";
+const RULE = "data-browserglass-rule";
+const BRAND = "data-browserglass-brand";
 const GLASS = "--browserglass-glass";
 const DARKEN_BG = "--browserglass-darken-bg";
 const DARKEN_FG = "--browserglass-darken-fg";
@@ -261,6 +274,34 @@ function unseen(el) {
   return false;
 }
 
+// A drawing board (Excalidraw): a <canvas> filling the window
+// (BOARD_COVER of it at least) paints the page's background itself, its
+// white not seen in any style; what text the app shows lies over it (on a
+// picture: its welcome screen's pale grey hints) or on its toolbars
+// (cards). When no text on the page's background decides, the board's
+// pixels do: one painted opaque (BOARD_CLEAR of its pixels see-through at
+// most, not an app's empty top layer), unfiltered, gives the tone of its
+// median luminance. Its pixels are read again at each measure (a board is
+// redrawn without a mutation), on a canvas SAMPLE_SIDE px at most.
+const BOARD_COVER = 0.8;
+const BOARD_CLEAR = 0.1;
+
+function boardTone() {
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const c of document.body.getElementsByTagName("canvas")) {
+    const r = c.getBoundingClientRect();
+    const seen = Math.max(0, Math.min(r.right, w) - Math.max(r.left, 0))
+      * Math.max(0, Math.min(r.bottom, h) - Math.max(r.top, 0));
+    if (seen < BOARD_COVER * w * h || getComputedStyle(c).filter !== "none"
+        || !c.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+      continue;
+    const s = pixels(c);
+    if (s && s.clear <= BOARD_CLEAR)
+      return s.inks[INK_STEPS / 2] > 0.179 ? "light" : "dark";
+  }
+  return null;
+}
+
 // A level of the vote decides with VOTE_NODES text nodes or VOTE_CHARS
 // characters: a lone short line (a loading message left under the app,
 // a skip link) gives way to the next level, the text on cards included.
@@ -274,7 +315,8 @@ const VOTE_CHARS = 40;
 // the site's menus, decides
 // first, the mid-grey band aside (siteChrome, MID_LOW), then the text
 // outside the menus, cards included (VOTE_NODES, VOTE_CHARS). Text out of
-// sight does not vote (unseen).
+// sight does not vote (unseen). Without text on the page's background, a
+// drawing board's pixels come before the other levels (boardTone).
 // Many pages leave the body's own colour at the default black and colour
 // their text through classes (YouTube's dark theme): the body alone would
 // read as light. A
@@ -360,10 +402,16 @@ function measure() {
         tally(m, null);
   }
   const levels = [pageFirm, page, mainFirm, main, firm, all];
-  const votes = levels.find((t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS)
-    || levels.find((t) => t[0] + t[1] > 0) || all;
-  const [light, dark] = votes;
+  const decides = (t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS;
   sampled = all[0] + all[1];
+  // no text on the page's background: a drawing board under the app
+  const board = document.body && !decides(page) ? boardTone() : null;
+  if (board !== null) {
+    tone = board;
+    return;
+  }
+  const votes = levels.find(decides) || levels.find((t) => t[0] + t[1] > 0) || all;
+  const [light, dark] = votes;
   const v = sampled ? light > dark : isLight(getComputedStyle(el).color);
   if (v !== null)
     tone = v ? "dark" : "light";
@@ -527,8 +575,9 @@ function darken() {
     darkened = false;
     DarkReader.disable();
     frameSchemes();
-    for (const el of document.querySelectorAll("[" + CANVAS + "], [" + FILLED + "]"))
-      el.removeAttribute(CANVAS), el.removeAttribute(FILLED);
+    for (const el of document.querySelectorAll("[" + CANVAS + "], [" + FILLED + "], [" + BLOCK + "]"))
+      el.removeAttribute(CANVAS), el.removeAttribute(FILLED), el.removeAttribute(BLOCK);
+    unmarkBrands();
     measure();
   } else if (!darkened && theme && tone === "light" && !themeWait
       && (sampled >= ENOUGH_TEXT || document.readyState === "complete")) {
@@ -538,10 +587,104 @@ function darken() {
         return;
     }
     darkened = true;
+    markBrands();
     DarkReader.setFetchMethod(fetchStylesheet);
-    DarkReader.enable(theme);
+    DarkReader.enable(theme, DR_FIXES);
     frameSchemes();
     measure();
+  }
+}
+
+// A saturated button keeps its colours: Dark Reader darkens every fill,
+// a brand colour too (a yellow turns olive, its petrol label light grey:
+// 2.8:1; a violet goes dull). Just before Dark Reader runs (the page's
+// colours still its own), a control (BRANDS) at most BRAND_W by BRAND_H
+// px, with a label (BRAND_TEXT characters at most), whose opaque fill
+// (SOLID; its own, or that of a ::before or ::after covering FACE of it,
+// no background image) has BRAND_CHROMA of chroma at least and reads
+// against its label (BRAND_READ) gets BRAND naming that part, and both
+// colours inline (BRAND_FILL, BRAND_INK; Dark Reader leaves the inline
+// style of a marked element alone: DR_FIXES): the glass styles paint them
+// back, the label's on the whole control. At most BRAND_ELEMENTS are
+// looked at. A button drawn once the page is darkened is not seen (Dark
+// Reader has its colours by then); the marks go with the darkening.
+const BRAND_FILL = "--browserglass-brand-fill";
+const BRAND_INK = "--browserglass-brand-ink";
+const BRANDS = "button, a[href], [role=button], input[type=submit], input[type=button]";
+const BRAND_W = 480;
+const BRAND_H = 96;
+const BRAND_TEXT = 60;
+const BRAND_CHROMA = 0.4;
+const BRAND_READ = 3;
+const BRAND_ELEMENTS = 1000;
+const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]"]};
+
+function markBrands() {
+  const controls = document.body ? document.body.querySelectorAll(BRANDS) : [];
+  for (let i = 0; i < controls.length && i < BRAND_ELEMENTS; i++) {
+    const el = controls[i];
+    const r = el.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0) || r.width > BRAND_W || r.height > BRAND_H)
+      continue;
+    const ink = labelColor(el);
+    if (!ink)
+      continue;
+    for (const part of [...PSEUDOS, "self"]) {
+      const fill = brandFill(el, r, part);
+      if (fill && contrast(luminance(fill), luminance(ink)) >= BRAND_READ) {
+        el.setAttribute(BRAND, part);
+        el.style.setProperty(BRAND_FILL, fill);
+        el.style.setProperty(BRAND_INK, ink);
+        break;
+      }
+    }
+  }
+}
+
+// The colour of a control's label (that of its first text), null when it
+// has none or a long one (a card, not a button).
+function labelColor(el) {
+  if (el.localName === "input") {
+    const text = el.value.trim();
+    return text && text.length <= BRAND_TEXT ? getComputedStyle(el).color : null;
+  }
+  const text = el.textContent.trim();
+  if (!text || text.length > BRAND_TEXT)
+    return null;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode())
+    if (node.data.trim() && node.parentElement)
+      return getComputedStyle(node.parentElement).color;
+  return null;
+}
+
+// The saturated fill a part of `el` ("self", "before", "after") paints
+// over it, null if none.
+function brandFill(el, r, part) {
+  const style = getComputedStyle(el, part === "self" ? null : "::" + part);
+  if (part !== "self" && (style.content === "none" || style.display === "none"
+      || parseFloat(style.width) * parseFloat(style.height) < FACE * r.width * r.height))
+    return null;
+  const fill = style.backgroundColor;
+  return style.backgroundImage === "none" && alpha(fill) >= SOLID && chroma(fill) >= BRAND_CHROMA ? fill : null;
+}
+
+// The chroma (0-1) of an rgb() colour, 0 for another space.
+function chroma(color) {
+  const m = /^rgba?\(([^)]*)\)/.exec(color);
+  if (!m)
+    return 0;
+  const c = m[1].split(/[\s,/]+/).slice(0, 3).map(parseFloat);
+  return (Math.max(...c) - Math.min(...c)) / 255;
+}
+
+function unmarkBrands() {
+  for (const el of document.querySelectorAll("[" + BRAND + "]")) {
+    el.removeAttribute(BRAND);
+    el.style.removeProperty(BRAND_FILL);
+    el.style.removeProperty(BRAND_INK);
+    if (el.getAttribute("style") === "")
+      el.removeAttribute("style");
   }
 }
 
@@ -650,11 +793,20 @@ function seen(r, w, h) {
 }
 
 function column(el, color) {
-  const w = document.documentElement.clientWidth, h = window.innerHeight;
+  const h = window.innerHeight;
   const r = el.getBoundingClientRect();
   // a sticky band is a bar once stuck (markBars), solid until then
   const band = wide(el) && getComputedStyle(el).position !== "sticky";
-  if (tone === null || !(band || (tall(el) && r.bottom >= (1 - COLUMN_GAP) * h)))
+  return (band || (tall(el) && r.bottom >= (1 - COLUMN_GAP) * h)) && plain(el, color);
+}
+
+// A plain colour on the page's side (COLUMN_CHROMA, COLUMN_DARK,
+// COLUMN_LIGHT), no picture filling the element (COLUMN_MEDIA), outside
+// anything fixed.
+function plain(el, color) {
+  const w = document.documentElement.clientWidth, h = window.innerHeight;
+  const r = el.getBoundingClientRect();
+  if (tone === null)
     return false;
   const m = /^rgba?\(([^)]*)\)/.exec(color);
   if (!m)
@@ -764,8 +916,11 @@ function markCanvas() {
 // across a page column (a layer of the page's background, CANVAS)
 // rather than the window, the feed's own sticky title row, is one too;
 // a bar's background may be painted by a child that covers it
-// (FILL_COVER: the layout box inside a sticky header), one shown (not a
-// drawer's scrim at opacity 0).
+// (FILL_COVER: the layout box inside a sticky header, or an empty layer
+// behind its content, absolute, inset 0, at a negative z-index), one
+// shown (not a drawer's scrim at opacity 0), even once that child is
+// filled (FILL, markFills: the page's colour, now glass, as it was
+// marked before the header stuck).
 const EDGE = 2;
 const BAR_MIN = 24;
 const OWN_BG = 0.5;
@@ -852,13 +1007,16 @@ function markBars() {
   const backed = (el) => {
     if (alpha(getComputedStyle(el).backgroundColor) >= OWN_BG)
       return true;
-    // a scrim faded out (opacity 0, a drawer's) paints nothing
-    const kid = el.firstElementChild;
-    if (!kid || alpha(getComputedStyle(kid).backgroundColor) < OWN_BG
-        || !kid.checkVisibility({visibilityProperty: true, opacityProperty: true}))
-      return false;
-    const r = el.getBoundingClientRect(), k = kid.getBoundingClientRect();
-    return k.width * k.height >= FILL_COVER * r.width * r.height;
+    const r = el.getBoundingClientRect();
+    for (const kid of el.children) {
+      const k = kid.getBoundingClientRect();
+      // a scrim faded out (opacity 0, a drawer's) paints nothing
+      if (k.width * k.height >= FILL_COVER * r.width * r.height
+          && (kid.getAttribute(CANVAS) === FILL || alpha(getComputedStyle(kid).backgroundColor) >= OWN_BG)
+          && kid.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+        return true;
+    }
+    return false;
   };
   const pinned = (el) => {
     const position = getComputedStyle(el).position;
@@ -886,6 +1044,81 @@ function markBars() {
   // one veil per bar: an inner one marked before its outer one was in place
   for (const el of document.querySelectorAll("[" + BAR + "] [" + BAR + "]"))
     el.removeAttribute(BAR);
+}
+
+// Blocks Dark Reader darkens: the white cards, panels and strips of a light
+// page turn into opaque near-black panels on the glass. On a page it
+// darkens, the text near the window is followed up to the page's
+// background (CANVAS, the body): the elements on the way that paint an
+// opaque plain colour on the page's side (plain: low chroma, dark, no
+// picture, no player over half of it) and do not float (floats: fixed,
+// sticky, a popup) are its blocks; any other element painting something
+// (a coloured button, a brand block, a picture) ends the way up, keeping
+// its colours. A block as wide as the window or down a page column
+// (column) is a layer of the page's background: CANVAS, as markCanvas
+// marks them. Of the others, the outermost gets BLOCK "veil", a light
+// veil of the glass's colour (lighter than a bar's), its border kept; the
+// blocks inside it BLOCK "glass", see-through: veils do not stack, but a
+// button or a field (FIELDS) keeps a veil of its own. The
+// marks stay while Dark Reader darkens the page (a block marked reads as
+// see-through: nothing to measure again) and go with it. The text is
+// that of markInk (shownText).
+const VEILED = "veil";
+const SEE_THROUGH = "glass";
+const FIELDS = "button, [role=button], select, textarea";
+
+function markBlocks(near) {
+  if (!darkened)
+    return;
+  const kinds = new Map(), floating = new Map();
+  // fixed, sticky, or a popup (absolute over the page, a z-index set),
+  // itself or an ancestor
+  const floats = (el) => {
+    if (!el || el === document.body)
+      return false;
+    if (!floating.has(el)) {
+      const style = getComputedStyle(el);
+      floating.set(el, style.position === "fixed" || style.position === "sticky"
+        || (style.position === "absolute" && style.zIndex !== "auto") || floats(el.parentElement));
+    }
+    return floating.get(el);
+  };
+  // true for a block, null for an element that paints nothing, false for
+  // one that ends the way up
+  const fill = (el) => {
+    const style = getComputedStyle(el);
+    const color = style.backgroundColor;
+    if (alpha(color) < CLEAR && style.backgroundImage === "none")
+      return null;
+    if (MEDIA.has(el.localName) || alpha(color) < SOLID || floats(el) || !plain(el, color))
+      return false;
+    if (!column(el, color))
+      return true;
+    pageColors.add(color);
+    mark(el, CANVAS);
+    return false;
+  };
+  const kind = (el) => {
+    if (!kinds.has(el))
+      kinds.set(el, el.hasAttribute(BLOCK) || (el.hasAttribute(CANVAS) ? false : fill(el)));
+    return kinds.get(el);
+  };
+  for (const el of shownText(near)) {
+    const blocks = [];
+    for (let p = el; p && p !== document.body; p = p.parentElement) {
+      const value = kind(p);
+      if (value === false)
+        break;
+      if (value)
+        blocks.push(p);
+    }
+    blocks.forEach((b, j) => {
+      // a button keeps a veil of its own, on its card's
+      const value = j === blocks.length - 1 || b.matches(FIELDS) ? VEILED : SEE_THROUGH;
+      if (b.getAttribute(BLOCK) !== value)
+        b.setAttribute(BLOCK, value);
+    });
+  }
 }
 
 // Text without contrast: with the backgrounds of the page gone (the generic
@@ -970,6 +1203,30 @@ const INK_MS = 300;
 const INK_NODES = 4000;
 const INK_ELEMENTS = 1000;
 let inkAt = -Infinity, inkFrame = 0;
+
+// The elements holding text shown near the window, in the page's order:
+// at most INK_NODES text nodes with text and INK_ELEMENTS elements near
+// the window. The blank nodes between tags, and the text hidden (a closed
+// menu of a thousand links) or far away, are skipped without counting
+// against the elements: a page that holds them before its content (a
+// right-hand column, late in the page's order) still gets it read.
+function shownText(near) {
+  const shown = [], looked = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let i = 0, n = walker.nextNode(); n && i < INK_NODES && shown.length < INK_ELEMENTS;
+       n = walker.nextNode()) {
+    const el = n.parentElement;
+    if (!n.data.trim())
+      continue;
+    i++;
+    if (!el || looked.has(el))
+      continue;
+    looked.add(el);
+    if (near(el) && el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+      shown.push(el);
+  }
+  return shown;
+}
 
 function contrast(a, b) {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
@@ -1139,6 +1396,10 @@ function markInk() {
   if (off !== false) {
     for (const el of document.querySelectorAll("[" + INK + "], [" + TILE + "], [" + UNINVERT + "]"))
       el.removeAttribute(INK), el.removeAttribute(TILE), el.removeAttribute(UNINVERT);
+    for (const el of document.querySelectorAll("[" + GLYPH + "], [" + RULE + "]"))
+      el.removeAttribute(GLYPH), el.removeAttribute(RULE);
+    for (const el of document.querySelectorAll("[" + BLOCK + "]"))
+      el.removeAttribute(BLOCK);
     return;
   }
   const h = window.innerHeight;
@@ -1146,6 +1407,8 @@ function markInk() {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0 && r.bottom > -h && r.top < 2 * h;
   };
+  // the blocks first: the text on them is then read on the glass
+  markBlocks(near);
   // a mark taken off would fade the text back to its colour when the page
   // gives it a transition (the colour read halfway, the mark set and taken
   // off in turn): it is taken off with transitions held, its style
@@ -1158,16 +1421,7 @@ function markInk() {
       el.removeAttribute(INK);
     }
   faces = new Map();
-  const seen = new Set();
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  for (let i = 0, n = walker.nextNode(); n && i < INK_NODES && seen.size < INK_ELEMENTS;
-       i++, n = walker.nextNode()) {
-    const el = n.parentElement;
-    if (!el || seen.has(el) || !n.data.trim())
-      continue;
-    seen.add(el);
-    if (!near(el) || !el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
-      continue;
+  for (const el of shownText(near)) {
     const fgs = inks(getComputedStyle(el)).map(luminance).filter((y) => y !== null);
     if (!fgs.length)
       continue;
@@ -1181,6 +1435,8 @@ function markInk() {
     style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
   markTiles(near);
   markUninverted(near);
+  markGlyphs(near);
+  markRules(near);
 }
 
 // Pictures made for a white page, on a background now dark, are shown on
@@ -1196,7 +1452,12 @@ function markInk() {
 //   for at least TILE_INK of it: a black logo or line drawing. Its pixels
 //   are read on a small canvas (sample), which only a picture of the
 //   page's origin (or a data: URL) allows: one from another origin stays
-//   as it is.
+//   as it is. Flat grey ink (MONO_SHARE of its pixels at most with
+//   MONO_CHROMA of chroma, its quantiles MONO_EDGE steps in from each end
+//   under MONO_FLAT apart: a black word mark) is inverted instead
+//   ("invert": light ink, no tile), which keeps a logo whole beside its
+//   coloured parts; coloured ink, and shaded ink (a black product cut out
+//   of its photo), keeps the tile, which keeps its colours and shading.
 // Neither a picture under TILE_MIN px both ways (an icon) nor one nearly
 // as wide as the window (a full-bleed photo) is tiled.
 const TILE_ELEMENTS = 500;
@@ -1206,6 +1467,10 @@ const TILE_INK = 0.4;
 const TILE_CLEAR = 0.1;
 const DARK_BG = 0.179;
 const DARKENING = new Set(["multiply", "darken"]);
+const MONO_CHROMA = 0.1;
+const MONO_SHARE = 0.05;
+const MONO_EDGE = 2;
+const MONO_FLAT = 1.5;
 
 function markTiles(near) {
   const pictures = document.body.querySelectorAll("img, svg, canvas");
@@ -1221,7 +1486,8 @@ function markTiles(near) {
   }
 }
 
-// How a picture is tiled: "blend" (multiplied), "ink" (dark ink) or null.
+// How a picture is tiled: "blend" (multiplied), "ink" (dark ink),
+// "invert" (dark monochrome ink) or null.
 // A tile changes the picture's own background and blending: what is behind
 // it is read from its parent, and a picture tiled for its blending stays
 // so (its blending is the tile's now). Never taken off and set again in
@@ -1241,7 +1507,10 @@ function tile(el) {
   if (blended)
     return "blend";
   const unread = s.inks.filter((y) => contrast(y, bg) < INK_RATIO).length;
-  return unread >= TILE_INK * s.inks.length ? "ink" : null;
+  if (unread < TILE_INK * s.inks.length)
+    return null;
+  const flat = contrast(s.inks[INK_STEPS - 1 - MONO_EDGE], s.inks[MONO_EDGE]) < MONO_FLAT;
+  return flat && s.colored <= MONO_SHARE ? "invert" : "ink";
 }
 
 // Dark Reader inverts an inline <svg> logo (DR_INVERT) whose markup alone
@@ -1295,9 +1564,107 @@ function uninverted(svg) {
   return ys.length > 0 && read >= UNINVERT_READ * ys.length;
 }
 
+// Glyphs drawn with a background, not with text or a picture: the bars of
+// a menu button (an empty <span> and its ::before and ::after, a few px
+// thick, painted in the site's text colour), the strokes of a close
+// button's cross. Dark Reader takes them for backgrounds and darkens them
+// (a navy bar turns near black), and on the dark glass they vanish. An
+// empty element near the window, GLYPH_BOX px at most both ways, inside a
+// button or a link (or in a box that small: a menu button made of a <div>),
+// whose parts (itself, its ::before, its ::after) paint a plain colour
+// THIN px thick at most and GLYPH_BOX long at most, are ink: a part that
+// reads under INK_RATIO against what is behind, while the text colour
+// would read, is named in GLYPH and painted in the text colour. A thin rule
+// of the page (a separator, wider, outside any control) and a coloured
+// pill (thicker) are left alone. The marks stay once set (the text colour
+// reads in every theme) and go with the page's (an excluded page); at most
+// GLYPH_ELEMENTS empty elements are looked at.
+const GLYPH_BOX = 48;
+const GLYPH_ELEMENTS = 2000;
+const CONTROLS = "button, a[href], [role=button], summary, label";
+
+function markGlyphs(near) {
+  const empty = document.body.querySelectorAll(":empty");
+  for (let i = 0; i < empty.length && i < GLYPH_ELEMENTS; i++) {
+    const el = empty[i];
+    const r = el.getBoundingClientRect();
+    if (r.width > GLYPH_BOX || r.height > GLYPH_BOX || MEDIA.has(el.localName) || !near(el))
+      continue;
+    const box = el.parentElement && el.parentElement.getBoundingClientRect();
+    if (!el.closest(CONTROLS) && !(box && box.width <= GLYPH_BOX && box.height <= GLYPH_BOX))
+      continue;
+    const had = el.getAttribute(GLYPH) || "";
+    const parts = ["self", ...PSEUDOS].filter((part) => !had.includes(part) && glyph(el, r, part));
+    if (parts.length)
+      el.setAttribute(GLYPH, (had + " " + parts.join(" ")).trim());
+  }
+}
+
+// Whether a part of `el` ("self", "before", "after") is a glyph without
+// contrast. A thin element's ::before and ::after (the other bars) sit
+// beside it, on what is behind it.
+function glyph(el, r, part) {
+  const style = getComputedStyle(el, part === "self" ? null : "::" + part);
+  if (part !== "self" && (style.content === "none" || style.display === "none"))
+    return false;
+  const w = part === "self" ? r.width : parseFloat(style.width);
+  const h = part === "self" ? r.height : parseFloat(style.height);
+  if (!(w > 0 && h > 0) || Math.min(w, h) > THIN || Math.max(w, h) > GLYPH_BOX
+      || style.backgroundImage !== "none" || alpha(style.backgroundColor) < OWN_BG
+      || parseFloat(style.opacity) < CLEAR)
+    return false;
+  const thin = Math.min(r.width, r.height) <= THIN;
+  const bg = behind(thin ? el.parentElement || document.documentElement : el);
+  const paint = luminance(style.backgroundColor), text = luminance(style.color);
+  return bg !== null && paint !== null && text !== null && alpha(style.color) >= CLEAR
+    && contrast(paint, bg) < INK_RATIO && contrast(text, bg) >= INK_RATIO;
+}
+
+// Thin rules: on a page Dark Reader darkens, a separator painted in a
+// light grey (admin.ch's 1 px line between its logo and its title) turns
+// a dark grey, lost on the dark glass. An empty element near the window,
+// not a glyph, RULE_THIN px thick at most and RULE_LONG px long at least,
+// painting a plain neutral colour (under MONO_CHROMA of chroma) that
+// reads under RULE_READ against what is behind it (its parent's) on a dark
+// background, gets RULE: a light neutral, as fine separators are drawn in
+// a dark theme. The marks stay once set (the rule then reads) and go with
+// the darkening and the page's marks; at most GLYPH_ELEMENTS are looked at.
+const RULE_THIN = 2;
+const RULE_LONG = 8;
+const RULE_READ = 1.6;
+
+function markRules(near) {
+  if (!darkened) {
+    for (const el of document.querySelectorAll("[" + RULE + "]"))
+      el.removeAttribute(RULE);
+    return;
+  }
+  const empty = document.body.querySelectorAll(":empty:not([" + RULE + "]):not([" + GLYPH + "])");
+  for (let i = 0; i < empty.length && i < GLYPH_ELEMENTS; i++) {
+    const el = empty[i];
+    if (!MEDIA.has(el.localName) && near(el) && rule(el))
+      el.setAttribute(RULE, "");
+  }
+}
+
+function rule(el) {
+  const r = el.getBoundingClientRect();
+  if (Math.min(r.width, r.height) > RULE_THIN || Math.max(r.width, r.height) < RULE_LONG)
+    return false;
+  const style = getComputedStyle(el);
+  const paint = style.backgroundColor;
+  if (style.backgroundImage !== "none" || alpha(paint) < OWN_BG || chroma(paint) >= MONO_CHROMA
+      || parseFloat(style.opacity) < CLEAR)
+    return false;
+  const bg = behind(el.parentElement || document.documentElement);
+  const y = luminance(paint);
+  return bg !== null && y !== null && bg <= DARK_BG && contrast(y, bg) < RULE_READ;
+}
+
 // A picture's pixels, read once per source on a canvas SAMPLE_SIDE px at
 // most: {clear: the share of see-through pixels (alpha under CLEAR),
-// inks: the luminance of the others at INK_STEPS quantiles}. null when
+// inks: the luminance of the others at INK_STEPS quantiles, colored: the
+// share of them with MONO_CHROMA of chroma at least}. null when
 // they cannot be read (a picture of another origin, an empty one); a
 // picture still loading is read once loaded (a new pass, see loaded).
 const SAMPLE_SIDE = 96;
@@ -1335,16 +1702,21 @@ function pixels(img) {
     return null;  // another origin (SecurityError), or not decodable
   }
   const ys = [];
+  let colored = 0;
   for (let i = 0; i < data.length; i += 4)
-    if (data[i + 3] >= CLEAR * 255)
+    if (data[i + 3] >= CLEAR * 255) {
       ys.push(rgbLuminance(linear(data[i] / 255), linear(data[i + 1] / 255), linear(data[i + 2] / 255)));
+      const spread = Math.max(data[i], data[i + 1], data[i + 2]) - Math.min(data[i], data[i + 1], data[i + 2]);
+      if (spread >= MONO_CHROMA * 255)
+        colored++;
+    }
   if (!ys.length)
     return null;
   ys.sort((a, b) => a - b);
   const inks = [];
   for (let q = 0; q < INK_STEPS; q++)
     inks.push(ys[Math.floor((q + 0.5) * ys.length / INK_STEPS)]);
-  return {clear: 1 - ys.length / (w * h), inks};
+  return {clear: 1 - ys.length / (w * h), inks, colored: colored / ys.length};
 }
 
 // A picture loaded after the last pass is looked at again: a lazy one

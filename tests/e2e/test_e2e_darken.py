@@ -15,7 +15,7 @@ the list and the helper's darken flag (the darkPages setting, sent with
 the list). Checked:
   - a light page under a dark theme: darkened (light text), html and body
     see-through, the full-page wrapper marked as canvas and see-through, a
-    small card dark but opaque, not marked; the fetch Dark Reader gets
+    small grey card a light veil, not marked as canvas; the fetch Dark Reader gets
     returns a stylesheet, and refuses another type or a missing file;
     grey text stays grey (the text colour's tint is muted); a frame keeps
     its colour scheme (not Dark Reader's dark one);
@@ -41,8 +41,11 @@ the list). Checked:
   - pictures on a white card Dark Reader darkens: a photo blended with
     multiply is shown on a white tile (not blended, not inverted, a white
     margin drawn by a shadow, rounded outside, with no seam of the dark
-    background at the photo's corners), and so is see-through black ink of the
-    page's origin or a data: URL; left alone: a photo as wide as the page,
+    background at the photo's corners), and so is see-through dark ink in
+    a colour (navy) and a black product cut out of its photo (shaded
+    grey); see-through black ink of the page's origin or a data:
+    URL (a monochrome logo) is inverted to light ink, with no tile; left
+    alone: a photo as wide as the page,
     the same ink from another origin (its pixels cannot be read), a light
     logo, an opaque picture, an icon under 24 px; a light theme takes the
     tiles off. A multiplied photo loaded late (a lazy one: no width, so
@@ -51,7 +54,31 @@ the list). Checked:
   - inline SVG logos in a header Dark Reader inverts: one whose shapes the
     page's style sheet paints (Dark Reader lightens that rule) shows its
     light ink with no filter, one dark by its attributes alone stays
-    inverted; a light theme takes the mark off.
+    inverted; a light theme takes the mark off;
+  - glyphs drawn with a background that Dark Reader darkens (a menu
+    button's bars: an empty span and its ::before and ::after; bars in a
+    small box) are painted in the text colour, which reads on the glass;
+    a wide rule, a separator in a line of text, a thick pill and a bar
+    that still reads are not glyphs; thin rules in a neutral colour Dark
+    Reader leaves without contrast (the wide rule, a vertical separator
+    between a header's logo and its title, as admin.ch draws it) are
+    painted a light neutral that reads on the glass, while the thick pill,
+    a bar in a colour that reads and the glyphs are left alone; a light
+    theme takes the marks off;
+  - white blocks Dark Reader turns into opaque near-black panels (news
+    cards, a card's inner content box, a secondary button, a strip across
+    the window, as admin.ch, boursorama.com and postfinance.ch draw them):
+    the outer card a light veil (its border kept), the box inside it
+    see-through, the button a veil of its own, the strip glass, the text
+    still light; left alone: a coloured button, a fixed dialog, a popup
+    menu over the page, a player's black box; a light theme gives the
+    white back;
+  - buttons in a saturated brand colour Dark Reader dulls (a link whose
+    ::before paints postfinance.ch's yellow from a variable under a petrol
+    label, proton.me's violet button, an input button) keep their fill and
+    label colours as the page had them; left alone: a pale button, a wide
+    banner, a coloured link with no label, a label that does not read on
+    its fill; a light theme takes the marks and their inline colours off.
 """
 
 import json
@@ -122,7 +149,9 @@ def svg(width, height, body):
 # Pictures on a white shop card Dark Reader darkens: a product photo whose
 # white the site wipes out with multiply (#photo), and one as wide as the
 # page (#hero); see-through black ink of the page's origin (#ink, from
-# /ink.svg) and of a data: URL (#mark), and the same ink from another
+# /ink.svg) and of a data: URL (#mark), monochrome (inverted), see-through
+# navy ink (#navy, coloured: tiled), a black product cut out of its photo
+# (#puck, see-through, shaded grey: tiled), and the same ink from another
 # origin (#far, its source set by the test: its pixels cannot be read);
 # a see-through light logo (#sun), an opaque picture (#opaque), a
 # black icon under 24 px (#icon), and a multiplied photo of a fixed height
@@ -136,6 +165,11 @@ PICTURES = (
     ("hero", PHOTO, 'class="blend" style="width:100%; height:80px; margin:0"'),
     ("ink", "/ink.svg", 'width="120" height="40"'),
     ("mark", svg(120, 40, INK_RECT), 'width="120" height="40"'),
+    ("navy", svg(120, 40, INK_RECT.replace("black", "rgb(20,40,120)")), 'width="120" height="40"'),
+    ("puck", svg(120, 80, '<defs><linearGradient id="g"><stop offset="0" stop-color="black"/>'
+                          '<stop offset="1" stop-color="rgb(80,80,80)"/></linearGradient></defs>'
+                          '<rect x="10" y="10" width="100" height="60" rx="20" fill="url(#g)"/>'),
+     'width="120" height="80"'),
     ("far", "", 'width="120" height="40"'),
     ("sun", svg(120, 40, INK_RECT.replace("black", "rgb(255,200,0)")), 'width="120" height="40"'),
     ("opaque", svg(120, 40, '<rect width="120" height="40" fill="white"/>' + INK_RECT), 'width="120" height="40"'),
@@ -192,6 +226,115 @@ main {padding-top:80px}
 </style></head><body><header>""" + LOGO % ("styled", "styled-logo") + LOGO % ("plain", "plain-logo") + \
     "</header><main>" + TEXT * 4 + "</main></body></html>"
 FILTER = "return getComputedStyle(document.getElementById(arguments[0])).filter;"
+
+
+# Glyphs drawn with a background in a header on a page Dark Reader
+# darkens, painted in the page's navy text colour, as boursorama.com draws
+# its menu button: an empty <span> 26x3 and its ::before and ::after, in a
+# <button> (#burger); three empty <i> bars in a small <div> (#bars, no
+# control). Dark Reader darkens them as backgrounds. Left alone: a thin rule
+# of the page in its light grey (#rule, wide), a short separator in a
+# line of text (#sep, outside any control), a coloured pill in a link
+# (#pill, thicker), and a bar in a light accent colour that still reads
+# (#accent). #rule and #sep, and a vertical separator between a logo and a
+# title in the header (#divider, admin.ch's div.logo__separator, 1x70 in
+# light grey), are thin rules: painted a light neutral (RULE).
+GLYPH_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(26,46,69)}
+#wrap {background:rgb(255,255,255); min-height:100vh}
+header {height:60px; display:flex; align-items:center; gap:20px; padding:0 20px}
+button {color:inherit; background:none; border:0; padding:0; width:40px; height:40px; position:relative}
+.box {position:absolute; left:7px; top:10px; width:26px; height:20px}
+#burger, #burger::before, #burger::after {position:absolute; display:block; width:26px; height:3px;
+  background-color:rgb(26,46,69)}
+#burger {top:50%}
+#burger::before, #burger::after {content:""}
+#burger::before {top:-8px}
+#burger::after {top:8px}
+#bars {width:24px; height:18px; display:flex; flex-direction:column; justify-content:space-between}
+#bars i {display:block; height:2px; background-color:rgb(26,46,69)}
+#rule {height:1px; background-color:rgb(220,220,220); margin:10px 0}
+#sep {display:inline-block; width:1px; height:14px; background-color:rgb(26,46,69); margin:0 6px}
+#pill {display:inline-block; width:20px; height:8px; border-radius:4px; background-color:rgb(26,46,69)}
+#accent {display:inline-block; width:20px; height:3px; background-color:rgb(255,200,0)}
+#divider {display:inline-block; width:1px; height:70px; background-color:rgb(209,213,219)}
+</style></head><body><div id="wrap"><header>
+<button type="button"><span class="box"><span id="burger"></span></span></button>
+<div id="bars"><i id="bar1"></i><i></i><i></i></div>
+<a href="#"><span id="pill"></span></a><a href="#"><span id="accent"></span></a>
+<div id="divider"></div><span>The federal council</span>
+</header><div id="rule"></div><p>Markets<span id="sep"></span>News</p>""" + TEXT + """</div></body></html>"""
+GLYPH = bg.ATTR_GLYPH
+RULE = bg.ATTR_RULE
+PART_BG = "return getComputedStyle(document.getElementById(arguments[0]), arguments[1]).backgroundColor;"
+PART_COLOR = "return getComputedStyle(document.getElementById(arguments[0]), arguments[1]).color;"
+
+# White blocks on a light page, which Dark Reader turns into opaque
+# near-black panels: a strip of links across the window at its top
+# (#meta, postfinance.ch's metanavigation), news cards with a fine border
+# (#news, admin.ch's div.card) whose content box is white too (#body), a
+# secondary button on a card (#more, white with a border), as boursorama.com
+# and postfinance.ch draw them. Left alone: a coloured button (#buy), a
+# fixed dialog (#dialog, a cookie notice), a popup menu over the page
+# (#menu, absolute with a z-index), a player's black box (#player, a
+# <canvas> filling it). Before them in the page's order, a closed menu of
+# more links than INK_ELEMENTS, indented (more nodes than INK_NODES with
+# the blank ones), as boursorama.com's header holds: the cards are still
+# read.
+MEGA_MENU = ('<nav id="mega" hidden><ul>'
+             + "".join('\n  <li>\n    <a href="#">Entry %d</a>\n  </li>' % i for i in range(1100))
+             + "\n</ul></nav>")
+BLOCKS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#wrap {background:rgb(255,255,255); min-height:100vh; position:relative}
+#meta {background:rgb(245,245,245); height:40px; display:flex; gap:16px; align-items:center; padding:0 20px}
+.cards {display:flex; gap:20px; padding:20px}
+.card {background:rgb(255,255,255); border:1px solid rgb(220,220,220); width:280px}
+.card__content {background:rgb(255,255,255); padding:16px}
+#more {background:rgb(255,255,255); border:1px solid rgb(180,180,180); color:rgb(20,20,20); padding:6px}
+#buy {background:rgb(0,102,204); color:rgb(255,255,255); border:0; padding:6px}
+#menu {position:absolute; z-index:10; top:50px; left:20px; width:200px; background:rgb(255,255,255)}
+#player {background:rgb(0,0,0); color:rgb(255,255,255); width:320px; height:180px; position:relative}
+#player canvas {position:absolute; inset:0; width:100%; height:100%}
+#dialog {position:fixed; bottom:0; left:0; width:400px; background:rgb(255,255,255); padding:10px}
+</style></head><body><div id="wrap">""" + MEGA_MENU + """<div id="meta"><a href="#">Private</a><a href="#">Business</a></div>
+<div class="cards"><div class="card" id="news"><div class="card__content" id="body"><h3 id="title">Council news</h3>
+<p>""" + "A short report on the latest decision of the council. " * 3 + """</p>
+<button id="more" type="button">More</button> <button id="buy" type="button">Open an account</button></div></div>
+<div class="card"><div class="card__content"><h3>Second card</h3><p>Another short report.</p></div></div></div>
+<div id="player"><canvas width="32" height="18"></canvas><span>Live</span></div>""" + TEXT + """
+<div id="menu">Menu entries over the page</div></div>
+<div id="dialog">This site uses cookies to improve its offer.</div></body></html>"""
+BLOCK = bg.ATTR_BLOCK
+
+# Buttons in a saturated brand colour, which Dark Reader dulls: a link
+# whose ::before paints the brand yellow from a variable under a petrol
+# label in a span (#yellow, postfinance.ch's .styled-button--primary), a
+# violet button with a white label (#violet, proton.me), an input button
+# (#send). Left alone: a pale button (#pale, low chroma), a banner link
+# wider than a button (#banner), a coloured link with no label (#dot), a
+# button whose label does not read on it (#faint).
+BRAND_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+:root {--gelb: #FFCC00}
+#wrap {background:rgb(255,255,255); min-height:100vh}
+.styled-button {position:relative; z-index:0; display:inline-block; padding:12px 24px; color:rgb(0,75,90)}
+.styled-button::before {content:""; position:absolute; inset:0; z-index:-1; border-radius:24px;
+  background-color:var(--gelb)}
+#violet {background:rgb(109,74,255); color:rgb(255,255,255); border:0; padding:10px 20px}
+#send {background:rgb(220,53,69); color:rgb(255,255,255); border:0; padding:10px 20px}
+#pale {background:rgb(232,240,254); color:rgb(26,115,232); border:0; padding:10px 20px}
+#banner {display:block; width:900px; height:200px; background:rgb(0,102,204); color:rgb(255,255,255)}
+#dot {display:inline-block; width:20px; height:20px; background:rgb(255,0,0)}
+#faint {background:rgb(255,204,0); color:rgb(255,255,255); border:0; padding:10px 20px}
+</style></head><body><div id="wrap">""" + TEXT + """
+<p><a id="yellow" class="styled-button" href="#"><span id="label">Fermer</span></a>
+<button id="violet" type="button">Get Proton for free</button>
+<input id="send" type="submit" value="Send"></p>
+<p><button id="pale" type="button">Pale</button> <a id="dot" href="#"></a>
+<button id="faint" type="button">Faint</button></p>
+<a id="banner" href="#">A large banner in a brand colour</a></div></body></html>"""
+BRAND = bg.ATTR_BRAND
 
 
 # A Stacks page as Stack Overflow serves it signed out (no dark theme):
@@ -280,6 +423,9 @@ class DarkenE2E(unittest.TestCase):
                 self.check_stacks(binary)
                 self.check_tiles(binary)
                 self.check_logos(binary)
+                self.check_glyphs(binary)
+                self.check_blocks(binary)
+                self.check_brands(binary)
 
     def run_content(self, b, excluded=(), darken=True):
         """content.js with the stored list `excluded` and darken flag
@@ -317,11 +463,12 @@ class DarkenE2E(unittest.TestCase):
             self.assertGreater(tone.luminance(tone.rgba(text)), 0.179, text)
             self.assertEqual((html, body), ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
             self.assertEqual(self.bg_of(b, "wrap"), "rgba(0, 0, 0, 0)")
+            # the grey card a light veil, not an opaque panel
+            self.assertTrue(b.wait_for(TILED + " === 'veil';", mn.WAIT_TIMEOUT, "card", BLOCK), "card not veiled")
             card = tone.rgba(self.bg_of(b, "card"))
-            self.assertEqual(card[3], 1.0)
+            self.assertEqual(card[3], bg.BLOCK_VEIL_OPACITY)
             self.assertLess(tone.luminance(card), 0.05, card)
             self.assertFalse(b.js(MARKED, "card", CANVAS))
-            self.assertGreaterEqual(tone.contrast(text, self.bg_of(b, "card")), 4.5)
             # grey text stays grey: Dark Reader gives it the hue and
             # saturation of the text colour, whose near-white (#f7f9ff) has
             # a saturation of 100%
@@ -411,10 +558,18 @@ class DarkenE2E(unittest.TestCase):
             inner, outer = b.chrome_js(CORNERS, *box, bg.TILE_PAD)
             self.assertGreaterEqual(inner, 250, "a seam at the photo's corners")
             self.assertLess(outer, 128, "the tile's outer corner not rounded")
-            # see-through black ink, of the page's origin or a data: URL
-            for name in ("ink", "mark"):
+            # see-through dark ink in a colour, or shaded, on a white tile
+            for name in ("navy", "puck"):
                 self.assertTrue(b.wait_for(TILED + " === 'ink';", mn.WAIT_TIMEOUT, name, TILE),
-                                name + ": dark ink not tiled")
+                                name + ": dark ink not tiled: %r" % b.js(TILED, name, TILE))
+            # see-through black ink, of the page's origin or a data: URL:
+            # monochrome, inverted to light ink, no tile around it
+            for name in ("ink", "mark"):
+                self.assertTrue(b.wait_for(TILED + " === 'invert';", mn.WAIT_TIMEOUT, name, TILE),
+                                name + ": monochrome ink not inverted: %r" % b.js(TILED, name, TILE))
+                look = b.js("const s = getComputedStyle(document.getElementById(arguments[0]));"
+                            "return [s.filter, s.backgroundColor, s.boxShadow];", name)
+                self.assertEqual(look, ["invert(%s)" % bg.TILE_INVERT, "rgba(0, 0, 0, 0)", "none"], name)
             # left as they are: a full-bleed photo, a picture of another
             # origin (unreadable), a light logo, an opaque picture, an icon
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
@@ -463,6 +618,119 @@ class DarkenE2E(unittest.TestCase):
                                        " && !document.querySelector('[' + arguments[0] + ']');",
                                        mn.WAIT_TIMEOUT, UNINVERT), "still marked under a light theme")
             self.assertEqual(b.js(FILTER, "styled"), "none")
+
+    def check_glyphs(self, binary):
+        routes = {"/g.html": ("text/html; charset=utf-8", GLYPH_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/g.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            glass = b.js("return getComputedStyle(document.documentElement).getPropertyValue(arguments[0]).trim();",
+                         "--browserglass-glass")
+            # the menu button's three bars, and the bars in a small box,
+            # painted in the text colour, which reads on the glass
+            self.assertTrue(b.wait_for("return document.getElementById('burger').getAttribute(arguments[0])"
+                                       " === 'self before after';", mn.WAIT_TIMEOUT, GLYPH),
+                            "menu bars not marked: %r" % b.js(TILED, "burger", GLYPH))
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "bar1", GLYPH), "bars in a box not marked")
+            for name, part in (("burger", None), ("burger", "::before"), ("burger", "::after"), ("bar1", None)):
+                paint = b.js(PART_BG, name, part)
+                self.assertEqual(paint, b.js(PART_COLOR, name, part), (name, part))
+                self.assertGreaterEqual(tone.contrast(paint, glass), 2, (name, part, paint, glass))
+            # left alone: a wide rule, a separator in text, a thick pill,
+            # a bar that reads
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            for name in ("rule", "sep", "pill", "accent"):
+                self.assertFalse(b.js(MARKED, name, GLYPH), name + " marked as a glyph")
+            self.assertNotEqual(b.js(PART_BG, "pill", None), b.js(PART_COLOR, "pill", None))
+            # thin rules in a neutral colour Dark Reader left without
+            # contrast: a light neutral that reads on the glass
+            for name in ("rule", "divider"):
+                self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, name, RULE), name + " rule not marked")
+                paint = tone.rgba(b.js(PART_BG, name, None))
+                self.assertEqual(paint[:3], (255, 255, 255), name)
+                shown = tuple(paint[3] * c + (1 - paint[3]) * g for c, g in zip(paint[:3], tone.rgba(glass)[:3]))
+                self.assertGreaterEqual(tone.contrast("rgb%r" % (shown,), glass), 1.5, (name, shown, glass))
+            for name in ("pill", "accent", "bar1", "burger"):
+                self.assertFalse(b.js(MARKED, name, RULE), name + " marked as a rule")
+            # a light theme: the page's own rules
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, RULE), "rules still marked under a light theme")
+
+    def check_blocks(self, binary):
+        routes = {"/b.html": ("text/html; charset=utf-8", BLOCKS_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/b.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            # the card a light veil, its fine border kept; the box inside it
+            # see-through; the button on it a veil of its own
+            self.assertTrue(b.wait_for(TILED + " === 'veil';", mn.WAIT_TIMEOUT, "news", BLOCK),
+                            "card not veiled: %r" % b.js(TILED, "news", BLOCK))
+            news = tone.rgba(self.bg_of(b, "news"))
+            self.assertEqual(news[3], bg.BLOCK_VEIL_OPACITY)
+            self.assertLess(tone.luminance(news), 0.05, news)
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('news')).borderTopWidth;"), "1px")
+            self.assertEqual(b.js(TILED, "body", BLOCK), "glass")
+            self.assertEqual(self.bg_of(b, "body"), "rgba(0, 0, 0, 0)")
+            self.assertEqual(b.js(TILED, "more", BLOCK), "veil")
+            # the strip across the window: glass, a layer of the page
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "meta", CANVAS), "strip not glass")
+            self.assertEqual(self.bg_of(b, "meta"), "rgba(0, 0, 0, 0)")
+            # the text on them still light
+            title = tone.rgba(b.js("return getComputedStyle(document.getElementById('title')).color;"))
+            self.assertGreater(tone.luminance(title), 0.4, title)
+            # left alone: the coloured button, the dialog, the popup menu,
+            # the player
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            for name in ("buy", "dialog", "menu", "player"):
+                self.assertIsNone(b.js(TILED, name, BLOCK), name + " veiled")
+                self.assertFalse(b.js(MARKED, name, CANVAS), name + " made glass")
+                self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
+            self.assertGreater(saturation(tone.rgba(self.bg_of(b, "buy"))), 0.5)
+            # a light theme: the page's own white, no mark left
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, BLOCK), "still veiled under a light theme")
+            self.assertEqual(self.bg_of(b, "news"), "rgb(255, 255, 255)")
+
+    def check_brands(self, binary):
+        routes = {"/br.html": ("text/html; charset=utf-8", BRAND_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/br.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            # the brand fills and their labels' colours, as the page had them
+            self.assertEqual(b.js(PART_BG, "yellow", "::before"), "rgb(255, 204, 0)")
+            self.assertEqual(b.js(PART_COLOR, "label", None), "rgb(0, 75, 90)")
+            self.assertEqual(b.js(TILED, "yellow", BRAND), "before")
+            self.assertEqual(b.js(PART_BG, "violet", None), "rgb(109, 74, 255)")
+            self.assertEqual(b.js(PART_COLOR, "violet", None), "rgb(255, 255, 255)")
+            self.assertEqual(b.js(PART_BG, "send", None), "rgb(220, 53, 69)")
+            # left alone: a pale button, a banner, a link with no label, a
+            # label that does not read on its fill
+            for name in ("pale", "banner", "dot", "faint"):
+                self.assertFalse(b.js(MARKED, name, BRAND), name + " kept as a brand button")
+            self.assertNotEqual(b.js(PART_BG, "pale", None), "rgb(232, 240, 254)")
+            # a light theme: the page's own colours, no mark or inline style left
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, BRAND), "still marked under a light theme")
+            self.assertIsNone(b.js("return document.getElementById('violet').getAttribute('style');"))
+            self.assertEqual(b.js(PART_BG, "yellow", "::before"), "rgb(255, 204, 0)")
 
     def check_native(self, binary):
         routes = {"/n.html": ("text/html; charset=utf-8", NATIVE_PAGE.encode("utf-8"))}

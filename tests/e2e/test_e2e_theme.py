@@ -57,7 +57,13 @@ localStorage). Checked:
     applies back. A first visit is created dark (no Dark Reader), removed
     under a light theme; the "light" the page then stores itself is
     written dark and put back; "system" (dark under a dark system) is left
-    alone.
+    alone;
+  - the bundled recipe of the Home Assistant demo on a page built like it:
+    localStorage.demo_theme holds JSON, {"theme":"default","dark":false}
+    when absent, and without a dark key the page follows the system live.
+    A first visit is created '{"theme":"default"}' (dark, no Dark Reader)
+    and removed under a light theme; the stored light JSON is written and
+    put back.
 """
 
 import json
@@ -80,7 +86,7 @@ bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
          "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test",
-         "slash.test", "shade.test", "hidden.test", "dsfr.test", "dsfr2.test")
+         "slash.test", "shade.test", "hidden.test", "dsfr.test", "dsfr2.test", "ha.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -142,6 +148,21 @@ r.setAttribute("data-fr-scheme", s);
 r.setAttribute("data-fr-theme", s === "system"
   ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : s);
 </script></body></html>""")
+
+# The Home Assistant demo: localStorage.demo_theme holds JSON (light when
+# absent); without a "dark" key the theme follows the system, live.
+HA_LIGHT = '{"theme":"default","dark":false}'
+HA_PAGE = ("""<!doctype html><html><head><meta charset="utf-8"><script>
+var t = localStorage.getItem("demo_theme"), o;
+window.__boot = t;
+try { o = t ? JSON.parse(t) : {theme: "default", dark: false}; } catch (e) { o = {theme: "default", dark: false}; }
+var mq = matchMedia("(prefers-color-scheme: dark)");
+function paint() {
+  document.documentElement.classList.toggle("night", o.dark === undefined ? mq.matches : o.dark === true);
+}
+paint();
+mq.addEventListener("change", paint);
+</script>""" + STYLE + "</head><body>" + TEXT + "</body></html>")
 
 
 def bundled(host):
@@ -230,7 +251,8 @@ class Server:
                         extra.append(("Set-Cookie", ".shade=light; HttpOnly; Path=/"))
                     body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE, "/hide.html": LS_PAGE,
                             "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE,
-                            "/rts.html": SLASH_PAGE, "/dsfr.html": DSFR_PAGE}.get(path)
+                            "/rts.html": SLASH_PAGE, "/dsfr.html": DSFR_PAGE,
+                            "/ha.html": HA_PAGE}.get(path)
                     if body is None:
                         self.send_error(404)
                         return
@@ -610,6 +632,38 @@ class ThemeE2E(unittest.TestCase):
             self.assertEqual((s["boot"], b.js(dsfr), s["record"]), ("system", ["system", "dark"], None), s)
             s = self.settled(b)
             self.assertFalse(s["darkreader"], s)
+            self.feed(b)
+
+            # 16. the Home Assistant demo, the bundled recipe: a JSON value,
+            # created on a first visit, then the stored light JSON
+            auto = '{"theme":"default"}'
+            ha = "return localStorage.getItem('demo_theme');"
+            url = srv.url("ha.test", "/ha.html")
+            self.load(b, srv.url("absent.test"))
+            self.feed(b, sites={"ha.test": bundled("demo.home-assistant.io")})
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"]), (auto, True), s)
+            self.assertEqual(s["record"]["keys"], {"local:demo_theme": {"prior": None, "wrote": auto}})
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
+            self.assertNotIn("failed", s["record"])
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('demo_theme') === null"
+                                       " && localStorage.getItem(arguments[0]) === null"
+                                       " && !document.documentElement.classList.contains('night');",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            b.js("localStorage.setItem('demo_theme', arguments[0]);", HA_LIGHT)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"], s["record"]), (HA_LIGHT, False, None), s)
+            tone.set_scheme(b, True)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"]), (auto, True), s)
+            self.assertEqual(s["record"]["keys"], {"local:demo_theme": {"prior": HA_LIGHT, "wrote": auto}})
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('demo_theme') === arguments[1]"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD, HA_LIGHT), self.state(b))
+            tone.set_scheme(b, True)
             self.feed(b)
 
 

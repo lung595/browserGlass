@@ -151,8 +151,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         # a level decides with enough text (a lone short line gives way
         # to the next one), else the first with any; text out of sight
         # (a skip link above the page, a clipped label) does not vote
-        self.assertIn("levels.find((t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS)\n"
-                      "    || levels.find((t) => t[0] + t[1] > 0) || all", measure)
+        self.assertIn("const decides = (t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS;", measure)
+        self.assertIn("levels.find(decides) || levels.find((t) => t[0] + t[1] > 0) || all", measure)
+        # without text on the page's background, a drawing board (a canvas
+        # filling the window, painted opaque, unfiltered: Excalidraw) gives
+        # the tone by its pixels, before the cards and pictures vote
+        self.assertIn("const board = document.body && !decides(page) ? boardTone() : null;", measure)
+        board = js[js.index("function boardTone("):js.index("function measure()")]
+        self.assertIn("seen < BOARD_COVER * w * h", board)
+        self.assertIn('getComputedStyle(c).filter !== "none"', board)
+        self.assertIn("s && s.clear <= BOARD_CLEAR", board)
+        self.assertIn('s.inks[INK_STEPS / 2] > 0.179 ? "light" : "dark"', board)
         self.assertIn("&& !unseen(p)", measure)
         hidden = js[js.index("function unseen("):js.index("function measure()")]
         self.assertIn("style.overflow !== \"visible\"", hidden)
@@ -248,7 +257,11 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('el.parentElement.closest("[" + CANVAS + "]")', bars)
         self.assertIn("if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h)))", bars)
         # a child faded out (a drawer's scrim at opacity 0) paints nothing
-        self.assertIn("!kid.checkVisibility({visibilityProperty: true, opacityProperty: true})", bars)
+        self.assertIn("kid.checkVisibility({visibilityProperty: true, opacityProperty: true})", bars)
+        # any child covering it, one filled too (an empty layer behind the
+        # content, in the page's colour, filled before the header stuck)
+        self.assertIn("for (const kid of el.children)", bars)
+        self.assertIn("kid.getAttribute(CANVAS) === FILL", bars)
         self.assertIn("const SOLID = 0.99;", js)
         watch = js[js.index("let layerFrame"):js.index("function apply(")]
         self.assertIn("requestAnimationFrame(", watch)
@@ -322,7 +335,13 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("off !== false", mark)
         self.assertIn("removeAttribute(INK)", mark)
         self.assertIn("contrast(fg, bg) < INK_RATIO", mark)
-        self.assertIn("i < INK_NODES && seen.size < INK_ELEMENTS", mark)
+        self.assertIn("for (const el of shownText(near))", mark)
+        # the text near the window: blank nodes, and text hidden or far
+        # away, do not count against the elements read
+        shown = js[js.index("function shownText("):js.index("function contrast(")]
+        self.assertIn("i < INK_NODES && shown.length < INK_ELEMENTS", shown)
+        self.assertLess(shown.index("if (!n.data.trim())"), shown.index("i++;"))
+        self.assertIn("if (near(el) && el.checkVisibility(", shown)
         # a mark taken off with the page's transitions held, the style
         # attribute put back after one flush, once the marks are set
         self.assertIn('el.style.setProperty("transition", "none", "important");', mark)
@@ -373,15 +392,126 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('const DR_INVERT = "data-darkreader-inline-invert";', js)
         self.assertIn('"[data-darkreader-inline-invert] {"', read("vendor/darkreader.js"))
 
+    def test_content_marks_glyphs(self):
+        # a glyph drawn with a background (a menu button's bars) left
+        # without contrast gets ATTR_GLYPH naming its parts, painted in the
+        # text colour, in the pass of the tiles; the marks go with the
+        # page's marks
+        js = strip_comments(read("content.js"))
+        self.assertIn('const GLYPH = "%s";' % bg.ATTR_GLYPH, js)
+        self.assertTrue(bg.ATTR_GLYPH.startswith("data-browserglass-"))
+        layers = bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1)
+        for part, pseudo in (("self", ""), ("before", "::before"), ("after", "::after")):
+            self.assertIn('[%s~="%s"]:not(#browserglass-a):not(#browserglass-b)%s'
+                          % (bg.ATTR_GLYPH, part, pseudo), layers)
+        self.assertIn("::after { background-color: currentcolor !important; }", layers)
+        ink = js[js.index("function markInk()"):js.index("function markTiles(")]
+        self.assertIn("el.removeAttribute(GLYPH)", ink)
+        self.assertLess(ink.index("markUninverted(near);"), ink.index("markGlyphs(near);"))
+        mark = js[js.index("function markGlyphs("):js.index("function sample(")]
+        for part in ('document.body.querySelectorAll(":empty")',
+                     "r.width > GLYPH_BOX || r.height > GLYPH_BOX",
+                     "!el.closest(CONTROLS)",
+                     "Math.min(w, h) > THIN || Math.max(w, h) > GLYPH_BOX",
+                     "contrast(paint, bg) < INK_RATIO && contrast(text, bg) >= INK_RATIO"):
+            self.assertIn(part, mark)
+
+    def test_content_marks_rules(self):
+        # a thin rule in a neutral colour Dark Reader left without contrast
+        # (a separator) gets ATTR_RULE, painted a light neutral, after the
+        # glyphs; only on a darkened page, the marks sticky till then
+        js = strip_comments(read("content.js"))
+        self.assertIn('const RULE = "%s";' % bg.ATTR_RULE, js)
+        self.assertTrue(bg.ATTR_RULE.startswith("data-browserglass-"))
+        layers = bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1)
+        self.assertIn('[%s]:not(#browserglass-a):not(#browserglass-b) '
+                      '{ background-color: rgba(255, 255, 255, %s) !important; }'
+                      % (bg.ATTR_RULE, bg.RULE_OPACITY), layers)
+        ink = js[js.index("function markInk()"):js.index("function markTiles(")]
+        self.assertIn("el.removeAttribute(RULE)", ink)
+        self.assertLess(ink.index("markGlyphs(near);"), ink.index("markRules(near);"))
+        mark = js[js.index("function markRules("):js.index("function sample(")]
+        for part in ("if (!darkened) {",
+                     ':empty:not([" + RULE + "]):not([" + GLYPH + "])',
+                     "Math.min(r.width, r.height) > RULE_THIN || Math.max(r.width, r.height) < RULE_LONG",
+                     "chroma(paint) >= MONO_CHROMA",
+                     "behind(el.parentElement || document.documentElement)",
+                     "bg <= DARK_BG && contrast(y, bg) < RULE_READ"):
+            self.assertIn(part, mark)
+
+    def test_content_keeps_brand_buttons(self):
+        # a small button in a saturated colour gets ATTR_BRAND naming the
+        # part that paints its fill, and its fill and label colours inline,
+        # read just before Dark Reader runs, which is told to leave that
+        # inline style alone; the glass styles paint them back, under a
+        # site style (no ids); the marks and the colours go with Dark Reader
+        js = strip_comments(read("content.js"))
+        self.assertIn('const BRAND = "%s";' % bg.ATTR_BRAND, js)
+        self.assertIn('const BRAND_FILL = "%s";' % bg.BRAND_FILL, js)
+        self.assertIn('const BRAND_INK = "%s";' % bg.BRAND_INK, js)
+        self.assertIn('const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]"]};', js)
+        darken = js[js.index("function darken()"):js.index("function markBrands(")]
+        self.assertLess(darken.index("markBrands();"), darken.index("DarkReader.enable(theme, DR_FIXES);"))
+        self.assertLess(darken.index("DarkReader.disable();"), darken.index("unmarkBrands();"))
+        layers = bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1)
+        self.assertIn('[%s="before"]::before' % bg.ATTR_BRAND, layers)
+        self.assertIn("{ background-color: var(%s) !important; }" % bg.BRAND_FILL, layers)
+        self.assertIn("[%s] * { color: var(%s) !important; }" % (bg.ATTR_BRAND, bg.BRAND_INK), layers)
+        self.assertLess(layers.index(bg.ATTR_BRAND), layers.index(bg.ATTR_INK))
+        mark = js[js.index("function markBrands("):js.index("function unmarkBrands(")]
+        for part in ("r.width > BRAND_W || r.height > BRAND_H",
+                     "alpha(fill) >= SOLID && chroma(fill) >= BRAND_CHROMA",
+                     "contrast(luminance(fill), luminance(ink)) >= BRAND_READ",
+                     "text.length > BRAND_TEXT"):
+            self.assertIn(part, mark)
+        # the inline style of an ignored element is left as it is
+        self.assertIn("shouldIgnoreInlineStyle(element, ignoreInlineSelectors)", read("vendor/darkreader.js"))
+
+    def test_content_marks_blocks(self):
+        # a block Dark Reader turned into an opaque near-black panel (a
+        # white card) gets ATTR_BLOCK: the outermost a light veil, those
+        # inside it see-through; one across the window or down a column is
+        # a layer of the page (CANVAS); only on a darkened page, in the
+        # pass of the text, before the ink; the marks go with Dark Reader
+        js = strip_comments(read("content.js"))
+        self.assertIn('const BLOCK = "%s";' % bg.ATTR_BLOCK, js)
+        self.assertTrue(bg.ATTR_BLOCK.startswith("data-browserglass-"))
+        layers = bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1)
+        self.assertLess(bg.BLOCK_VEIL_OPACITY, bg.NAV_BAR_OPACITY)
+        self.assertIn('[%s="veil"]:not(#browserglass-a):not(#browserglass-b) '
+                      '{ background-color: rgba(0, 0, 0, %s) !important; }'
+                      % (bg.ATTR_BLOCK, bg.BLOCK_VEIL_OPACITY), layers)
+        self.assertIn('[%s="glass"]:not(#browserglass-a):not(#browserglass-b) '
+                      '{ background-color: transparent !important; }' % bg.ATTR_BLOCK, layers)
+        self.assertIn('const VEILED = "veil";', js)
+        self.assertIn('const SEE_THROUGH = "glass";', js)
+        blocks = js[js.index("function markBlocks("):js.index("const FILL_NODES")]
+        for part in ("if (!darkened)",
+                     "alpha(color) < SOLID || floats(el) || !plain(el, color)",
+                     "if (!column(el, color))",
+                     "mark(el, CANVAS);",
+                     "j === blocks.length - 1 || b.matches(FIELDS) ? VEILED : SEE_THROUGH"):
+            self.assertIn(part, blocks)
+        # the text of markInk, read as far into the page
+        self.assertIn("for (const el of shownText(near))", blocks)
+        ink = js[js.index("function markInk()"):js.index("function markTiles(")]
+        self.assertLess(ink.index("markBlocks(near);"), ink.index("const held = [];"))
+        self.assertIn("el.removeAttribute(BLOCK);", ink)
+        self.assertIn("el.removeAttribute(BLOCK)", js[js.index("function darken()"):js.index("function frameSchemes()")])
+        # column is a shape on plain()'s colour
+        self.assertIn("&& plain(el, color);", js[js.index("function column("):js.index("function plain(")])
+
     def test_content_marks_tiles(self):
         # a picture made for a white page on a background now dark gets
-        # ATTR_TILE (a white tile), in the same throttled pass as the text,
-        # and loses it with the page's marks
+        # ATTR_TILE (a white tile; dark monochrome ink "invert": light ink,
+        # no tile), in the same throttled pass as the text, and loses it
+        # with the page's marks
         js = strip_comments(read("content.js"))
         self.assertIn('const TILE = "%s";' % bg.ATTR_TILE, js)
         self.assertTrue(bg.ATTR_TILE.startswith("data-browserglass-"))
         rule = bg._TILE_RULE.format()
-        for part in ("[%s]:not(#browserglass-a):not(#browserglass-b) {" % bg.ATTR_TILE,
+        for part in ('[%s]:not([%s="invert"]):not(#browserglass-a):not(#browserglass-b) {'
+                     % (bg.ATTR_TILE, bg.ATTR_TILE),
                      "filter: none !important; mix-blend-mode: normal !important;",
                      "background-color: rgb(255, 255, 255) !important;",
                      # square inside (no seam at the picture's corners),
@@ -391,8 +521,13 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "clip-path: inset(-%dpx round %dpx) !important;" % (bg.TILE_PAD, bg.TILE_RADIUS)):
             self.assertIn(part, rule)
         self.assertIn(bg._TILE_RULE, bg._CONTENT_LAYERS)
-        # no longer inverted
+        # no longer inverted whole; monochrome ink inverted to light ink
         self.assertNotIn("invert(1)", bg._CONTENT_LAYERS)
+        self.assertIn('[%s="invert"]:not(#browserglass-a):not(#browserglass-b) '
+                      '{ filter: invert(%s) !important; mix-blend-mode: normal !important; }'
+                      % (bg.ATTR_TILE, bg.TILE_INVERT),
+                      bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1))
+        self.assertGreater(bg.TILE_INVERT, 0.5)
         ink = js[js.index("function markInk()"):js.index("function markTiles(")]
         self.assertIn("removeAttribute(TILE)", ink)
         self.assertIn("markTiles(near);", ink)
@@ -404,7 +539,9 @@ class ExtensionSourcesTest(unittest.TestCase):
                      'blended || !darkened || el.localName !== "img" ? null : sample(el)',
                      "behind(el.parentElement || document.documentElement)",
                      "if (bg === null || bg > DARK_BG)",
-                     "unread >= TILE_INK * s.inks.length"):
+                     "if (unread < TILE_INK * s.inks.length)",
+                     "contrast(s.inks[INK_STEPS - 1 - MONO_EDGE], s.inks[MONO_EDGE]) < MONO_FLAT",
+                     'flat && s.colored <= MONO_SHARE ? "invert" : "ink"'):
             self.assertIn(part, mark)
         # never taken off and set again in the same pass
         self.assertIn("else if (el.getAttribute(TILE) !== kind)", mark)
@@ -414,6 +551,8 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('if (off === false && e.target.localName === "img")\n    ink();', pixels)
         self.assertIn('document.addEventListener("load", loaded, {capture: true, passive: true});', js)
         for part in ("if (samples.size >= SAMPLES_MAX)",
+                     "if (spread >= MONO_CHROMA * 255)",
+                     "colored: colored / ys.length",
                      "Math.min(1, SAMPLE_SIDE / Math.max(r.width, r.height))",
                      # another origin: unreadable, left as it is
                      "} catch (e) {\n    return null;"):
@@ -569,7 +708,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         # frames keep their colour scheme while darkened (Dark Reader's
         # iframe rule gave a light frame from another site a backdrop)
         self.assertLess(darken.index("DarkReader.disable();"), darken.index("frameSchemes();"))
-        self.assertLess(darken.index("DarkReader.enable(theme);"), darken.rindex("frameSchemes();"))
+        self.assertLess(darken.index("DarkReader.enable(theme, DR_FIXES);"), darken.rindex("frameSchemes();"))
         schemes = js[js.index("function frameSchemes()"):js.index("function alpha(")]
         self.assertIn('const frames = document.getElementsByTagName("iframe");', js)
         self.assertIn('el.style.setProperty("color-scheme", value || "normal", "important");', schemes)

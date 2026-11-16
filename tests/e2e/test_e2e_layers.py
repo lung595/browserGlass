@@ -26,6 +26,10 @@ test_e2e_darken.py. Checked:
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
     marked while it is, and left alone again back at the top;
+  - a sticky header below a notice, painted by an empty layer behind its
+    content in the page's colour (Bitwarden), has that layer filled, then
+    is marked once stuck over a hero as large as the window, the layer
+    still see-through under the veil;
   - in a web app's shell (a page that does not scroll, a pane scrolls
     inside), the sidebar and the header in the flow keep their own look,
     and so do the short rows of links in the pane (1.3.1);
@@ -111,6 +115,20 @@ STICKY_PAGE = STYLE + """
 nav {position:sticky; top:0; height:60px; background:rgb(32,32,32)}
 </style></head><body><div id="hero">Hero</div><nav id="bar">Nav</nav>
 <div id="long">""" + dk.TEXT + """</div></body></html>"""
+# A sticky header below a notice (Bitwarden): see-through, painted by an
+# empty layer behind its content (absolute, inset 0, z-index -10, clicks
+# passing through) in the page's colour, over a hero as large as the
+# window once scrolled.
+LAYER_BAR_PAGE = STYLE + """
+html, body {background:transparent}
+#wrap {background:rgb(16,16,16)}
+#notice {height:40px}
+header {position:sticky; top:0; height:68px; z-index:50}
+#paint {position:absolute; inset:0; z-index:-10; pointer-events:none; background:rgb(16,16,16)}
+#hero {height:95vh; background:rgb(40,60,120)}
+</style></head><body><div id="wrap"><div id="notice">Notice</div>
+<header id="bar"><div id="paint"></div><nav><a href="#">Pricing</a></nav></header>
+<div id="hero">Hero</div><div id="long">""" + dk.TEXT + """</div></div></body></html>"""
 
 # A web app's shell: the page does not scroll, a pane does; the sidebar and
 # the header are in the flow (neither fixed nor sticky).
@@ -378,6 +396,7 @@ class LayersE2E(unittest.TestCase):
     def check(self, binary):
         routes = {"/a.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
                   "/s.html": ("text/html; charset=utf-8", STICKY_PAGE.encode("utf-8")),
+                  "/layer.html": ("text/html; charset=utf-8", LAYER_BAR_PAGE.encode("utf-8")),
                   "/l.html": ("text/html; charset=utf-8", LATE_PAGE.encode("utf-8")),
                   "/shell.html": ("text/html; charset=utf-8", SHELL_PAGE.encode("utf-8")),
                   "/rows.html": ("text/html; charset=utf-8", ROWS_PAGE.encode("utf-8")),
@@ -472,6 +491,22 @@ class LayersE2E(unittest.TestCase):
             b.js("window.scrollTo(0, 0);")
             self.assertTrue(b.wait_for("return !document.getElementById('bar').hasAttribute(arguments[0]);",
                                        mn.WAIT_TIMEOUT, BAR), "still marked back at the top")
+
+            # a sticky header painted by an empty layer behind its content,
+            # filled below the notice: a bar once stuck over the hero, the
+            # layer still see-through under the veil
+            b.navigate(srv.url("/layer.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.getElementById('paint')"
+                                       ".getAttribute(arguments[0]) === 'fill';",
+                                       mn.WAIT_TIMEOUT, CANVAS), "the header's layer not filled")
+            self.assertFalse(self.marked(b, "bar", BAR), "marked below the notice")
+            b.js("window.scrollTo(0, 300);")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "bar", BAR),
+                            "a stuck header painted by its filled layer not marked")
+            self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('paint')).backgroundColor;"),
+                             "rgba(0, 0, 0, 0)")
 
             # an app shell's parts in the flow keep their own look
             for page in ("/shell.html", "/rows.html"):

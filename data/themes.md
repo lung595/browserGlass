@@ -41,7 +41,7 @@ host with recipes skips the generic rule). Each recipe:
 | `key` | The key or cookie name (letters, digits, `_ . : -`, at most 64; a `localStorage` key may also hold `/`). |
 | `op` | `set`: a value of `from` becomes `to`. `swap`: the substring `from[0]` of a composite value (`"…-day-…"`) becomes `to`. |
 | `from` | The values meaning light. `null` stands for "absent" (`set` only): the key is then created. Never `to` itself. `swap` takes exactly one non-empty string. |
-| `to` | The dark value (no `;`, `,` or control character, at most 64). |
+| `to` | The dark value (at most 64 characters, no control character; a cookie value also no `;` or `,`). A `localStorage` value may be JSON: `"{\"theme\":\"default\"}"`. |
 | `path`, `domain` | Cookies only. `path` starts with `/` (default `/`); `domain`, when given, is the host or a parent of it (no `domain`: a host-only cookie). |
 | `reload` | Cookies only, `true` when the server draws the theme from the cookie: the page is reloaded once, at `document_start`, after the first write. |
 | `skipIfCookie` | A cookie whose presence means a signed-in account (whose theme comes from the server): no write. |
@@ -66,6 +66,17 @@ added by the helper: a page where a write failed is tried again only once
    add-on: when a visitor already has one, the write is refused and the
    page reloads once; a page still light is then marked failed (Dark
    Reader takes over).
+   A site that keeps the theme in two places needs a recipe only for the
+   one it reads at start: Excalidraw stores `excalidraw-theme` and a
+   `theme` inside its `excalidraw-state` JSON, reads only the first
+   (light when absent, even with `"theme":"dark"` in the second) and
+   writes both back, so one `localStorage` recipe, no reload, covers it.
+   A value stored as JSON is written whole, as a string: the Home
+   Assistant demo reads `demo_theme` as `{"theme":"default","dark":false}`
+   when absent; `{"theme":"default"}` (no `dark` key, its Auto theme)
+   gives its dark theme under a dark system and follows the system live.
+   The recipe lists `null` and the light JSON in `from`, exactly as the
+   site writes it (key order and spacing included).
 3. Check that the light value (or none) gives the light theme, so that
    putting it back restores the site.
    A site that stores its own default on a first visit (the French

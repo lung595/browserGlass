@@ -50,6 +50,9 @@ declared) and dark.test (light text on a dark background). Checked:
     either scheme: glass under a dark theme, the dark tint under a light
     one; a dark marker on <body> counts as a declared dark version (no
     light tint, even measured light);
+  - a drawing board (Excalidraw: a canvas filling the window, painted by
+    its script, pale grey hints over it, dark text only on a toolbar) is
+    light from its pixels, under either scheme, and dark once painted dark;
   - a site style that makes the text white (white.test.css) on a light
     page: under a dark theme the tone is that of the text shown, "dark"
     (the site style applies once the tone is set), so the page is glass
@@ -198,6 +201,28 @@ header{height:40px;background:rgb(24,27,31)} header a,nav a{display:block;color:
 <div class="app"><nav>""" + "<a>Dashboards</a>" * 12 + """</nav><div class="wrapper" id="main">""" + (
     "<h3>CPU usage per instance</h3><p>Requests per second</p>") * 10 + "</div></div></body></html>"
 APP_LOADING_PAGE = APP_PAGE.replace("<html>", '<html class="loading">', 1)
+# A drawing board (Excalidraw): a <canvas> filling the window, painted
+# white by its script (no style says so), under an empty transparent top
+# canvas; over it, a welcome screen of pale grey hints (pointer-events
+# none: on the picture) and on a white toolbar (a card) a little dark
+# text; the canvas' fallback text is the only text on the page. The hints
+# outweigh the toolbar: the board's pixels decide, light. With class
+# "night" on <html>, the board is painted dark and the hints mid-grey: dark.
+BOARD_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;overflow:hidden;color:rgb(0,0,0)} canvas{position:absolute;inset:0;width:100%;height:100%}
+.top{pointer-events:none} .welcome{position:absolute;top:30%;left:30%;pointer-events:none;color:rgb(184,184,184)}
+html.night .welcome{color:rgb(122,122,122)}
+.tools{position:absolute;top:10px;left:40%;background:rgb(255,255,255);color:rgb(16,20,24)}
+html.night .tools{background:rgb(35,35,41);color:rgb(222,222,227)}
+</style></head><body><canvas class="board">Drawing canvas</canvas><canvas class="top"></canvas>
+<div class="welcome">""" + ("<p>Your drawings are saved in your browser's storage.</p>"
+                            "<p>Export, preferences, languages</p><p>Pick a tool and start drawing</p>") * 3 + (
+    """</div><div class="tools"><span>R</span><span>D</span><span>Shapes</span></div>
+<script>const c = document.querySelector(".board"); c.width = innerWidth; c.height = innerHeight;
+const g = c.getContext("2d");
+g.fillStyle = document.documentElement.classList.contains("night") ? "rgb(18,18,18)" : "rgb(255,255,255)";
+g.fillRect(0, 0, c.width, c.height);</script></body></html>""")
+BOARD_NIGHT_PAGE = BOARD_PAGE.replace("<html>", '<html class="night">', 1)
 # A light page with a web component: a light section in a shadow root.
 SHADOW_PAGE = LIGHT_PAGE.replace("<p>Readable text</p>", """<p>Readable text</p><div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML =
@@ -398,7 +423,9 @@ class ToneE2E(unittest.TestCase):
                   "/cards.html": ("text/html; charset=utf-8", CARDS_PAGE.encode("utf-8")),
                   "/shop.html": ("text/html; charset=utf-8", SHOP_PAGE.encode("utf-8")),
                   "/app.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
-                  "/loading.html": ("text/html; charset=utf-8", APP_LOADING_PAGE.encode("utf-8"))}
+                  "/loading.html": ("text/html; charset=utf-8", APP_LOADING_PAGE.encode("utf-8")),
+                  "/board.html": ("text/html; charset=utf-8", BOARD_PAGE.encode("utf-8")),
+                  "/night.html": ("text/html; charset=utf-8", BOARD_NIGHT_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -474,6 +501,14 @@ class ToneE2E(unittest.TestCase):
                     with self.subTest(page=path, dark=dark):
                         self.tone_is(b, "dark")
                         self.assertEqual(colors(b)[1], "rgba(0, 0, 0, 0)" if dark else self.tint["dark"])
+            # a drawing board: its pixels decide, not the hints over it
+            for dark in (True, False):
+                set_scheme(b, dark)
+                for path, want in (("/board.html", "light"), ("/night.html", "dark")):
+                    b.navigate(srv.url(path, "light.test"))
+                    b.js(RUN_CONTENT, self.content_js)
+                    with self.subTest(page=path, dark=dark):
+                        self.tone_is(b, want)
 
 
 if __name__ == "__main__":
