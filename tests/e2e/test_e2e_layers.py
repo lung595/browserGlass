@@ -61,6 +61,12 @@ test_e2e_darken.py. Checked:
     server does not allow it, an illustrated badge (a flat dark sky,
     the rest in many tones) and an opaque photo shot on white are left
     alone;
+  - white artwork in a site's dark header under a light theme
+    (test_light_bar_icons): the header a bar with the light veil, its
+    white link inked dark, a word mark painting #fff and a white icon are
+    inverted to dark ink, a black icon the site whitens with its filter
+    loses the filter; a colour logo and a white icon on its own red button
+    are left alone;
   - page columns narrower than the window (test_columns): a feed centred
     in it, in the page's dark colour or white on a light page, and a dark
     side panel down to the bottom are marked, a card on the feed is not;
@@ -86,6 +92,23 @@ test_e2e_darken.py. Checked:
     field's box and the toggle in the row keep their colour, scrolled as
     well; a side panel down the page in a colour near the page's, holding
     a sticky list (a bar), is a page layer, see-through;
+  - stacked bars (test_stacked_bars): a sticky row held right under a
+    sticky masthead (SRF) is a bar too, veiled, the ::before of its
+    wrapper painting its colour see-through, while a sticky row the
+    flow puts there before it sticks elsewhere is not; a sticky side
+    column under a header (Docker's docs), a page layer or a bar, and
+    the block of links at its top in its colour, as wide as it, is
+    see-through;
+  - a light page for a white one (test_light_glass): a strip along its
+    top in a grey near the page's white is glass, a list's fade into the
+    white (an empty ::after) paints nothing, under a dark theme too on a
+    dark page into its colour, a fade into blue stays; a pale grey
+    straight on the light glass is inked dark, on its own white card not;
+  - link cards (test_cards): on a see-through page in its own dark theme
+    and in its light one, a row of opaque link cards in the tone's plain
+    colour gets the block veil in the tone's surface, its border kept,
+    its text box in its colour see-through, the frame of its photo and
+    the photo left; a lone link card and a panel that is no link stay;
   - a page built of web components (test_shadow): in open shadow trees,
     its background layer, painted by an empty ::before, is marked, the
     ::before see-through, and so is a band in its colour; its fixed header and the bottom bar
@@ -378,6 +401,39 @@ html, body {background:transparent}
 </style></head><body><div id="skipbar"><div id="skip"><a id="skiplink" href="#long">Skip to the content</a></div>
 <header id="skiphead"><a href="#">Logo</a><div id="links"><ul id="list"><li><a id="item" href="#">Guide</a></li></ul></div>
 <a id="cta" href="#">Sign up</a><div id="lang">FR</div></header></div><div id="long">""" + dk.TEXT * 30 + """</div></body></html>"""
+# Stacked bars (SRF): a sticky masthead, a sticky sub-navigation held
+# right under it (top 72px) in a colour of its own, painted again by its
+# wrapper's empty ::before (absolute, z-index -1) over the shadow its
+# ::after casts (z-index -2), then a sticky row of
+# tabs the flow puts under that one but that sticks at the top.
+STACK_PAGE = STYLE + """
+html, body {background:transparent}
+#mast {position:sticky; top:0; z-index:10; height:72px; background:rgb(34,33,29)}
+#sub {position:sticky; top:72px; z-index:9; height:76px; background:rgb(46,45,41)}
+#subwrap {height:100%}
+#subwrap::before {content:""; position:absolute; inset:0; z-index:-1; background:rgb(46,45,41)}
+#subwrap::after {content:""; position:absolute; top:34px; bottom:0; left:0; right:0; z-index:-2;
+  box-shadow:0 4px 8px rgba(0,0,0,0.16)}
+#tabs {position:sticky; top:0; z-index:8; height:40px; background:rgb(46,45,41)}
+#long {height:auto}
+</style></head><body><header id="mast"><a href="#">News</a></header>
+<nav id="sub"><div id="subwrap"><a href="#">Live TV</a></div></nav>
+<div id="tabs"><a href="#">Latest</a></div><div id="long">""" + dk.TEXT * 30 + """</div></body></html>"""
+# A sticky side column under a header (Docker's docs), in a plain dark
+# colour (a page layer), its block of links at the top in that colour
+# too: as wide as the column, not a fifth of it. The same column in a
+# blue of its own (BAR_SIDE_PAGE) is a bar instead.
+SIDE_PAGE = STYLE + """
+#top {position:sticky; top:0; z-index:20; height:64px; background:rgb(0,61,181)}
+#cols {display:flex; align-items:flex-start}
+#side {position:sticky; top:64px; width:320px; height:calc(100vh - 64px); background:rgb(36,40,52)}
+#links {width:300px; height:178px; background:rgb(36,40,52)}
+#main {flex:1}
+#long {height:auto}
+</style></head><body><header id="top"><a href="#">Docs</a></header><div id="cols"><aside id="side">
+<div id="links"><a href="#">Get started</a></div></aside><main id="main"><div id="long">""" + dk.TEXT * 30 + """</div>
+</main></div></body></html>"""
+BAR_SIDE_PAGE = SIDE_PAGE.replace("rgb(36,40,52)", "rgb(20,30,60)")
 # A shop's header stuck at the top from load (Migros): see-through, its
 # first row in the page's colour over half of it, holding a search field
 # and a toggle drawn in a lighter grey; its nav row see-through. Below, a
@@ -426,6 +482,38 @@ html, body {background:transparent}
 #lead {height:calc(100vh - 78px)} #edge {height:100vh; background:SECTION}
 </style></head><body><div id="page"><div id="masthead">Code</div><div id="lead">Lead</div><div id="edge">News</div></div>
 <div id="long"></div></body></html>""".replace("SECTION", SECTION)
+# A light page for a white one (Zalando, Le Figaro, Docker's docs): its
+# white on a wrapper; along its top, above the grid's first row, a strip
+# of service links in the flow in rgb(241,241,241), near the white; a news
+# list fading out at its foot into the page's white by an empty ::after,
+# another into blue; a breadcrumb in Tailwind's gray-400 straight on the
+# page, the same grey on a white card of its own.
+LIGHT_GLASS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:rgb(20,20,20)}
+#page {background:rgb(255,255,255); min-height:300vh}
+#strip {height:32px; background:rgb(241,241,241)}
+#list, #blue {position:relative; width:40vw; height:160px; overflow:hidden}
+#list::after, #blue::after {content:""; position:absolute; left:0; right:0; bottom:0; height:80px}
+#list::after {background-image:linear-gradient(rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgb(255,255,255) 100%)}
+#blue::after {background-image:linear-gradient(rgba(20,95,228,0), rgb(20,95,228))}
+#crumb, #cardgrey {color:rgb(156,163,175)}
+#orange {color:rgb(255,102,0)}
+#card {width:30vw; height:100px; background:rgb(255,255,255); border:1px solid rgb(220,220,220)}
+</style></head><body><div id="page"><div id="strip"><a href="#">Help</a> Free delivery</div>
+<p><a href="#">Home</a> / <span id="crumb">Get started</span> <span id="orange">Home page</span></p>
+<div id="list">""" + "<p>16:05 A news item in the flash list</p>" * 6 + """</div>
+<div id="blue">""" + "<p>A teaser fading into blue</p>" * 6 + """</div>
+<div id="card"><p><span id="cardgrey">On its own card</span></p></div></div></body></html>"""
+# The fading list on a dark page by design, into the page's own colour.
+DARK_FADE_PAGE = (LIGHT_GLASS_PAGE.replace("color:rgb(20,20,20)", "color:rgb(235,235,235)")
+                  .replace("rgba(255,255,255,0)", "rgba(18,20,22,0)").replace("rgba(255,255,255,0.5)", "rgba(18,20,22,0.5)")
+                  .replace("rgb(255,255,255) 100%", "rgb(18,20,22) 100%")
+                  .replace("#page {background:rgb(255,255,255)", "#page {background:rgb(18,20,22)")
+                  # a section in the page's colour, a slate caption in it
+                  .replace("</style>", "#sect {background:rgb(18,20,22); padding:8px; min-height:300px}"
+                           " #credit {color:rgb(86,94,112)}</style>")
+                  .replace('<div id="card">', '<div id="sect"><p><span id="credit">Photo credit</span></p></div>'
+                           '<div id="card">'))
 # The same page on a white wrapper (1Password at its sections): its light
 # text measures it dark, so its white is the page's colour hidden under
 # the dark glass, and the dark hero top and bands, the tone's own colour,
@@ -485,6 +573,37 @@ CHEVRON = ('<svg id="%s" width="12" height="12" viewBox="0 0 12 12"><path d="M2 
            ' stroke="currentColor" stroke-width="1.5"/></svg>')
 CARET = ('<svg id="caret" width="12" height="12" viewBox="0 0 12 12"><path d="M2 4 H10 L6 9 Z"'
          ' fill="rgb(40,40,40)"/></svg>')
+# A light page whose fixed header is dark, its links and artwork white
+# (rtbf.be, Docker's docs): under a light theme the header is a bar with a
+# light veil and its links get dark ink. In it, following them: a word
+# mark painting fill="#fff" (not its text colour), a white icon, a black
+# icon the site whitens with a filter of its own; left alone: a colour
+# logo, a white icon on its own red button.
+WHITE_ICON = icon_svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="white"/>')
+BLACK_ICON = icon_svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="black"/>')
+COLOR_LOGO = icon_svg(48, 24, '<rect x="2" y="4" width="20" height="16" fill="rgb(220,30,30)"/>'
+                              '<rect x="26" y="4" width="20" height="16" fill="rgb(20,90,200)"/>')
+LIGHT_BAR_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+header {position:fixed; top:0; left:0; right:0; height:56px; background:rgb(0,61,96); color:rgb(255,255,255);
+  display:flex; align-items:center; z-index:2}
+header a {color:inherit; margin:0 8px}
+img {display:block}
+#whitened {filter:invert(0.92) sepia(1) saturate(0) brightness(1.02)}
+#red {background:rgb(200,0,0); padding:4px}
+#long {margin-top:70px}
+#caret, #masked {display:inline-block; width:16px; height:16px}
+#caret {background:url(/white.svg) center / contain no-repeat}
+#masked {background-color:rgb(255,255,255); mask:url(/white.svg) center / contain no-repeat}
+</style></head><body><header id="bar">
+<a href="/"><svg id="mark" width="160" height="24" fill="none" viewBox="0 0 160 24"><path d="M0 4 H40 V20 H0 Z"
+ fill="#fff"/><path d="M50 4 H150 V20 H50 Z" fill="#fff"/></svg></a>
+<a id="info" href="#">Info</a><a href="#">Sport</a><a href="#">Live TV <span id="caret"></span></a><a href="#">Radio <span id="masked"></span></a>
+<a href="#" aria-label="Search"><img id="white" width="24" height="24" src="/white.svg"></a>
+<a href="#" aria-label="User"><img id="whitened" width="24" height="24" src="/black.svg"></a>
+<a href="#"><img id="logo" width="48" height="24" src="/color.svg"></a>
+<a id="red" href="#"><img id="onred" width="24" height="24" src="/white.svg"></a>
+</header><div id="long">""" + dk.TEXT * 20 + """</div></body></html>"""
 ICON_PAGE = STYLE + """
 html, body {background:transparent}
 header {position:fixed; top:0; left:0; right:0; height:50px; background:rgb(255,255,255); z-index:2;
@@ -554,6 +673,37 @@ document.getElementById("main").shadowRoot.getElementById("view").attachShadow({
 #cards {position:relative; padding:40px}
 </style><div id="bg"></div><div id="cards">""" + dk.TEXT * 6 + """</div>`;
 </script></body></html>"""
+# A page with its own dark theme, following the system's scheme (SRF), its
+# root and body see-through: a row of link cards in an opaque colour near
+# the page's (SRF's teasers, the Docker docs' link cards), each with a
+# photo in a frame of the card's colour and a text box in it; a lone notice
+# card in the flow (YouTube's history notice, a <div>) and a lone link card
+# in a colour of its own; under a light theme the same in white.
+CARDS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:rgb(235,235,235)}
+#page {background:rgb(18,20,22); min-height:200vh; padding:20px}
+.row {display:flex; gap:20px}
+.card {display:block; width:260px; background:rgb(30,33,41); border:1px solid rgb(60,64,72);
+  color:inherit; text-decoration:none}
+.frame {background:rgb(30,33,41)}
+.frame img {display:block; width:260px; height:140px}
+.text {background:rgb(30,33,41); padding:12px}
+#notice {width:700px; margin-top:20px; padding:20px; background:rgb(33,33,33)}
+#lone {display:block; width:300px; margin-top:20px; padding:20px; background:rgb(40,40,40); color:inherit}
+@media (prefers-color-scheme: light) {
+  html, body {color:rgb(20,20,20)}
+  #page {background:rgb(245,245,245)}
+  .card, .frame, .text {background:rgb(255,255,255)}
+  #notice, #lone {background:rgb(255,255,255)}
+}
+</style></head><body><div id="page"><div class="row">""" + "".join(
+    '<a class="card" id="card%d" href="#"><div class="frame" id="frame%d"><img id="photo%d" src="%s" alt=""></div>'
+    '<div class="text" id="text%d"><h3>Teaser %d</h3><p>A short report under its photo.</p></div></a>'
+    % (i, i, i, dk.PHOTO, i, i) for i in range(3)) + """</div>
+<div id="notice"><h3>Your history is off</h3><p>A notice of the site, alone on the page.</p></div>
+<a id="lone" href="#"><h3>Alone</h3><p>A single link card in a colour of its own.</p></a>
+""" + dk.TEXT + """</div></body></html>"""
+BLOCK = bg.ATTR_BLOCK
 # An element in the shadow trees of the hosts given in turn: has it the
 # attribute given, or its background colour.
 IN_SHADOW = ("let tree = document; for (const host of arguments[0]) tree = tree.getElementById(host).shadowRoot;"
@@ -631,6 +781,43 @@ class LayersE2E(unittest.TestCase):
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
             for name in ("cardmark", "own", "under", "photo", "closed", "badge", "shot"):
                 self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
+
+    def test_light_bar_icons(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_light_bar_icons(binary)
+
+    def check_light_bar_icons(self, binary):
+        svg = "image/svg+xml"
+        routes = {"/b.html": ("text/html; charset=utf-8", LIGHT_BAR_PAGE.encode("utf-8")),
+                  "/white.svg": (svg, WHITE_ICON), "/black.svg": (svg, BLACK_ICON), "/color.svg": (svg, COLOR_LOGO)}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/b.html", "dark.test"))
+            self.assertTrue(b.wait_for(dk.LOADED), "pictures not loaded")
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "bar", BAR), "the dark header not marked")
+            self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, "info", INK),
+                            "the header's white link not inked dark on the light veil")
+            # white artwork of one tone follows the links: a word mark
+            # painting #fff and a white icon inverted, the hues turned back
+            # (a white caret an empty span paints too: its background
+            # picture, its background colour through a mask)
+            for name in ("mark", "white", "caret", "masked"):
+                self.assertTrue(b.wait_for(dk.TILED + " === 'invert';", mn.WAIT_TIMEOUT, name, TILE),
+                                name + ": white ink on the light veil not inverted: %r" % b.js(dk.TILED, name, TILE))
+                self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).filter;", name),
+                                 "invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT)
+            # a black icon the site whitens with its filter: the filter goes
+            self.assertTrue(b.wait_for(dk.TILED + " === 'plain';", mn.WAIT_TIMEOUT, "whitened", TILE),
+                            "an icon whitened by the site's filter kept white: %r" % b.js(dk.TILED, "whitened", TILE))
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('whitened')).filter;"), "none")
+            # a colour logo and a white icon on its own red button stay
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            for name in ("logo", "onred"):
+                self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('whitened')).filter;"), "none")
 
     def test_sections(self):
         for name, binary in tone.browsers():
@@ -714,6 +901,51 @@ class LayersE2E(unittest.TestCase):
             b.js(to, "card")
             self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, "last"), "the band holding a card left opaque")
             self.assertEqual(self.bg_of(b, "card"), "rgb(60, 61, 68)", "a card in a band made see-through")
+
+    def test_light_glass(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_light_glass(binary)
+
+    def check_light_glass(self, binary):
+        routes = {"/g.html": ("text/html; charset=utf-8", LIGHT_GLASS_PAGE.encode("utf-8")),
+                  "/d.html": ("text/html; charset=utf-8", DARK_FADE_PAGE.encode("utf-8"))}
+        after = "return getComputedStyle(document.getElementById(arguments[0]), '::after').backgroundImage"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/g.html", "light.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the page's layer not marked")
+            # the strip near the page's white along the top: glass
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "strip", CANVAS),
+                            "the top strip near the page's white left opaque: %r" % self.bg_of(b, "strip"))
+            # the list's fade into the page's white paints nothing, the
+            # fade into blue stays
+            self.assertTrue(b.wait_for(after + " === 'none';", mn.WAIT_TIMEOUT, "list"),
+                            "the list's fade into the page's white left: %r" % b.js(after, "list"))
+            self.assertIn("rgb(20, 95, 228)", b.js(after, "blue"))
+            # a pale grey straight on the light glass is inked, on its own
+            # white card it reads
+            self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, "crumb", INK),
+                            "a pale grey on the light glass not inked")
+            self.assertFalse(self.marked(b, "cardgrey", INK), "a pale grey on its own white card inked")
+            # an orange link (2.9:1 on the light glass) keeps its colour
+            self.assertFalse(self.marked(b, "orange", INK), "an orange on the light glass inked")
+
+            # the same fade on a dark page into its own colour
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/d.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the dark page's layer not marked")
+            self.assertTrue(b.wait_for(after + " === 'none';", mn.WAIT_TIMEOUT, "list"),
+                            "the list's fade into the dark page's colour left: %r" % b.js(after, "list"))
+            # a slate caption (2.8:1 on the dark glass) neither inked nor
+            # keeping its section an opaque panel
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "sect", CANVAS), "the section not glass")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 1000));")
+            self.assertFalse(self.marked(b, "sect", bg.ATTR_OWN), "the section kept opaque for its caption")
+            self.assertFalse(self.marked(b, "credit", INK), "a slate caption on the dark glass inked")
 
     def test_panel(self):
         for name, binary in tone.browsers():
@@ -832,6 +1064,88 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(self.bg_of(b, "cta"), "rgb(255, 255, 255)")
             b.js("document.getElementById('skiplink').focus();")
             self.assertEqual(b.js(opacity, "skip"), "1")
+
+    def test_stacked_bars(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_stacked_bars(binary)
+
+    def check_stacked_bars(self, binary):
+        routes = {"/stack.html": ("text/html; charset=utf-8", STACK_PAGE.encode("utf-8")),
+                  "/side.html": ("text/html; charset=utf-8", SIDE_PAGE.encode("utf-8")),
+                  "/barside.html": ("text/html; charset=utf-8", BAR_SIDE_PAGE.encode("utf-8"))}
+        filled = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === 'fill';"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            # the sub-navigation held under the masthead: a bar, veiled,
+            # not an opaque band; the tabs below it in the flow are not
+            b.navigate(srv.url("/stack.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "mast", BAR), "the masthead not marked")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "sub", BAR),
+                            "a sticky row held under the masthead not marked")
+            self.assertFalse(self.marked(b, "tabs", BAR), "a sticky row in the flow under the bars marked")
+            b.js("window.scrollTo(0, 600);")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
+            self.assertTrue(self.marked(b, "sub", BAR), "the stacked row lost its veil once scrolled")
+            self.assertEqual(self.bg_of(b, "sub"), DARK_SURFACE)
+            # its wrapper's ::before painting it again: see-through too
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('subwrap'), '::before')"
+                                  ".backgroundColor;"), "rgba(0, 0, 0, 0)",
+                             "the stacked row's ::before left an opaque band under its veil")
+            # the shadow its ::after cast under that paint: no seam across the veil
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('subwrap'), '::after')"
+                                  ".boxShadow;"), "none", "the shadow under the stacked row's paint left a seam")
+            # the side column under the header, a page layer or a bar: its
+            # block of links in its colour see-through
+            for page, attr in (("/side.html", CANVAS), ("/barside.html", BAR)):
+                b.navigate(srv.url(page, "dark.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "side", attr),
+                                "the side column not marked (%s)" % page)
+                self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "links", CANVAS),
+                                "the block of links in the column's colour left opaque (%s)" % page)
+                self.assertEqual(self.bg_of(b, "links"), "rgba(0, 0, 0, 0)")
+
+    def test_cards(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_cards(binary)
+
+    def check_cards(self, binary):
+        routes = {"/cards.html": ("text/html; charset=utf-8", CARDS_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/cards.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the page's layer not marked")
+            for dark in (True, False):
+                if not dark:
+                    tone.set_scheme(b, False)
+                # the row of link cards: a light veil of the tone's surface,
+                # their border kept; the text box see-through, the photo's
+                # frame and the photo as the site paints them
+                self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "card0", BLOCK, "veil"),
+                                "a link card left a full panel (dark %s): %r" % (dark, self.bg_of(b, "card0")))
+                for i in range(3):
+                    self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "card%d" % i, BLOCK, "veil"))
+                    card = tone.rgba(self.bg_of(b, "card%d" % i))
+                    self.assertEqual(card[3], bg.BLOCK_VEIL_OPACITY)
+                    self.assertEqual(tone.luminance(card) > 0.5, not dark, card)
+                    self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0]))"
+                                          ".borderTopWidth;", "card%d" % i), "1px")
+                    self.assertEqual(b.js(dk.TILED, "text%d" % i, BLOCK), "glass")
+                    self.assertEqual(self.bg_of(b, "text%d" % i), "rgba(0, 0, 0, 0)")
+                    self.assertIsNone(b.js(dk.TILED, "frame%d" % i, BLOCK))
+                    self.assertEqual(tone.rgba(self.bg_of(b, "frame%d" % i))[3], 1.0)
+                    self.assertEqual(b.js("return getComputedStyle(document.getElementById(arguments[0])).filter;",
+                                          "photo%d" % i), "none")
+                # left alone: the lone notice and the lone link card
+                for name in ("notice", "lone"):
+                    self.assertIsNone(b.js(dk.TILED, name, BLOCK), name + " veiled")
+                    self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
 
     def test_stuck_header(self):
         for name, binary in tone.browsers():

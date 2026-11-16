@@ -722,9 +722,10 @@ class TestServer:
     {path: (content type, body)}, or with a third item, a dict of headers
     to add (Access-Control-Allow-Origin for a picture of another origin)."""
 
-    def __init__(self, routes=None, cacheable=False):
+    def __init__(self, routes=None, cacheable=False, delay=None):
         """cacheable=True drops `Cache-Control: no-store`, so pages can enter
-        the back/forward cache (bfcache tests)."""
+        the back/forward cache (bfcache tests). delay(path, headers), when
+        given, is the seconds to wait before answering a request."""
         self.routes = {
             "/article.html": ("text/html; charset=utf-8", ARTICLE_HTML.encode("utf-8")),
             "/dark.html": ("text/html; charset=utf-8", DARK_ARTICLE_HTML.encode("utf-8")),
@@ -741,6 +742,8 @@ class TestServer:
                     self.send_error(404)
                     return
                 ctype, body, *extra = routes_ref[path]
+                if delay:
+                    time.sleep(delay(path, self.headers))
                 self.send_response(200)
                 self.send_header("Content-Type", ctype)
                 for name, value in (extra[0] if extra else {}).items():

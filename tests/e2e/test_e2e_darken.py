@@ -60,7 +60,10 @@ the list). Checked:
     faded in once loaded) is on a white tile too;
     left alone: a photo as wide as the page, the same ink from another
     origin (its pixels cannot be read), a light logo, an opaque photo
-    filling its frame, a shaded round avatar, a round avatar shot on white; a light theme takes the tiles off. A multiplied photo loaded late (a lazy one: no width, so
+    filling its frame, a shaded round avatar, a round avatar shot on white,
+    a black logo painted through its mask in the text colour (its own
+    pixels pushed out of its box), a shaded drawing peeking over a larger
+    picture (and that picture); a light theme takes the tiles off. A multiplied photo loaded late (a lazy one: no width, so
     no tile, until it is in) is tiled once loaded, with nothing else
     moving on the page;
   - inline SVG logos in a header Dark Reader inverts: one whose shapes the
@@ -97,6 +100,13 @@ the list). Checked:
     light blue one under a dark label, a wide banner, a coloured link with
     no label, a label that does not read on its fill; a light theme takes
     the marks and their inline colours off;
+  - controls Dark Reader darkens to the tone of what is behind them
+    (zalando.ch, post.ch: test_edges): a white button in a black consent
+    panel in an open shadow root and a black button with an inset black
+    shadow in a white popover drawn late, both turned near-black, get a
+    thin light ring ("edge"), while a button with a grey border stays
+    unmarked; a floating label over a white field in a yellow form is read
+    on the field (no dark ink); a light theme takes the marks off;
   - a page whose only opaque surface is a white column half the window
     wide (ch.ch), light words on its see-through half: the column's navy
     text votes, the page is darkened; under a light theme the column is
@@ -121,7 +131,13 @@ the list). Checked:
     padding to a band, is no face behind the dark heading, so the section
     keeps its own colour and the heading is not inked, under either
     theme; the sticky header's mid-grey links, drawn for its white, are
-    inked light on its dark veil once stuck.
+    inked light on its dark veil once stuck;
+  - web components whose style comes late (Swiss Post's header, built
+    with Stencil), with the real add-on installed (its Dark Reader runs in
+    the add-on's sandbox, not in the page): a header whose open shadow tree
+    was attached at load adopts its light sheet once Dark Reader is on,
+    and a component in that tree adopts its own 300 ms later; both trees
+    end dark (light text, no light bar).
 """
 
 import json
@@ -284,7 +300,17 @@ PICTURES = (
     ("blendicon", svg(24, 24, '<rect x="4" y="4" width="16" height="16" fill="black"/>'),
      'class="blend" width="24" height="24"'),
     ("late", "", 'class="blend" style="height:80px"'),
+    ("masked", svg(120, 40, INK_RECT), 'width="120" height="40" style="object-position:9999px 9999px;'
+     ' background-color:currentColor; mask-image:url(%s)"' % svg(120, 40, INK_RECT)),
 )
+# A see-through shaded drawing (the ink of #puck) peeking over the edge of
+# a larger opaque picture (#screen, an editorial screenshot): what is
+# behind it is that picture, not the dark card (as notion.com lays a line
+# drawing in a box of its own over its product screenshot), laid on the
+# right of the shop (the page no taller).
+PUCK = dict((name, src) for name, src, _ in PICTURES)["puck"]
+PEEK = ('<div class="peek"><img id="screen" src="%s" width="240" height="160"><span class="drawing">'
+        '<img id="peek" src="%s" width="120" height="80"></span></div>' % (svg(120, 80, SCENE), PUCK))
 TILE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #shop {background:rgb(255,255,255); padding:20px 0}
@@ -294,11 +320,15 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 .card img {position:absolute; inset:10px; width:120px; height:140px; margin:0; object-fit:contain}
 #badge {position:absolute; left:14px; top:132px; font:bold 12px sans-serif; color:rgb(255,255,255);
   background:rgb(220,80,0); padding:0 2px}
+#shop {position:relative}
+.peek {position:absolute; top:240px; right:20px; width:240px; height:160px}
+#shop .peek img {margin:0}
+.drawing {position:absolute; left:-60px; top:20px}
 .fade-in {opacity:0; transition:opacity 0.3s}
 .fade-in.loaded {opacity:1}
 </style></head><body>""" + TEXT + '<div id="shop">' + "".join(
     '<img id="%s"%s %s>' % (name, ' src="%s"' % src if src else "", attrs)
-    for name, src, attrs in PICTURES) + CARD + "</div></body></html>"
+    for name, src, attrs in PICTURES) + CARD + PEEK + "</div></body></html>"
 TILED = "return document.getElementById(arguments[0]).getAttribute(arguments[1])"
 # The tile around a picture as shown (drawn in the chrome): the darkest
 # channel within 3 px of each corner of the picture (the picture's own
@@ -524,6 +554,52 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 <a id="banner" href="#">A large banner in a brand colour</a></div></body></html>"""
 BRAND = bg.ATTR_BRAND
 
+# Controls Dark Reader leaves without contrast to what holds them. A
+# tracking field (Swiss Post's): a floating label laid over its input,
+# which Dark Reader darkens, in a brand yellow form it turns olive
+# (#hint). A consent banner in an open shadow tree, laid over the window
+# (Zalando's Usercentrics): the site's own black panel along its foot, a
+# white button with a black
+# label on it, which Dark Reader darkens to near the panel's black
+# (#accept), and one with a border of its own (#bordered). A white
+# popover over the page shown once the page is darkened, holding a black button under
+# a white label, its edge an inset shadow in its own black, which Dark
+# Reader leaves black on the card it darkens (#lang).
+EDGE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#wrap {background:rgb(255,255,255); min-height:100vh}
+#form {background:rgb(255,204,0); padding:20px; width:560px}
+.field {position:relative}
+#track {display:block; width:520px; height:60px; border:0; background:rgb(255,255,255); padding:0 16px}
+#hint {position:absolute; left:16px; top:18px; pointer-events:none; color:rgb(110,110,110)}
+#consent {position:fixed; inset:0; display:flex; align-items:flex-end; pointer-events:none}
+#pop {position:absolute; z-index:10; top:120px; left:620px; width:260px; padding:16px; background:rgb(255,255,255);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+#lang {background:rgb(0,0,0); color:rgb(255,255,255); border:0; padding:12px 24px; box-shadow:inset 0 0 0 1px rgb(0,0,0)}
+</style></head><body><div id="wrap">""" + TEXT + """
+<form id="form"><div class="field"><input id="track" type="text"><label id="hint" for="track">Tracking number</label></div></form>
+<div id="consent"></div>""" + TEXT + """</div>
+<script>
+const tree = document.getElementById("consent").attachShadow({mode: "open"});
+tree.innerHTML = '<style>#panel {flex:1; background:rgb(0,0,0); color:rgb(48,48,48); padding:16px; pointer-events:auto}'
+  + ' button {padding:10px 20px; border:0} #accept {background:rgb(255,255,255); color:rgb(0,0,0)}'
+  + ' #bordered {background:rgb(255,255,255); color:rgb(0,0,0); border:2px solid rgb(120,120,120)}</style>'
+  + '<div id="panel"><p>We use cookies to improve this offer.</p>'
+  + '<button id="bordered" type="button">Settings</button> <button id="accept" type="button">Accept all</button></div>';
+window.showPopover = () => {
+  const pop = document.createElement("div");
+  pop.id = "pop";
+  pop.innerHTML = '<p>This shop in English</p><button id="lang" type="button"><span>Change language</span></button>';
+  document.getElementById("wrap").append(pop);
+};
+</script></body></html>"""
+# A control in the consent banner's shadow tree: its BRAND mark and its
+# shadow.
+CONSENT = ("const el = document.getElementById('consent').shadowRoot.getElementById(arguments[0]);"
+           " return [el.getAttribute(arguments[1]), getComputedStyle(el).boxShadow];")
+CONSENT_IS = ("return document.getElementById('consent').shadowRoot.getElementById(arguments[0])"
+              ".getAttribute(arguments[1]) === arguments[2];")
+
 
 # A Stacks page as Stack Overflow serves it signed out (no dark theme):
 # filled buttons and a search field painted from the Stacks variables,
@@ -720,7 +796,61 @@ def stylesheet(dark_pages, sites=None):
     return css
 
 
+# a light page whose header is a web component (Swiss Post's, built with
+# Stencil): its open shadow tree is attached at once, its style sheet adopted
+# once the page says so (its code loaded, after Dark Reader started), and in
+# it a second component adopts its own sheet a little later still
+LATE_SHADOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+</style></head><body><x-header id="host"></x-header>""" + (
+    "<p>" + "Some readable dark text on a light page. " * 8 + "</p>") * 6 + """
+<script>
+const sheet = (css) => { const s = new CSSStyleSheet(); s.replaceSync(css); return s; };
+class XMeta extends HTMLElement {
+  constructor() { super(); this.attachShadow({mode: "open"}); }
+  connectedCallback() { setTimeout(() => { const r = this.shadowRoot;
+    r.adoptedStyleSheets.push(sheet(".meta {background:rgb(250,249,248); color:rgba(0,0,0,0.8); padding:8px}"
+      + " a {color:rgb(0,0,0)}"));
+    r.innerHTML = '<div class="meta" id="meta"><a id="link" href="#">Jobs</a> <a href="#">About</a></div>'; }, 300); } }
+class XHeader extends HTMLElement {
+  constructor() { super(); this.attachShadow({mode: "open"}); }
+  connectedCallback() { document.addEventListener("loaded", () => { const r = this.shadowRoot;
+    r.adoptedStyleSheets = [...r.adoptedStyleSheets,
+      sheet(":host {display:block} header {background:rgb(255,255,255); color:rgb(0,0,0)}")];
+    r.innerHTML = '<header id="head"><x-meta id="metahost"></x-meta><nav id="nav">Send letters</nav></header>'; },
+    {once: true}); } }
+customElements.define("x-meta", XMeta);
+customElements.define("x-header", XHeader);
+</script></body></html>"""
+# how long a stylesheet of another origin keeps Dark Reader's fetch waiting
+FETCH_DELAY = 1.5
+# [header text, meta background, link text] in the nested trees, or null
+LATE_SHADOW = """const h = document.getElementById('host').shadowRoot;
+const m = h.getElementById('metahost') && h.getElementById('metahost').shadowRoot;
+if (!m || !m.getElementById('meta')) return null;
+const cs = (e, p) => getComputedStyle(e)[p];
+return [cs(h.getElementById('nav'), 'color'), cs(m.getElementById('meta'), 'backgroundColor'),
+        cs(m.getElementById('link'), 'color')];"""
+# dark: light text in both trees, the meta bar no light slab (clear or dark)
+LATE_SHADOW_DARK = "const c = (() => {" + LATE_SHADOW + """})();
+if (!c) return false;
+const [text, meta, link] = c.map((v) => v.match(/[0-9.]+/g).map(Number));
+const lum = (n) => (n[0] + n[1] + n[2]) / 3;
+return lum(text) > 128 && lum(link) > 128 && (meta[3] === 0 || lum(meta) < 128);"""
+
+
 SCHEME = "return getComputedStyle(document.getElementById(arguments[0])).colorScheme;"
+# A frame put into a box inside the page once it is darkened; the priority
+# of its colour scheme read a microtask later (after the mutation records,
+# before any animation frame) is kept on it.
+FRAME_DEEP = """const box = document.createElement('div');
+document.getElementById('card').append(box);
+const f = document.createElement('iframe');
+f.id = 'deep';
+box.append(f);
+Promise.resolve().then(() => {
+  f.dataset.seen = f.style.getPropertyPriority('color-scheme') || 'none';
+});"""
 
 
 def alpha(colour):
@@ -767,6 +897,43 @@ class DarkenE2E(unittest.TestCase):
                 self.check_blocks(binary)
                 self.check_brands(binary)
                 self.check_panel(binary)
+
+    def test_edges(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_edges(binary)
+
+    def check_edges(self, binary):
+        routes = {"/e.html": ("text/html; charset=utf-8", EDGE_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/e.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            b.js("window.showPopover();")
+            ring = "rgba(255, 255, 255, 0.25) 0px 0px 0px 1px inset"
+            # a white button Dark Reader darkens on the site's black panel,
+            # a black one it leaves on the white card it darkens: an edge
+            self.assertTrue(b.wait_for(CONSENT_IS, mn.WAIT_TIMEOUT, "accept", BRAND, "edge"),
+                            "accept: %r" % b.js(CONSENT, "accept", BRAND))
+            self.assertEqual(b.js(CONSENT, "accept", BRAND)[1], ring)
+            self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, "lang", BRAND, "edge"),
+                            "lang: %r" % b.js(TILED, "lang", BRAND))
+            self.assertEqual(b.js(RING, "lang"), ring)
+            # a button with a border of its own is left alone
+            self.assertIsNone(b.js(CONSENT, "bordered", BRAND)[0])
+            # the label laid over its field is read on the field's box: not
+            # inked dark on it
+            self.assertFalse(b.js(MARKED, "hint", INK), "label inked %r" % b.js(TILED, "hint", INK))
+            # a light theme takes the marks off
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']')"
+                                       " && !document.getElementById('consent').shadowRoot"
+                                       ".querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, BRAND), "still marked under a light theme")
 
     def test_late_dark(self):
         for name, binary in tone.browsers():
@@ -919,6 +1086,13 @@ class DarkenE2E(unittest.TestCase):
             b.js("const f = document.createElement('iframe'); f.id = 'late'; document.body.append(f);")
             self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('late')).colorScheme"
                                        " === 'normal';"), "a frame added later turned dark")
+            # one added deep in the page (a sign-in prompt in its own box)
+            # has it before it is drawn, not at the next pass of the layers
+            b.js(FRAME_DEEP)
+            self.assertTrue(b.wait_for("return !!document.getElementById('deep').dataset.seen;"))
+            self.assertEqual(b.js("return document.getElementById('deep').dataset.seen;"), "important",
+                             "a frame added deep got its scheme only at a later pass")
+            self.assertEqual(b.js(SCHEME, "deep"), "normal")
             # a light theme: the page's own colours, the wrapper (its lowest
             # layer) still glass, the card white again
             tone.set_scheme(b, False)
@@ -1041,6 +1215,13 @@ class DarkenE2E(unittest.TestCase):
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
             for name in ("hero", "far", "sun", "opaque", "avatar", "round"):
                 self.assertFalse(b.js(MARKED, name, TILE), name + " tiled")
+            # a logo painted through its mask in the text colour Dark
+            # Reader lightens (its own pixels pushed out of its box): its
+            # pixels are not what shows, not inverted back to dark; a
+            # see-through drawing over a larger picture: no white tile
+            # hiding that picture
+            for name in ("masked", "peek", "screen"):
+                self.assertFalse(b.js(MARKED, name, TILE), "%s tiled: %r" % (name, b.js(TILED, name, TILE)))
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('hero')).mixBlendMode;"),
                              "multiply")
             # a multiplied photo loaded late, the passes over: tiled once in
@@ -1053,7 +1234,9 @@ class DarkenE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
                                        " && !document.querySelector('[' + arguments[0] + ']');",
-                                       mn.WAIT_TIMEOUT, TILE), "still tiled under a light theme")
+                                       mn.WAIT_TIMEOUT, TILE), "still tiled under a light theme: %r" % b.js(
+                "return [...document.querySelectorAll('[' + arguments[0] + ']')].map((e) => e.id + '='"
+                " + e.getAttribute(arguments[0]));", TILE))
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('photo')).mixBlendMode;"),
                              "multiply")
 
@@ -1438,6 +1621,91 @@ class DarkenE2E(unittest.TestCase):
             self.assertFalse(b.js(NIGHT, "night", CANVAS), "dark section left a page layer")
             self.assertEqual(b.js(NIGHT, "night"), OWN_BG)
             self.assertFalse(b.js(NIGHT, "nighttext", INK), "its white text inked")
+
+    def test_late_shadow_sheets(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_late_shadow_sheets(binary)
+
+    def check_late_shadow_sheets(self, binary):
+        # the real add-on: in it Dark Reader follows a shadow tree's
+        # adopted sheets from a content script (in the page, as RUN runs
+        # it, it would see the late ones)
+        import test_e2e_theme as th
+        root = tempfile.mkdtemp(prefix="bg-e2e-shadow-")
+        self.addCleanup(shutil.rmtree, root, True)
+        ext = th.test_extension(root)
+        routes = {"/s.html": ("text/html; charset=utf-8", LATE_SHADOW_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            b.send("Addon:Install", {"path": ext, "temporary": True})
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/s.html", "light.test"))
+            b.js("window.postMessage({bgTestList: arguments[0], n: 1}, '*');",
+                 json.dumps({"domains": [], "darken": True, "themes": th.themes_doc()}))
+            self.assertTrue(b.wait_for("return document.documentElement.getAttribute("
+                                       "'data-browserglass-test-ack') === '1';"), "list not applied")
+            self.assertTrue(b.wait_for(DARKENED, mn.WAIT_TIMEOUT), "page not darkened")
+            # the header's code in: its tree adopts its sheet, its nested
+            # tree adopts one 300 ms later
+            b.js("document.dispatchEvent(new Event('loaded'));")
+            self.assertTrue(b.wait_for(LATE_SHADOW_DARK, mn.WAIT_TIMEOUT),
+                            "nested shadow trees left light: %s" % b.js(LATE_SHADOW))
+
+    def test_restart_while_fetching(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_restart_while_fetching(binary)
+
+    def check_restart_while_fetching(self, binary):
+        # the header of LATE_SHADOW_PAGE adopts its sheet while Dark Reader
+        # still fetches a stylesheet of another origin (answered after
+        # FETCH_DELAY; the page's own load of it at once): once the page
+        # is light again, no style of Dark Reader comes back
+        import test_e2e_theme as th
+        root = tempfile.mkdtemp(prefix="bg-e2e-fetch-")
+        self.addCleanup(shutil.rmtree, root, True)
+        ext = th.test_extension(root)
+        # Dark Reader asks content.js for a sheet of another origin over
+        # https on the default port only: the test server's goes through
+        # its plugin hook to the same fetch
+        with open(os.path.join(ext, "test-fetch.js"), "w", encoding="utf-8") as f:
+            f.write("window.DarkReader = {Plugins: {fetch: (req) => fetchStylesheet(req.url).then((r) => r.text())}};")
+        with open(os.path.join(ext, "manifest.json"), encoding="utf-8") as f:
+            man = json.load(f)
+        man["content_scripts"].append({"matches": ["http://*/*"], "js": ["test-fetch.js"], "run_at": "document_start"})
+        with open(os.path.join(ext, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump(man, f)
+        page = LATE_SHADOW_PAGE.replace(
+            "</head>", '<style>@import url(http://plain.test:{port}/far.css);</style></head>')
+        routes = {"/far.css": ("text/css; charset=utf-8", b"p {color: rgb(30,30,30)}")}
+
+        def delay(path, headers):
+            # the page's load asks for text/css, Dark Reader's fetch for */*
+            return FETCH_DELAY if path == "/far.css" and "text/css" not in headers.get("Accept", "") else 0
+        with mn.TestServer(routes, delay=delay) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            srv.routes["/s.html"] = ("text/html; charset=utf-8",
+                                     page.replace("{port}", str(srv.port)).encode("utf-8"))
+            b.send("Addon:Install", {"path": ext, "temporary": True})
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/s.html", "light.test"))
+            b.js("window.postMessage({bgTestList: arguments[0], n: 1}, '*');",
+                 json.dumps({"domains": [], "darken": True, "themes": th.themes_doc()}))
+            self.assertTrue(b.wait_for(DARKENED, mn.WAIT_TIMEOUT), "page not darkened")
+            b.js("document.dispatchEvent(new Event('loaded'));")
+            self.assertTrue(b.wait_for(LATE_SHADOW_DARK, mn.WAIT_TIMEOUT),
+                            "nested shadow trees left light: %s" % b.js(LATE_SHADOW))
+            # every fetch answered, then the switch to light
+            b.js("return new Promise((resolve) => setTimeout(resolve, arguments[0]));",
+                 int(FETCH_DELAY * 2000))
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader');"),
+                            "Dark Reader not taken off")
+            b.js("return new Promise((resolve) => setTimeout(resolve, arguments[0]));",
+                 int(FETCH_DELAY * 1000))
+            self.assertEqual(b.js("return [...document.querySelectorAll('.darkreader')]"
+                                  ".map((s) => s.className);"), [], "Dark Reader's style back")
 
     def left_alone(self, b, why):
         # content.js decides once the list is there and the page loaded:

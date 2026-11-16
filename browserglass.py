@@ -181,8 +181,10 @@ ATTR_FILLED = "data-browserglass-filled"
 ATTR_GLYPH = "data-browserglass-glyph"
 # ... and BLOCK, "veil", "glass" or "solid" (and "before", "after"), on a
 # block Dark Reader turned into an opaque near-black panel (a white card;
-# see _CONTENT_LAYERS): a light veil, see-through inside one, or kept over
-# a picture, its empty pseudo-elements in its colour cleared.
+# see _CONTENT_LAYERS), or on a row of link cards a site paints itself on
+# a see-through page (its own dark theme or its light one): a light veil,
+# see-through inside one, or kept over a picture, its empty pseudo-elements
+# in its colour cleared.
 ATTR_BLOCK = "data-browserglass-block"
 # ... and RULE on a thin rule in a neutral colour (a separator) Dark Reader
 # left without contrast (see _CONTENT_LAYERS): a light neutral.
@@ -191,7 +193,9 @@ ATTR_RULE = "data-browserglass-rule"
 # saturated colour, just before Dark Reader dulls it (see _CONTENT_LAYERS),
 # with its fill and its label's colour in BRAND_FILL and BRAND_INK, inline:
 # both painted back; "lift" with the part on a dark one (a thin light
-# ring), "clear" alone on one Dark Reader filled though it painted none.
+# ring), "edge" alone on one Dark Reader left without contrast to what
+# holds it (the ring only), "clear" alone on one Dark Reader filled
+# though it painted none.
 ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
 # text (skip links): hidden until the focus enters it, not cleared.
@@ -205,6 +209,10 @@ ATTR_OWN = "data-browserglass-own"
 # gradient, that colour see-through, in FADE_IMAGE, inline: painted instead.
 ATTR_FADE = "data-browserglass-fade"
 FADE_IMAGE = "--browserglass-fade"
+# ... and FADE_PSEUDO, "before", "after" or both, on an element whose empty
+# pseudo-element fades text out into the page's colour (a list's foot): the
+# gradient, that colour see-through, in FADE_IMAGE + "-before" / "-after".
+ATTR_FADE_PSEUDO = "data-browserglass-fade-pseudo"
 BRAND_FILL = "--browserglass-brand-fill"
 BRAND_INK = "--browserglass-brand-ink"
 
@@ -1826,7 +1834,9 @@ _CONTENT_DARKEN = (
 #   across the window (or the column) in the page's colour laid on such a
 #   layer is one too, and a linear gradient of that colour (ATTR_FADE: a
 #   scrim under a sticky header, the top of a hero) is painted see-through
-#   where it had that colour (FADE_IMAGE);
+#   where it had that colour (FADE_IMAGE), as is one an empty ::before or
+#   ::after draws over text (ATTR_FADE_PSEUDO: a list fading out at its
+#   foot);
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
 #   window (a header, a bottom bar, a sidebar), with a background of its
 #   own, whatever its colours. Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
@@ -1855,7 +1865,11 @@ _CONTENT_DARKEN = (
 #   word mark, a navy pictogram, an icon's lines; ATTR_TILE "invert") is
 #   inverted to light ink instead, TILE_INVERT of the way (a light grey
 #   like Dark Reader's text), its hues turned back (a red accent stays
-#   red), with no tile: the logo stays whole beside its coloured parts;
+#   red), with no tile: the logo stays whole beside its coloured parts.
+#   On a bar veiled light whose labels got dark ink (a site's dark header
+#   under a light theme), white ink of one tone (a logo painting #fff) is
+#   inverted the same way, to dark ink; an icon the site whitened with a
+#   filter of its own gets "plain": no filter, its own dark ink shows;
 # - an inline SVG logo Dark Reader inverts, its shapes painted light by a
 #   style sheet Dark Reader lightened (ATTR_UNINVERT): no filter, so the
 #   light ink is not turned dark again;
@@ -1873,13 +1887,21 @@ _CONTENT_DARKEN = (
 #   a block laid over a picture (a caption card over its photo): no rule,
 #   Dark Reader's opaque fill stays. "before" or "after" with it names an
 #   empty pseudo-element painting the block's colour (a band along a
-#   card's top): cleared, or it stays an opaque band on the veil.
+#   card's top): cleared, or it stays an opaque band on the veil. A row
+#   of link cards a site paints itself in an opaque plain colour on a
+#   see-through page Dark Reader leaves alone (SRF's teasers, the Docker
+#   docs' link cards, in the site's own dark theme or its light one) gets
+#   "veil" too: the veil is the surface of the page's tone (BLOCK_VAR, set
+#   on the root as the bar's), the light one on a light page;
 # - a small button in a saturated colour (ATTR_BRAND, the part painting its
 #   fill named): that fill and its label's colour as the page had them
 #   before Dark Reader ran (a brand yellow it turns olive), the label's on
 #   the whole button; "lift" with the part, a dark button under a light
 #   label: also a thin light ring (white at RULE_OPACITY, inset), or it
-#   reads as plain text on the dark glass or a bar; "clear", a button that
+#   reads as plain text on the dark glass or a bar; "edge" alone, a button
+#   Dark Reader left a few luminance steps from what holds it (a white
+#   one darkened on a site's black panel): that ring only, its colours
+#   Dark Reader's; "clear", a button that
 #   painted no fill before Dark Reader filled it (a var() the page never
 #   set): see-through, its colours Dark Reader's. Without the two ids: a
 #   site style that gives such a button colours of its own (data/sites/)
@@ -1904,9 +1926,13 @@ _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 # The bar's colour for the page's tone, set on the root: a custom property
 # reaches the bars of shadow trees, where html:root[tone] cannot match.
 NAV_BAR_VAR = "--browserglass-nav"
+# The same for a block's veil (ATTR_BLOCK "veil").
+BLOCK_VAR = "--browserglass-block"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
-_TILE_SELECTOR = "[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not(#browserglass-a):not(#browserglass-b)"
+_TILE_SELECTOR = ("[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not([" + ATTR_TILE + "=\"plain\"])"
+                  ":not(#browserglass-a):not(#browserglass-b)")
 _INVERT_SELECTOR = "[" + ATTR_TILE + "=\"invert\"]:not(#browserglass-a):not(#browserglass-b)"
+_PLAIN_SELECTOR = "[" + ATTR_TILE + "=\"plain\"]:not(#browserglass-a):not(#browserglass-b)"
 _RULE_SELECTOR = "[" + ATTR_RULE + "]:not(#browserglass-a):not(#browserglass-b)"
 _BLOCK_SELECTOR = "[" + ATTR_BLOCK + "~=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _UNINVERT_SELECTOR = "[" + ATTR_UNINVERT + "]:not(#browserglass-a):not(#browserglass-b)"
@@ -1914,12 +1940,12 @@ _BRAND_SELECTOR = "[" + ATTR_BRAND + "~=\"%s\"]"
 _BRAND_PARTS = "%s" + _BRAND_SELECTOR % "self" + ", %s" + _BRAND_SELECTOR % "before" + "::before, %s" \
     + _BRAND_SELECTOR % "after" + "::after"
 _BRAND_LIFT = _BRAND_SELECTOR % "lift"
-_BRAND_INKED = "[" + ATTR_BRAND + "]:not(" + _BRAND_SELECTOR % "clear" + ")"
+_BRAND_INKED = "[" + ATTR_BRAND + "]:not(" + _BRAND_SELECTOR % "clear" + "):not(" + _BRAND_SELECTOR % "edge" + ")"
 _BRAND_RULE = (
     "  " + _BRAND_PARTS % ("", "", "") + " {{ background-color: var(" + BRAND_FILL + ") !important; }}\n"
     "  " + _BRAND_INKED + ", " + _BRAND_INKED + " * {{ color: var(" + BRAND_INK + ") !important; }}\n"
-    "  " + _BRAND_PARTS % ((_BRAND_LIFT,) * 3) + " {{ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, "
-    + str(RULE_OPACITY) + ") !important; }}\n"
+    "  " + _BRAND_PARTS % ((_BRAND_LIFT,) * 3) + ", " + _BRAND_SELECTOR % "edge"
+    + " {{ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
     "  " + _BRAND_SELECTOR % "clear" + " {{ background-color: transparent !important; }}\n"
 )
 _GLYPH_SELECTOR = ("[" + ATTR_GLYPH + "~=\"self\"]:not(#browserglass-a):not(#browserglass-b), "
@@ -1950,15 +1976,18 @@ _CONTENT_LAYERS = (
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  [" + ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}\n"
     "  [" + ATTR_FADE + "] {{ background-image: var(" + FADE_IMAGE + ") !important; }}\n"
+    + "".join("  [" + ATTR_FADE_PSEUDO + "~=\"" + p + "\"]::" + p + " {{ background-image: var(" + FADE_IMAGE + "-" + p
+              + ") !important; }}\n" for p in ("before", "after")) +
     "  [" + ATTR_FILLED + "~=\"before\"]::before, [" + ATTR_FILLED + "~=\"after\"]::after"
-    " {{ background-color: transparent !important; }}\n"
+    " {{ background-color: transparent !important; box-shadow: none !important; }}\n"
     + _TILE_RULE
     + "  " + _INVERT_SELECTOR + " {{ filter: invert(" + str(TILE_INVERT) + ") hue-rotate(180deg) !important;"
     " mix-blend-mode: normal !important; }}\n"
     + "  " + _UNINVERT_SELECTOR + " {{ filter: none !important; }}\n"
+    + "  " + _PLAIN_SELECTOR + " {{ filter: none !important; }}\n"
     + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"
     + "  " + _RULE_SELECTOR + " {{ background-color: rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
-    + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + ") !important; }}\n"
+    + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: var(" + BLOCK_VAR + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "before" + "::before, " + _BLOCK_SELECTOR % "after" + "::after"
     " {{ background-color: transparent !important; }}\n"
@@ -1972,6 +2001,12 @@ _CONTENT_LAYERS = (
     "  }}\n"
     "  html:root[" + ATTR_TONE + "=\"dark\"] {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
     "  html:root[" + ATTR_TONE + "=\"light\"] {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
+    "  :root {{ " + BLOCK_VAR + ": rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
+    "  @media not (prefers-color-scheme: dark) {{\n"
+    "    :root {{ " + BLOCK_VAR + ": rgba({light}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
+    "  }}\n"
+    "  html:root[" + ATTR_TONE + "=\"dark\"] {{ " + BLOCK_VAR + ": rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
+    "  html:root[" + ATTR_TONE + "=\"light\"] {{ " + BLOCK_VAR + ": rgba({light}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
     "  html:root[" + ATTR_TONE + "=\"dark\"] {{ scrollbar-color: rgba({light}, " + str(SCROLL_THUMB_OPACITY)
     + ") transparent; }}\n"
     "  html:root[" + ATTR_TONE + "=\"light\"] {{ scrollbar-color: rgba({dark}, " + str(SCROLL_THUMB_OPACITY)
