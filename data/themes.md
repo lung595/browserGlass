@@ -68,6 +68,10 @@ added by the helper: a page where a write failed is tried again only once
    Reader takes over).
 3. Check that the light value (or none) gives the light theme, so that
    putting it back restores the site.
+   A site that stores its own default on a first visit (the French
+   state's DSFR stores `scheme` = `light`) needs both `null` and that
+   value in `from`; a value that already follows the system (`system`)
+   stays out of it.
 4. Write the recipe with today's date in `verified`, and run
    `python3 -m unittest tests/py/test_themes.py`.
 

@@ -147,8 +147,17 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("if (menus && siteChrome(node)) {", measure)
         self.assertIn("return NodeFilter.FILTER_REJECT;", measure)
         self.assertIn("if (main[0] + main[1] === 0)\n      for (const m of menus)\n        tally(m, null);", measure)
-        self.assertIn("[pageFirm, page, mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all",
-                      measure)
+        self.assertIn("const levels = [pageFirm, page, mainFirm, main, firm, all];", measure)
+        # a level decides with enough text (a lone short line gives way
+        # to the next one), else the first with any; text out of sight
+        # (a skip link above the page, a clipped label) does not vote
+        self.assertIn("levels.find((t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS)\n"
+                      "    || levels.find((t) => t[0] + t[1] > 0) || all", measure)
+        self.assertIn("&& !unseen(p)", measure)
+        hidden = js[js.index("function unseen("):js.index("function measure()")]
+        self.assertIn("style.overflow !== \"visible\"", hidden)
+        self.assertIn("style.clip", hidden)
+        self.assertIn("style.clipPath", hidden)
         self.assertIn("if (!onCard(p, cards) && !onPicture(p, pictures)) {", measure)
         card = js[js.index("function onCard("):js.index("function measure()")]
         self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= OWN_BG", card)
@@ -224,7 +233,22 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("removeAttribute(BAR)", bars)
         self.assertIn("mark(el, BAR)", bars)
         mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
-        self.assertIn("if (large(el) && alpha(color) >= SOLID) {\n          pageColor = color;\n          mark(el, CANVAS);", mark)
+        self.assertIn("if (alpha(color) >= SOLID && (large(el) || column(el, color))) {\n"
+                      "          pageColors.add(color);\n          mark(el, CANVAS);", mark)
+        # a page column or an app's surface, a band across the window: a
+        # plain colour on the page's side, no picture filling it, not fixed
+        column = js[js.index("function column("):js.index("function markCanvas()")]
+        self.assertIn("COLUMN_CHROMA", column)
+        self.assertIn('tone === "dark" ? y > COLUMN_DARK : y < COLUMN_LIGHT', column)
+        self.assertIn('getComputedStyle(el).backgroundImage !== "none"', column)
+        self.assertIn("el.querySelectorAll(COLUMN_MEDIA)", column)
+        self.assertIn('getComputedStyle(e).position === "fixed"', column)
+        self.assertIn('wide(el) && getComputedStyle(el).position !== "sticky"', column)
+        # a header across the page column it stays in, painted by its child
+        self.assertIn('el.parentElement.closest("[" + CANVAS + "]")', bars)
+        self.assertIn("if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h)))", bars)
+        # a child faded out (a drawer's scrim at opacity 0) paints nothing
+        self.assertIn("!kid.checkVisibility({visibilityProperty: true, opacityProperty: true})", bars)
         self.assertIn("const SOLID = 0.99;", js)
         watch = js[js.index("let layerFrame"):js.index("function apply(")]
         self.assertIn("requestAnimationFrame(", watch)
@@ -252,21 +276,34 @@ class ExtensionSourcesTest(unittest.TestCase):
         # covers a bar, painted with the page's colour, turns to glass too
         js = strip_comments(read("content.js"))
         self.assertIn('const FILL = "fill";', js)
-        self.assertIn("let pageColor = null;", js)
+        self.assertIn("const pageColors = new Set();", js)
         fills = js[js.index("function markFills()"):js.index("const INK_RATIO")]
         self.assertIn("off !== false", fills)
-        self.assertIn("pageColor === null", fills)
+        self.assertIn("!pageColors.size", fills)
         self.assertIn('position === "fixed" || position === "sticky"', fills)
-        self.assertIn("getComputedStyle(el).backgroundColor !== pageColor", fills)
+        self.assertIn("!pageColors.has(getComputedStyle(el).backgroundColor)", fills)
         self.assertIn("NOT_FILLS.has(el.localName)", fills)
         self.assertIn("i < kids.length && i < FILL_NODES", fills)
         self.assertIn("bar && r.width * r.height >= FILL_COVER * box.width * box.height", fills)
         self.assertIn("el.setAttribute(CANVAS, FILL)", fills)
+        # an empty ::before or ::after of the holder in the page's colour:
+        # FILLED names it, the glass styles clear it, gone with the layers
+        self.assertIn('const FILLED = "%s";' % bg.ATTR_FILLED, js)
+        self.assertIn('const PSEUDOS = ["before", "after"];', js)
+        pseudo = js[js.index("function pageFill("):js.index("function markFills()")]
+        self.assertIn('getComputedStyle(el, "::" + pseudo)', pseudo)
+        self.assertIn('style.content === "\\"\\""', pseudo)
+        self.assertIn("pageColors.has(style.backgroundColor)", pseudo)
+        self.assertIn("holder.setAttribute(FILLED, ", fills)
+        for p in ("before", "after"):
+            self.assertIn('[%s~="%s"]::%s' % (bg.ATTR_FILLED, p, p), bg._CONTENT_LAYERS)
+        self.assertIn("removeAttribute(FILLED)", js[js.index("function markCanvas()"):js.index("function markBars()")])
+        self.assertIn("removeAttribute(FILLED)", js[js.index("function darken()"):js.index("function frameSchemes()")])
         for name in ('"img"', '"video"', '"canvas"', '"iframe"', '"input"'):
             self.assertIn(name, js[js.index("const NOT_FILLS"):js.index("function markFills()")])
         # fills keep their mark while small, and go with the page's layers
         mark = js[js.index("function markCanvas()"):js.index("function markFills()")]
-        self.assertIn("if (!glass || (!large(el) && el.getAttribute(CANVAS) !== FILL))", mark)
+        self.assertIn("if (!glass || (!large(el) && !tall(el) && !wide(el) && el.getAttribute(CANVAS) !== FILL))", mark)
         # every pass that marks the bars marks the fills after them
         for at in [i for i in range(len(js)) if js.startswith("markBars();", i)]:
             self.assertTrue(js[at:].split("\n", 2)[1].strip() == "markFills();", js[at - 80:at + 40])
@@ -309,6 +346,33 @@ class ExtensionSourcesTest(unittest.TestCase):
         # the ink's colour is the fill too (a gradient is drawn under it)
         self.assertIn("-webkit-text-fill-color: currentcolor !important;", bg._CONTENT_LAYERS)
 
+    def test_content_marks_uninverted(self):
+        # an inline SVG logo Dark Reader inverts though its shapes paint
+        # light (a style sheet it lightened) gets ATTR_UNINVERT, no filter,
+        # in the pass of the tiles; the mark goes with the invert, with the
+        # darkening and with the page's marks
+        js = strip_comments(read("content.js"))
+        self.assertIn('const UNINVERT = "%s";' % bg.ATTR_UNINVERT, js)
+        self.assertTrue(bg.ATTR_UNINVERT.startswith("data-browserglass-"))
+        self.assertIn("[%s]:not(#browserglass-a):not(#browserglass-b) { filter: none !important; }"
+                      % bg.ATTR_UNINVERT, bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1))
+        ink = js[js.index("function markInk()"):js.index("function markTiles(")]
+        self.assertIn("el.removeAttribute(UNINVERT);", ink)
+        self.assertLess(ink.index("markTiles(near);"), ink.index("markUninverted(near);"))
+        mark = js[js.index("function markUninverted("):js.index("function sample(")]
+        for part in ("if (!darkened || !el.hasAttribute(DR_INVERT))",
+                     'document.body.querySelectorAll("svg[" + DR_INVERT + "]")',
+                     "if (r.width * r.height > INVERT_LARGE)",
+                     "if (bg === null || bg > DARK_BG)",
+                     "if (shape.closest(UNPAINTED))",
+                     "[style.fill, style.stroke]",
+                     "y > bg && contrast(y, bg) >= INK_RATIO",
+                     "ys.length > 0 && read >= UNINVERT_READ * ys.length"):
+            self.assertIn(part, mark)
+        # Dark Reader's own mark, which this one undoes
+        self.assertIn('const DR_INVERT = "data-darkreader-inline-invert";', js)
+        self.assertIn('"[data-darkreader-inline-invert] {"', read("vendor/darkreader.js"))
+
     def test_content_marks_tiles(self):
         # a picture made for a white page on a background now dark gets
         # ATTR_TILE (a white tile), in the same throttled pass as the text,
@@ -345,8 +409,11 @@ class ExtensionSourcesTest(unittest.TestCase):
         # never taken off and set again in the same pass
         self.assertIn("else if (el.getAttribute(TILE) !== kind)", mark)
         pixels = js[js.index("function sample("):js.index("function ink()")]
-        for part in ('img.addEventListener("load", ink, {once: true});',
-                     "if (samples.size >= SAMPLES_MAX)",
+        # a picture loaded after the last pass (a lazy one, no width till
+        # then) is looked at again: one load listener for the document
+        self.assertIn('if (off === false && e.target.localName === "img")\n    ink();', pixels)
+        self.assertIn('document.addEventListener("load", loaded, {capture: true, passive: true});', js)
+        for part in ("if (samples.size >= SAMPLES_MAX)",
                      "Math.min(1, SAMPLE_SIDE / Math.max(r.width, r.height))",
                      # another origin: unreadable, left as it is
                      "} catch (e) {\n    return null;"):
@@ -541,7 +608,13 @@ class ExtensionSourcesTest(unittest.TestCase):
         # the lowest opaque large layer once the root and body are clear;
         # every large non-fixed one on a darkened page
         self.assertIn("off !== false", mark)
-        self.assertIn("clear(root) && clear(document.body)", mark)
+        self.assertIn("(clear(root) || tinted(root)) && clear(document.body)", mark)
+        # the root under the tone tint (a dark app under a light theme)
+        # counts as see-through: translucent, the tone not the theme's
+        tinted = js[js.index("function tinted("):js.index("function markCanvas()")]
+        self.assertIn("root.getAttribute(TONE)", tinted)
+        self.assertIn('(measured === "dark") !== window.matchMedia("(prefers-color-scheme: dark)").matches', tinted)
+        self.assertIn("alpha(getComputedStyle(root).backgroundColor) < SOLID", tinted)
         self.assertIn("stack.length - 1", mark)
         self.assertIn("if (!darkened)", mark)
         self.assertIn('position !== "fixed"', mark)

@@ -20,7 +20,8 @@ test_e2e_darken.py. Checked:
   - a fixed left sidebar with its own colour is marked too, a see-through
     fixed bar is not;
   - a tall see-through fixed header is left alone over nothing, and marked
-    once content lies under its lower row only (its top row a notice);
+    once content lies under its lower row only (its top row a notice); a
+    thin see-through strip down the right edge over the content is not;
   - a background rendered late inside an existing element (as an Angular
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
@@ -41,7 +42,19 @@ test_e2e_darken.py. Checked:
     keeps its mark from pass to pass, its style attribute put back;
   - a black logo blended with multiply on the dark glass is shown on a
     white tile (not blended, not inverted), the same logo on its own
-    white card is left alone.
+    white card is left alone;
+  - page columns narrower than the window (test_columns): a feed centred
+    in it, in the page's dark colour or white on a light page, and a dark
+    side panel down to the bottom are marked, a card on the feed is not;
+    the feed's sticky title row (its colour painted by a child) is a bar,
+    its child filled, its ::after strip in the page's colour see-through;
+    an app's surface right of its menu, down to near the bottom, is
+    marked, its panels are not, under a light theme too (the root under
+    the dark tint); the app's see-through menu, its first child a scrim at
+    opacity 0, is no bar; a menu row across the window,
+    dark or light, is marked, a coloured band under it is not; a coloured
+    column, a column filled by a player, a light column on a dark page and
+    a short card are left alone.
 """
 
 import os
@@ -197,14 +210,78 @@ BANNER_PAGE = STYLE + """
 # A tall see-through fixed header: its top row a notice with a colour of
 # its own (a country redirect), its links in the row below; the content
 # starts below the header, then is scrolled under the row of links only.
+# Down the right edge, a thin see-through strip over the content (the
+# marks of a find in the page): no bar.
 TALL_PAGE = STYLE + """
 #tall {position:fixed; top:0; left:0; right:0; height:110px; background:transparent; z-index:2}
+#marks {position:fixed; top:0; bottom:0; right:0; width:15px; background:transparent; z-index:3}
 #notice {height:60px; background:rgb(40,40,60)}
 #cells {display:flex; margin-top:170px}
 #cells div {flex:1; height:200px; margin:0 2px; background:rgb(40,40,40)}
 </style></head><body><header id="tall"><div id="notice">Notice</div><a href="#">Home</a></header>
-<div id="cells">""" + "<div>Cell</div>" * 5 + """</div><div id="long">""" + dk.TEXT + """</div></body></html>"""
+<div id="cells">""" + "<div>Cell</div>" * 5 + """</div><div id="long">""" + dk.TEXT + """</div>
+<div id="marks"></div></body></html>"""
 BAR_COLOR = "return getComputedStyle(document.getElementById('bar')).backgroundColor;"
+
+# A feed centred in the window (Mastodon): a sticky menu on the left, its
+# lower panel down to the bottom in a darker colour; the feed column in
+# the page's colour, its sticky title row see-through, painted by the box
+# inside it, a strip of the page's colour under its ::after (Mastodon); a
+# card on the feed.
+COLUMN_PAGE = STYLE + """
+html, body {background:transparent}
+#cols {display:flex; justify-content:center; align-items:flex-start}
+#nav {position:sticky; top:0; width:22vw; height:100vh; display:flex; flex-direction:column}
+#links {height:20vh} #navfoot {flex:1; background:rgb(7,6,14)}
+#feed {width:44vw; min-height:300vh; background:rgb(21,21,30)}
+#head {position:sticky; top:0; padding-top:4px; height:49px} #headbox {height:49px; background:rgb(21,21,30)}
+#head::after {content:""; position:absolute; left:1px; right:1px; bottom:0; height:8px; z-index:-1;
+  background:rgb(21,21,30)}
+#post {height:120px; margin:16px; background:rgb(40,40,52)}
+#aside {width:22vw}
+</style></head><body><div id="cols"><nav id="nav"><div id="links"><a href="#">Explore</a></div>
+<footer id="navfoot">About this server</footer></nav>
+<main id="feed"><header id="head"><div id="headbox">Explore</div></header>
+<div id="post">A post</div>""" + dk.TEXT * 4 + """</main><div id="aside">Links</div></div></body></html>"""
+# The same feed on a light page: dark text, a white column.
+LIGHT_COLUMN_PAGE = (COLUMN_PAGE.replace("color:rgb(235,235,235)", "color:rgb(20,20,20)")
+                     .replace("rgb(21,21,30)", "rgb(255,255,255)").replace("rgb(7,6,14)", "rgb(245,245,248)")
+                     .replace("rgb(40,40,52)", "rgb(235,235,240)"))
+# An app's surface (Grafana): a see-through fixed top bar and menu, the
+# surface right of the menu down to 4px above the bottom, with a border
+# and round corners; panels on it. The menu's first child is a drawer's
+# scrim faded out (YouTube's guide): opacity 0.
+SURFACE_PAGE = STYLE + """
+html, body {height:100%; overflow:hidden; background:transparent}
+#top {position:fixed; top:0; left:0; right:0; height:48px}
+#menu {position:fixed; top:48px; left:0; bottom:0; width:23vw}
+#scrim {position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0}
+#surface {position:absolute; top:48px; left:23vw; right:4px; bottom:4px; overflow:auto;
+  background:rgb(9,11,15); border:1px solid rgb(60,60,70); border-radius:8px}
+.panel {height:30vh; margin:16px; background:rgb(24,27,31)}
+</style></head><body><header id="top"><a href="#">Home</a></header><nav id="menu"><div id="scrim"></div><a href="#">Dashboards</a></nav>
+<div id="surface"><div class="panel" id="panel">Panel</div><div class="panel">Panel</div></div></body></html>"""
+# A site's second menu row (Gitea): a band across the window under its
+# see-through header, in a plain colour near the page's; a coloured band
+# under it is left alone.
+BAND_PAGE = STYLE + """
+html, body {background:transparent}
+#top {height:49px} #band {height:45px; background:rgb(26,27,30)} #hero {height:150px; background:rgb(40,60,120)}
+</style></head><body><header id="top"><a href="#">Explore</a></header><nav id="band"><a href="#">Repositories</a></nav>
+<div id="hero">Welcome</div>""" + dk.TEXT + """</body></html>"""
+LIGHT_BAND_PAGE = (BAND_PAGE.replace("color:rgb(235,235,235)", "color:rgb(20,20,20)")
+                   .replace("rgb(26,27,30)", "rgb(249,250,251)"))
+# Tall columns that are not the page's background: a coloured band, a
+# player's black area filled by its canvas, a light column on a dark page,
+# a card that does not reach the bottom.
+NOT_COLUMN_PAGE = STYLE + """
+html, body {height:100%; overflow:hidden; background:transparent}
+#row {display:flex; height:100%}
+#row > div {width:20vw}
+#hue {background:rgb(40,60,120)} #player {background:rgb(0,0,0)} #player canvas {width:100%; height:100%}
+#pale {background:rgb(230,230,230); color:rgb(20,20,20)} #short {height:50vh; margin-top:10vh; background:rgb(30,30,36)}
+</style></head><body><div id="row"><div id="hue">Hero</div><div id="player"><canvas></canvas></div>
+<div id="pale">Pale</div><div id="short">Card</div><div>Text of the page</div></div></body></html>"""
 
 
 @unittest.skipUnless(tone.E2E and tone.FIREFOX, "set BG_E2E=1 (and have a Firefox binary) to run")
@@ -225,6 +302,78 @@ class LayersE2E(unittest.TestCase):
 
     def marked(self, b, element_id, attr):
         return b.js(dk.MARKED, element_id, attr)
+
+    def test_columns(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_columns(binary)
+
+    def bg_of(self, b, element_id):
+        return b.js("return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;", element_id)
+
+    def check_columns(self, binary):
+        routes = {"/c.html": ("text/html; charset=utf-8", COLUMN_PAGE.encode("utf-8")),
+                  "/cl.html": ("text/html; charset=utf-8", LIGHT_COLUMN_PAGE.encode("utf-8")),
+                  "/surface.html": ("text/html; charset=utf-8", SURFACE_PAGE.encode("utf-8")),
+                  "/not.html": ("text/html; charset=utf-8", NOT_COLUMN_PAGE.encode("utf-8")),
+                  "/band.html": ("text/html; charset=utf-8", BAND_PAGE.encode("utf-8")),
+                  "/bandl.html": ("text/html; charset=utf-8", LIGHT_BAND_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            for page, card in (("/c.html", "rgb(40, 40, 52)"), ("/cl.html", "rgb(235, 235, 240)")):
+                b.navigate(srv.url(page, "dark.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "feed", CANVAS),
+                                "a centred feed column not marked (%s)" % page)
+                self.assertEqual(self.bg_of(b, "feed"), "rgba(0, 0, 0, 0)")
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "navfoot", CANVAS),
+                                "a side panel down to the bottom not marked (%s)" % page)
+                self.assertFalse(self.marked(b, "post", CANVAS), "a card on the feed marked")
+                self.assertEqual(self.bg_of(b, "post"), card)
+                # the feed's title row: a bar across the column, the box
+                # painting it see-through
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "head", BAR),
+                                "the feed's sticky title row not marked (%s)" % page)
+                self.assertTrue(b.wait_for("return document.getElementById('headbox')"
+                                           ".getAttribute(arguments[0]) === 'fill';",
+                                           mn.WAIT_TIMEOUT, CANVAS), "the title row's box not filled")
+                self.assertEqual(self.bg_of(b, "headbox"), "rgba(0, 0, 0, 0)")
+                # its ::after strip in the page's colour: see-through too
+                self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('head'), '::after')"
+                                           ".backgroundColor === 'rgba(0, 0, 0, 0)';", mn.WAIT_TIMEOUT),
+                                "the title row's ::after strip left in the page's colour (%s)" % page)
+
+            # the surface under a dark theme, then under a light one: the
+            # dark app's root then carries the dark tint, glass as well
+            for dark in (True, False):
+                tone.set_scheme(b, dark)
+                b.navigate(srv.url("/surface.html", "dark.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "surface", CANVAS),
+                                "an app's surface not marked (dark theme: %s)" % dark)
+                self.assertEqual(self.bg_of(b, "surface"), "rgba(0, 0, 0, 0)")
+                self.assertFalse(self.marked(b, "panel", CANVAS), "a panel on the surface marked")
+                self.assertEqual(self.bg_of(b, "panel"), "rgb(24, 27, 31)")
+                # the menu over nothing, its scrim at opacity 0: no bar
+                self.assertFalse(b.wait_for(dk.MARKED, 2.0, "menu", BAR), "a menu backed by a faded scrim marked")
+            tone.set_scheme(b, True)
+
+            for page in ("/band.html", "/bandl.html"):
+                b.navigate(srv.url(page, "dark.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "band", CANVAS),
+                                "a menu row across the window not marked (%s)" % page)
+                self.assertEqual(self.bg_of(b, "band"), "rgba(0, 0, 0, 0)")
+                self.assertFalse(self.marked(b, "hero", CANVAS), "a coloured band marked")
+                self.assertEqual(self.bg_of(b, "hero"), "rgb(40, 60, 120)")
+
+            b.navigate(srv.url("/not.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for("return document.documentElement.getAttribute(arguments[0]) === 'dark';",
+                                       mn.WAIT_TIMEOUT, tone.TONE))
+            self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']');",
+                                        2.0, CANVAS), "a coloured, player, light or short column marked")
 
     def check(self, binary):
         routes = {"/a.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
@@ -288,6 +437,7 @@ class LayersE2E(unittest.TestCase):
             b.js("window.scrollTo(0, 110);")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "tall", BAR),
                             "a tall see-through header over content under its lower row not marked")
+            self.assertFalse(b.wait_for(dk.MARKED, 2.0, "marks", BAR), "a thin see-through strip marked")
 
             # a cookie banner over the text keeps its colour, and a modal
             b.navigate(srv.url("/banner.html", "dark.test"))

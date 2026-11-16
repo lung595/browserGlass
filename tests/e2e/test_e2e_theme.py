@@ -49,7 +49,15 @@ localStorage). Checked:
     (Galaxus's .themeshade): one reload, then dark, removed under a light
     theme; the same cookie already set HttpOnly by the server (unseen by
     scripts, the write refused): one reload at most, then failed and Dark
-    Reader, never reloaded again.
+    Reader, never reloaded again;
+  - the bundled recipes of the French state's design system (DSFR:
+    service-public.gouv.fr, www.info.gouv.fr) on a page built like theirs:
+    the server marks <html data-fr-scheme="light">, a script at the end of
+    <body> reads localStorage.scheme over it and writes the scheme it
+    applies back. A first visit is created dark (no Dark Reader), removed
+    under a light theme; the "light" the page then stores itself is
+    written dark and put back; "system" (dark under a dark system) is left
+    alone.
 """
 
 import json
@@ -72,7 +80,7 @@ bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
          "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test",
-         "slash.test", "shade.test", "hidden.test")
+         "slash.test", "shade.test", "hidden.test", "dsfr.test", "dsfr2.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -118,6 +126,29 @@ document.body.setAttribute("data-dark-mode", window.__boot || "none");
 </script></body></html>""")
 SLASH_RECIPE = {"store": "local", "key": SLASH_KEY, "op": "set", "from": [None, "none"], "to": "dark",
                 "verified": "2026-11-16", "note": "test fixture"}
+
+# The French state's design system (DSFR): the server marks the light
+# scheme on <html>; a script at the end of <body> reads localStorage.scheme
+# (light, dark, system) over it and stores the scheme it applies.
+DSFR_PAGE = ("""<!doctype html><html data-fr-scheme="light"><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+html[data-fr-theme=dark], html[data-fr-theme=dark] body {background:rgb(22,22,22); color:rgb(206,206,206)}
+</style></head><body>""" + TEXT + """<script>
+var r = document.documentElement, s = localStorage.getItem("scheme");
+window.__boot = s;
+if (["light", "dark", "system"].indexOf(s) < 0) s = r.getAttribute("data-fr-scheme");
+localStorage.setItem("scheme", s);
+r.setAttribute("data-fr-scheme", s);
+r.setAttribute("data-fr-theme", s === "system"
+  ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : s);
+</script></body></html>""")
+
+
+def bundled(host):
+    """The recipes data/themes.json ships for `host` (none: [])."""
+    with open(os.path.join(tone.REPO, "data", bg.THEMES_FILE), encoding="utf-8") as f:
+        return json.load(f)["sites"].get(host, [])
+
 
 TEST_FEED = """// test only: a list sent by the page (test-relay.js), applied as one
 // from the helper
@@ -199,7 +230,7 @@ class Server:
                         extra.append(("Set-Cookie", ".shade=light; HttpOnly; Path=/"))
                     body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE, "/hide.html": LS_PAGE,
                             "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE,
-                            "/rts.html": SLASH_PAGE}.get(path)
+                            "/rts.html": SLASH_PAGE, "/dsfr.html": DSFR_PAGE}.get(path)
                     if body is None:
                         self.send_error(404)
                         return
@@ -536,6 +567,49 @@ class ThemeE2E(unittest.TestCase):
                 s = self.load(b, url)
                 self.assertEqual(srv.hits, [".shade=light"])
                 self.assertFalse(s["night"], s)
+            self.feed(b)
+
+            # 15. DSFR (service-public.gouv.fr, www.info.gouv.fr), the
+            # bundled recipes: a first visit created dark, no Dark Reader
+            dsfr = ("return [localStorage.getItem('scheme'),"
+                    " document.documentElement.getAttribute('data-fr-theme')];")
+            sites = {"dsfr.test": bundled("service-public.gouv.fr"), "dsfr2.test": bundled("www.info.gouv.fr")}
+            self.load(b, srv.url("absent.test"))
+            self.feed(b, sites=sites)
+            for host in sites:
+                url = srv.url(host, "/dsfr.html")
+                s = self.load(b, url)
+                self.assertEqual((s["boot"], b.js(dsfr)), ("dark", ["dark", "dark"]), (host, s))
+                self.assertEqual(s["record"]["keys"], {"local:scheme": {"prior": None, "wrote": "dark"}})
+                s = self.settled(b)
+                self.assertFalse(s["darkreader"], s)
+                self.assertNotIn("failed", s["record"])
+            # removed under a light theme; the page then stores "light"
+            # itself, which is written dark and put back
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('scheme') === null"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], b.js(dsfr), s["record"]), (None, ["light", "light"], None), s)
+            tone.set_scheme(b, True)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], b.js(dsfr)), ("dark", ["dark", "dark"]), s)
+            self.assertEqual(s["record"]["keys"], {"local:scheme": {"prior": "light", "wrote": "dark"}})
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('scheme') === 'light'"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            tone.set_scheme(b, True)
+            # "system", dark under a dark system by the page itself: left alone
+            self.load(b, srv.url("absent.test"))
+            self.feed(b)  # no recipe while preset opens the page
+            self.preset(b, url, {"scheme": "system"})
+            self.feed(b, sites=sites)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], b.js(dsfr), s["record"]), ("system", ["system", "dark"], None), s)
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
             self.feed(b)
 
 

@@ -17,7 +17,9 @@
 // loaded before this script), and the large elements that paint its background
 // get data-browserglass-canvas, which makes them glass, as does the lowest
 // layer that paints the background of any page whose root and body are
-// see-through. A navigation bar fixed or stuck along an edge of the window
+// see-through (an empty ::before or ::after of a fixed or sticky element
+// painting that background gets data-browserglass-filled, naming it). A
+// navigation bar fixed or stuck along an edge of the window
 // (a header, a bottom bar, a sidebar) with a background of its own gets
 // data-browserglass-bar: the same near-opaque blurred surface on every
 // site. Its blur ends with VEIL, a filter this script puts in the page:
@@ -31,6 +33,8 @@
 // picture made for a white page on a background now dark (a product photo
 // whose white a site wipes out with mix-blend-mode, a black logo on a
 // page Dark Reader darkens) gets data-browserglass-tile: a white tile.
+// An inline SVG logo Dark Reader inverts though its shapes already paint
+// light gets data-browserglass-uninvert: no filter.
 // Before all that, theme.js (loaded before this script) sets the site's
 // own stored theme to dark at document_start: this script runs it again
 // once the list is known (a restore under a light theme, a late write),
@@ -45,6 +49,8 @@ const CANVAS = "data-browserglass-canvas";
 const BAR = "data-browserglass-bar";
 const INK = "data-browserglass-ink";
 const TILE = "data-browserglass-tile";
+const UNINVERT = "data-browserglass-uninvert";
+const FILLED = "data-browserglass-filled";
 const GLASS = "--browserglass-glass";
 const DARKEN_BG = "--browserglass-darken-bg";
 const DARKEN_FG = "--browserglass-darken-fg";
@@ -227,13 +233,48 @@ function onPicture(el, pictures) {
   return value;
 }
 
+// Text out of sight that checkVisibility still counts: the "visually
+// hidden" pattern of a skip link or a label for screen readers, clipped
+// to nothing (clip, clip-path inset(50%)), in a box of a pixel that hides
+// its overflow, or placed above or left of the page until focused, on the
+// element or up to HIDDEN_DEPTH - 1 of its parents. A dark app's black
+// "Skip to main content" link does not vote.
+const HIDDEN_DEPTH = 2;
+
+function unseen(el) {
+  const r = el.getBoundingClientRect();
+  if (r.right + window.scrollX <= 0 || r.bottom + window.scrollY <= 0)
+    return true;
+  for (let e = el, i = 0; e && e !== document.body && i < HIDDEN_DEPTH; e = e.parentElement, i++) {
+    const style = getComputedStyle(e);
+    const box = e === el ? r : e.getBoundingClientRect();
+    if ((box.width <= 1 || box.height <= 1) && style.overflow !== "visible")
+      return true;
+    const [top, right, bottom, left] = (/^rect\((.*)\)/.exec(style.clip) || ["", ""])[1]
+      .split(/[\s,]+/).map(parseFloat);
+    if (right - left <= 1 || bottom - top <= 1)  // NaN (auto) is not
+      return true;
+    const inset = /^inset\(([\d.]+)%/.exec(style.clipPath);
+    if (inset && parseFloat(inset[1]) >= 50)
+      return true;
+  }
+  return false;
+}
+
+// A level of the vote decides with VOTE_NODES text nodes or VOTE_CHARS
+// characters: a lone short line (a loading message left under the app,
+// a skip link) gives way to the next level, the text on cards included.
+const VOTE_NODES = 2;
+const VOTE_CHARS = 40;
+
 // The tone from the colour of the text shown, the site styles included:
 // the visible text of the body votes, each node by its length (capped, so
 // one long paragraph does not outweigh the page); the text on the page's
 // background (not on a card nor a picture, onCard, onPicture), outside
 // the site's menus, decides
 // first, the mid-grey band aside (siteChrome, MID_LOW), then the text
-// outside the menus, cards included.
+// outside the menus, cards included (VOTE_NODES, VOTE_CHARS). Text out of
+// sight does not vote (unseen).
 // Many pages leave the body's own colour at the default black and colour
 // their text through classes (YouTube's dark theme): the body alone would
 // read as light. A
@@ -254,8 +295,13 @@ function measure() {
   // [light text, dark text] in characters: all of it, the text outside
   // the mid-grey band, the same outside the site's menus, and the same
   // outside the menus, the cards and the pictures
-  const all = [0, 0], firm = [0, 0], main = [0, 0], mainFirm = [0, 0];
-  const page = [0, 0], pageFirm = [0, 0];
+  const all = [0, 0, 0], firm = [0, 0, 0], main = [0, 0, 0], mainFirm = [0, 0, 0];
+  const page = [0, 0, 0], pageFirm = [0, 0, 0];
+  // the length on its side, one node more
+  const add = (t, side, len) => {
+    t[side] += len;
+    t[2]++;
+  };
   if (document.body) {
     const parents = new Map(), cards = new Map(), pictures = new Map();
     let read = 0, walked = 0;
@@ -281,7 +327,7 @@ function measure() {
           continue;
         if (!parents.has(p)) {
           let y = null;
-          if (p.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+          if (p.checkVisibility({visibilityProperty: true, opacityProperty: true}) && !unseen(p))
             y = luminance(getComputedStyle(p).color);
           parents.set(p, y);
         }
@@ -290,17 +336,17 @@ function measure() {
           continue;
         const side = y > 0.179 ? 0 : 1;
         const isFirm = y <= MID_LOW || y >= MID_HIGH;
-        all[side] += len;
+        add(all, side, len);
         if (isFirm)
-          firm[side] += len;
+          add(firm, side, len);
         if (menus) {
-          main[side] += len;
+          add(main, side, len);
           if (isFirm)
-            mainFirm[side] += len;
+            add(mainFirm, side, len);
           if (!onCard(p, cards) && !onPicture(p, pictures)) {
-            page[side] += len;
+            add(page, side, len);
             if (isFirm)
-              pageFirm[side] += len;
+              add(pageFirm, side, len);
           }
         }
         read++;
@@ -313,7 +359,9 @@ function measure() {
       for (const m of menus)
         tally(m, null);
   }
-  const votes = [pageFirm, page, mainFirm, main, firm, all].find((t) => t[0] + t[1] > 0) || all;
+  const levels = [pageFirm, page, mainFirm, main, firm, all];
+  const votes = levels.find((t) => t[2] >= VOTE_NODES || t[0] + t[1] >= VOTE_CHARS)
+    || levels.find((t) => t[0] + t[1] > 0) || all;
   const [light, dark] = votes;
   sampled = all[0] + all[1];
   const v = sampled ? light > dark : isLight(getComputedStyle(el).color);
@@ -479,8 +527,8 @@ function darken() {
     darkened = false;
     DarkReader.disable();
     frameSchemes();
-    for (const el of document.querySelectorAll("[" + CANVAS + "]"))
-      el.removeAttribute(CANVAS);
+    for (const el of document.querySelectorAll("[" + CANVAS + "], [" + FILLED + "]"))
+      el.removeAttribute(CANVAS), el.removeAttribute(FILLED);
     measure();
   } else if (!darkened && theme && tone === "light" && !themeWait
       && (sampled >= ENOUGH_TEXT || document.readyState === "complete")) {
@@ -535,21 +583,25 @@ function alpha(color) {
 }
 
 // The page's own background: when the root and the body are see-through
-// (the generic style), the lowest layer under a grid of points that paints
-// an opaque background colour (not a dialog's dimming) and covers most of
+// (the generic style; the root under the tone tint counts, tinted), the
+// lowest layer under a grid of points that paints an opaque background
+// colour (not a dialog's dimming) and covers most of
 // the window (often a fixed full-window container) gets CANVAS, unless it
 // is fixed, or inside a fixed element, over other content of the page (a
 // dialog, a cookie banner): the glass styles make that colour transparent;
 // the cards and panels drawn over it keep theirs. On a darkened page every
 // such large layer does, except fixed ones (dialogs). A layer loses CANVAS
 // once smaller, and all do once the root or the body paints a background
-// again. The colour of the last layer marked is the page's colour
-// (pageColor, for markFills).
+// again. The colours of the layers marked are the page's colours
+// (pageColors, for markFills).
+// Such a layer need not span the window's width: a page column (a feed
+// centred in the window, the pane right of an app's menu, a side panel
+// down to the bottom) is one too (column).
 const GRID = 5;
 const CLEAR = 0.5;
 const SOLID = 0.99;
 const FILL = "fill";
-let pageColor = null;
+const pageColors = new Set();
 
 // A marked element is watched: its size changes (or its removal, a view
 // swapped) look again.
@@ -565,6 +617,75 @@ function large(el) {
   return r.width >= 0.9 * document.documentElement.clientWidth && r.height >= 0.6 * window.innerHeight;
 }
 
+// A page column or an app's surface: as tall as most of the window
+// (COLUMN_TALL) and down to its bottom (COLUMN_GAP), though narrower, or
+// a band across the window's width, though low (a site's second menu
+// row), in
+// a plain colour (at most COLUMN_CHROMA of chroma: not a coloured band)
+// on the page's side (darker than COLUMN_DARK on a dark page, lighter
+// than COLUMN_LIGHT on a light one), with no picture filling it (a
+// background image, a player, a map: COLUMN_MEDIA over half its visible
+// part). The cards and panels laid on it keep their colours. It keeps
+// the mark while it stays that tall or wide (tall, wide), as large()
+// layers do.
+const COLUMN_TALL = 0.75;
+const COLUMN_GAP = 0.05;
+const COLUMN_CHROMA = 0.1;
+const COLUMN_DARK = 0.05;
+const COLUMN_LIGHT = 0.6;
+const COLUMN_MEDIA = "video, canvas, iframe, embed, object";
+
+function tall(el) {
+  return el.getBoundingClientRect().height >= COLUMN_TALL * window.innerHeight;
+}
+
+function wide(el) {
+  return el.getBoundingClientRect().width >= 0.9 * document.documentElement.clientWidth;
+}
+
+// The part of a box inside the window, in px².
+function seen(r, w, h) {
+  return Math.max(0, Math.min(r.right, w) - Math.max(r.left, 0))
+    * Math.max(0, Math.min(r.bottom, h) - Math.max(r.top, 0));
+}
+
+function column(el, color) {
+  const w = document.documentElement.clientWidth, h = window.innerHeight;
+  const r = el.getBoundingClientRect();
+  // a sticky band is a bar once stuck (markBars), solid until then
+  const band = wide(el) && getComputedStyle(el).position !== "sticky";
+  if (tone === null || !(band || (tall(el) && r.bottom >= (1 - COLUMN_GAP) * h)))
+    return false;
+  const m = /^rgba?\(([^)]*)\)/.exec(color);
+  if (!m)
+    return false;
+  const c = m[1].split(/[\s,/]+/).slice(0, 3).map(parseFloat);
+  const y = luminance(color);
+  if ((Math.max(...c) - Math.min(...c)) / 255 > COLUMN_CHROMA
+      || (tone === "dark" ? y > COLUMN_DARK : y < COLUMN_LIGHT))
+    return false;
+  if (getComputedStyle(el).backgroundImage !== "none")
+    return false;
+  // a fixed side panel is the window's bar (markBars), not the page's
+  for (let e = el; e && e !== document.body; e = e.parentElement)
+    if (getComputedStyle(e).position === "fixed")
+      return false;
+  const area = seen(r, w, h);
+  for (const media of el.querySelectorAll(COLUMN_MEDIA))
+    if (seen(media.getBoundingClientRect(), w, h) >= 0.5 * area)
+      return false;
+  return true;
+}
+
+// The root painted by the tone tint only (the glass of a page whose tone
+// is not the theme's: a dark app under a light theme): see-through glass
+// of the other mode, not a background of the page's own.
+function tinted(root) {
+  const measured = root.getAttribute(TONE);
+  return measured !== null && (measured === "dark") !== window.matchMedia("(prefers-color-scheme: dark)").matches
+    && alpha(getComputedStyle(root).backgroundColor) < SOLID;
+}
+
 function markCanvas() {
   const root = document.documentElement;
   if (off !== false || !root || !document.body)
@@ -577,12 +698,16 @@ function markCanvas() {
         return true;
     return false;
   };
-  const glass = clear(root) && clear(document.body);
+  const glass = (clear(root) || tinted(root)) && clear(document.body);
   for (const el of document.querySelectorAll("[" + CANVAS + "]"))
-    if (!glass || (!large(el) && el.getAttribute(CANVAS) !== FILL))
+    if (!glass || (!large(el) && !tall(el) && !wide(el) && el.getAttribute(CANVAS) !== FILL))
       el.removeAttribute(CANVAS);
-  if (!glass)
+  if (!glass) {
+    for (const el of document.querySelectorAll("[" + FILLED + "]"))
+      el.removeAttribute(FILLED);
+    pageColors.clear();
     return;
+  }
   const seen = new Set([root, document.body]);
   for (let i = 0; i < GRID; i++) {
     for (let j = 0; j < GRID; j++) {
@@ -603,8 +728,8 @@ function markCanvas() {
         if (below.some((b) => !b.contains(el)) && pinned(el))
           break;
         const color = getComputedStyle(el).backgroundColor;
-        if (large(el) && alpha(color) >= SOLID) {
-          pageColor = color;
+        if (alpha(color) >= SOLID && (large(el) || column(el, color))) {
+          pageColors.add(color);
           mark(el, CANVAS);
         }
         break;
@@ -633,8 +758,16 @@ function markCanvas() {
 // first such element gets BAR: one look on every site. A bar laid in the
 // flow of a page that does not scroll is left alone: in a web app (a chat,
 // a mail client) that is as often the message box or a footer line, whose
-// shape the site draws itself, as a navigation bar.
+// shape the site draws itself, as a navigation bar. A strip thinner than
+// BAR_MIN on its short side (the marks of a find in the page down the
+// scrollbar, a progress line) holds no navigation: no bar. A header
+// across a page column (a layer of the page's background, CANVAS)
+// rather than the window, the feed's own sticky title row, is one too;
+// a bar's background may be painted by a child that covers it
+// (FILL_COVER: the layout box inside a sticky header), one shown (not a
+// drawer's scrim at opacity 0).
 const EDGE = 2;
+const BAR_MIN = 24;
 const OWN_BG = 0.5;
 // The bar's backdrop-filter refers to it (url(#VEIL)); without it, the
 // bar gets no blur at all, hence its check before every pass. Two cheap
@@ -703,10 +836,29 @@ function markBars() {
     return;
   veil(root);
   const w = root.clientWidth, h = window.innerHeight;
+  // as wide as the window, or as the page column it stays in
+  const across = (el, r) => {
+    if (r.width >= 0.6 * w)
+      return true;
+    const page = el.parentElement && el.parentElement.closest("[" + CANVAS + "]");
+    return !!page && r.width >= 0.9 * page.getBoundingClientRect().width;
+  };
   const along = (el) => {
     const r = el.getBoundingClientRect();
-    return (r.width >= 0.6 * w && r.height <= 0.35 * h && (r.top <= EDGE || r.bottom >= h - EDGE))
-      || (r.height >= 0.6 * h && r.width <= 0.4 * w && (r.left <= EDGE || r.right >= w - EDGE));
+    return Math.min(r.width, r.height) >= BAR_MIN
+      && ((across(el, r) && r.height <= 0.35 * h && (r.top <= EDGE || r.bottom >= h - EDGE))
+        || (r.height >= 0.6 * h && r.width <= 0.4 * w && (r.left <= EDGE || r.right >= w - EDGE)));
+  };
+  const backed = (el) => {
+    if (alpha(getComputedStyle(el).backgroundColor) >= OWN_BG)
+      return true;
+    // a scrim faded out (opacity 0, a drawer's) paints nothing
+    const kid = el.firstElementChild;
+    if (!kid || alpha(getComputedStyle(kid).backgroundColor) < OWN_BG
+        || !kid.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+      return false;
+    const r = el.getBoundingClientRect(), k = kid.getBoundingClientRect();
+    return k.width * k.height >= FILL_COVER * r.width * r.height;
   };
   const pinned = (el) => {
     const position = getComputedStyle(el).position;
@@ -725,8 +877,7 @@ function markBars() {
           break;
         if (!along(el) || !pinned(el))
           continue;
-        if (!el.hasAttribute(BAR)
-            && (alpha(getComputedStyle(el).backgroundColor) >= OWN_BG || over(el, w, h)))
+        if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h)))
           mark(el, BAR);
         break;
       }
@@ -755,17 +906,26 @@ function markBars() {
 // covers a bar and paints its background in its place (a sidebar drawn by
 // its child). They show the page's colour, now glass: they get CANVAS too
 // (FILL), or they stay as dark or light bands over the glass. They lose it
-// with the page's layers (markCanvas), not when they shrink.
+// with the page's layers (markCanvas), not when they shrink. The same for
+// an empty ::before or ::after of such an element painting the page's
+// colour (a strip under a sticky header's rounded corners, hiding the
+// posts scrolled past): FILLED, the pseudo-elements by name.
 const FILL_NODES = 400;
 const FILL_COVER = 0.9;
 const NOT_FILLS = new Set(["img", "video", "canvas", "svg", "iframe", "embed", "object", "picture",
   "input", "textarea", "select", "button", "hr"]);
+const PSEUDOS = ["before", "after"];
+
+function pageFill(el, pseudo) {
+  const style = getComputedStyle(el, "::" + pseudo);
+  return style.content === "\"\"" && style.display !== "none" && pageColors.has(style.backgroundColor);
+}
 
 function markFills() {
   const root = document.documentElement;
   if (!root || off !== false || !document.body)
     return;
-  if (pageColor === null || !document.querySelector("[" + CANVAS + "]:not([" + CANVAS + "=\"" + FILL + "\"])"))
+  if (!pageColors.size || !document.querySelector("[" + CANVAS + "]:not([" + CANVAS + "=\"" + FILL + "\"])"))
     return;
   const w = root.clientWidth, h = window.innerHeight;
   const points = [];
@@ -785,13 +945,17 @@ function markFills() {
         holders.add(el);
     }
   for (const holder of holders) {
+    const had = holder.getAttribute(FILLED) || "";
+    const pseudos = PSEUDOS.filter((p) => !had.includes(p) && pageFill(holder, p));
+    if (pseudos.length)
+      holder.setAttribute(FILLED, (had + " " + pseudos.join(" ")).trim());
     const box = holder.getBoundingClientRect();
     const bar = holder.hasAttribute(BAR);
     const kids = holder.querySelectorAll("*");
     for (let i = 0; i < kids.length && i < FILL_NODES; i++) {
       const el = kids[i];
       if (el.hasAttribute(CANVAS) || NOT_FILLS.has(el.localName)
-          || getComputedStyle(el).backgroundColor !== pageColor)
+          || !pageColors.has(getComputedStyle(el).backgroundColor))
         continue;
       const r = el.getBoundingClientRect();
       if (!el.firstElementChild && !el.textContent.trim() ? r.width > 0 && r.height > 0
@@ -973,8 +1137,8 @@ function markInk() {
   if (!root || !document.body)
     return;
   if (off !== false) {
-    for (const el of document.querySelectorAll("[" + INK + "], [" + TILE + "]"))
-      el.removeAttribute(INK), el.removeAttribute(TILE);
+    for (const el of document.querySelectorAll("[" + INK + "], [" + TILE + "], [" + UNINVERT + "]"))
+      el.removeAttribute(INK), el.removeAttribute(TILE), el.removeAttribute(UNINVERT);
     return;
   }
   const h = window.innerHeight;
@@ -1016,6 +1180,7 @@ function markInk() {
   for (const [el, style] of held)
     style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
   markTiles(near);
+  markUninverted(near);
 }
 
 // Pictures made for a white page, on a background now dark, are shown on
@@ -1079,11 +1244,62 @@ function tile(el) {
   return unread >= TILE_INK * s.inks.length ? "ink" : null;
 }
 
+// Dark Reader inverts an inline <svg> logo (DR_INVERT) whose markup alone
+// draws dark ink on nothing: it reads the svg as a picture, with the
+// colours of its attributes. But a style sheet of the page may paint its
+// shapes (.logo path { fill: var(--text) }), and Dark Reader lightens
+// that rule too: the ink is light already, and the invert turns it dark
+// again, a dark logo on the dark background. Such an svg, on a dark
+// background, whose shapes' paint (their computed fill and stroke, not
+// in <defs> and the like) is lighter and reads against it (INK_RATIO) as
+// it is for at least UNINVERT_READ of it, gets UNINVERT: no filter. One over
+// INVERT_LARGE px (a large light picture, which Dark Reader dims on
+// purpose) stays as it is. The mark goes with the invert, with the
+// darkening (a light theme) and with the page's marks.
+const DR_INVERT = "data-darkreader-inline-invert";
+const UNINVERT_READ = 0.6;
+const INVERT_LARGE = 512 * 512;
+const SHAPES = "path, rect, circle, ellipse, line, polyline, polygon, text";
+const UNPAINTED = "defs, clipPath, mask, symbol, pattern, marker";
+
+function markUninverted(near) {
+  for (const el of document.querySelectorAll("[" + UNINVERT + "]"))
+    if (!darkened || !el.hasAttribute(DR_INVERT))
+      el.removeAttribute(UNINVERT);
+  if (!darkened)
+    return;
+  for (const svg of document.body.querySelectorAll("svg[" + DR_INVERT + "]"))
+    if (near(svg))
+      uninverted(svg) ? svg.setAttribute(UNINVERT, "") : svg.removeAttribute(UNINVERT);
+}
+
+function uninverted(svg) {
+  const r = svg.getBoundingClientRect();
+  if (r.width * r.height > INVERT_LARGE)
+    return false;
+  const bg = behind(svg.parentElement || document.documentElement);
+  if (bg === null || bg > DARK_BG)
+    return false;
+  const ys = [];
+  for (const shape of svg.querySelectorAll(SHAPES)) {
+    if (shape.closest(UNPAINTED))
+      continue;
+    const style = getComputedStyle(shape);
+    for (const paint of [style.fill, style.stroke]) {
+      const y = luminance(paint);
+      if (y !== null && alpha(paint) >= CLEAR)
+        ys.push(y);
+    }
+  }
+  const read = ys.filter((y) => y > bg && contrast(y, bg) >= INK_RATIO).length;
+  return ys.length > 0 && read >= UNINVERT_READ * ys.length;
+}
+
 // A picture's pixels, read once per source on a canvas SAMPLE_SIDE px at
 // most: {clear: the share of see-through pixels (alpha under CLEAR),
 // inks: the luminance of the others at INK_STEPS quantiles}. null when
 // they cannot be read (a picture of another origin, an empty one); a
-// picture still loading is read once loaded (a new pass).
+// picture still loading is read once loaded (a new pass, see loaded).
 const SAMPLE_SIDE = 96;
 const INK_STEPS = 20;
 const SAMPLES_MAX = 1000;
@@ -1095,10 +1311,8 @@ function sample(img) {
     return null;
   if (samples.has(src))
     return samples.get(src);
-  if (!img.complete) {
-    img.addEventListener("load", ink, {once: true});  // added once
+  if (!img.complete)
     return null;
-  }
   if (samples.size >= SAMPLES_MAX)
     samples.clear();
   samples.set(src, pixels(img));
@@ -1131,6 +1345,16 @@ function pixels(img) {
   for (let q = 0; q < INK_STEPS; q++)
     inks.push(ys[Math.floor((q + 0.5) * ys.length / INK_STEPS)]);
   return {clear: 1 - ys.length / (w * h), inks};
+}
+
+// A picture loaded after the last pass is looked at again: a lazy one
+// (no width, so not near, until it is in: a shop's product photos
+// scrolled into view), a source swapped, pixels not there to read. One
+// listener for the document (load does not bubble, it is caught on its
+// way down), nothing watched per picture.
+function loaded(e) {
+  if (off === false && e.target.localName === "img")
+    ink();
 }
 
 function ink() {
@@ -1323,6 +1547,7 @@ document.addEventListener("transitionend", (e) => {
 }, {capture: true, passive: true});
 for (const type of ["scroll", "transitionend"])
   document.addEventListener(type, layers, {capture: true, passive: true});
+document.addEventListener("load", loaded, {capture: true, passive: true});
 for (const type of ["scrollend", "resize", "load"])
   window.addEventListener(type, layers, {passive: true});
 for (const type of ["click", "submit"])

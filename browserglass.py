@@ -168,6 +168,12 @@ ATTR_INK = "data-browserglass-ink"
 # ... and TILE on a picture made for a white page on a background now dark
 # (see _CONTENT_LAYERS): shown on a white tile.
 ATTR_TILE = "data-browserglass-tile"
+# ... and UNINVERT on an inline SVG logo Dark Reader inverts though its
+# shapes already paint light (see _CONTENT_LAYERS): no filter.
+ATTR_UNINVERT = "data-browserglass-uninvert"
+# ... and FILLED, "before", "after" or both, on a fixed or sticky element
+# whose empty pseudo-element paints the page's background: glass too.
+ATTR_FILLED = "data-browserglass-filled"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1690,10 +1696,11 @@ _CHROME_PRIVATE_SELECTOR = ':root[privatebrowsingmode="temporary"] body'
 # dark one only pages that say they have a dark mode do: a light-only page
 # (dark text, no dark mode) would be unreadable on the dark tint, so it keeps
 # its own background. A page says so with <meta name="color-scheme"> naming
-# "dark", or a dark-mode marker on <html> (_DARK_PAGE_MARKERS). The meta
-# counts only without a light-mode marker on <html>: a page can name both
-# schemes and still pick its light one (GitHub's home page,
-# data-color-mode="light").
+# "dark", or a dark-mode marker on <html> (_DARK_PAGE_MARKERS), or the
+# common ones on <body> (_DARK_BODY_MARKER: Grafana's theme-dark class is
+# on <body> only). The meta counts only without a light-mode marker on
+# <html>: a page can name both schemes and still pick its light one
+# (GitHub's home page, data-color-mode="light").
 _LIGHT_PAGE_MARKERS = ('[data-color-mode="light" i]', '[data-theme~="light" i]', '.light')
 _DARK_PAGE_MARKERS = (
     ':not(%s):has(> head > meta[name="color-scheme" i][content~="dark" i])' % ", ".join(_LIGHT_PAGE_MARKERS),
@@ -1702,11 +1709,14 @@ _DARK_PAGE_MARKERS = (
     '.theme-dark',
     ':has(> body > #outerContainer #viewerContainer)',  # pdf.js: light-dark() colours
 )
+_DARK_BODY_MARKER = ':has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i]))'
 # :where(): no added specificity, so the opaque PDF rule still wins.
-_DARK_PAGE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS)
+_DARK_PAGE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS + (_DARK_BODY_MARKER,))
 _DARK_PAGE_ROOT = ":root" + _DARK_PAGE_WHERE
 # With liveControl a page the companion add-on measured (ATTR_TONE) counts
 # as one with a dark version: the tone tint (_CONTENT_TONE) makes it legible.
+# Every page it runs on carries the tone, so the <body> marker adds nothing
+# there (and would weigh on every gated rule).
 _DARK_PAGE_TONE_WHERE = ":where(%s)" % ", ".join(_DARK_PAGE_MARKERS + ("[%s]" % ATTR_TONE,))
 _DARK_PAGE_TONE_ROOT = ":root" + _DARK_PAGE_TONE_WHERE
 
@@ -1771,8 +1781,12 @@ _CONTENT_DARKEN = (
 # which the companion add-on marks:
 # - the page's own background (ATTR_CANVAS): with the root and the body
 #   see-through, the lowest layer that paints an opaque background colour
-#   over most of the window (a fixed full-window container, a wrapper):
-#   glass;
+#   over most of the window (a fixed full-window container, a wrapper), or
+#   a plain one on the page's side down a column (a feed in the middle, an
+#   app's surface beside its menu) or across the window (a menu row):
+#   glass, and so is an empty ::before or ::after of a fixed or sticky
+#   element in that colour (ATTR_FILLED names it: a strip under a sticky
+#   header's rounded corners);
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
 #   window (a header, a bottom bar, a sidebar), with a background of its
 #   own, whatever its colours. Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
@@ -1794,7 +1808,10 @@ _CONTENT_DARKEN = (
 #   rounded to TILE_RADIUS by a clip-path, no blending, no filter. The
 #   picture keeps square corners: rounded ones (the shadow's hole rounded
 #   alike) would let the dark background through where the two smoothed
-#   edges meet, a grey dot at each corner.
+#   edges meet, a grey dot at each corner;
+# - an inline SVG logo Dark Reader inverts, its shapes painted light by a
+#   style sheet Dark Reader lightened (ATTR_UNINVERT): no filter, so the
+#   light ink is not turned dark again.
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.65
@@ -1802,6 +1819,7 @@ NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _TILE_SELECTOR = "[" + ATTR_TILE + "]:not(#browserglass-a):not(#browserglass-b)"
+_UNINVERT_SELECTOR = "[" + ATTR_UNINVERT + "]:not(#browserglass-a):not(#browserglass-b)"
 TILE_PAD = 6
 TILE_RADIUS = 8
 _TILE_RULE = (
@@ -1821,7 +1839,10 @@ _CONTENT_LAYERS = (
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
+    "  [" + ATTR_FILLED + "~=\"before\"]::before, [" + ATTR_FILLED + "~=\"after\"]::after"
+    " {{ background-color: transparent !important; }}\n"
     + _TILE_RULE
+    + "  " + _UNINVERT_SELECTOR + " {{ filter: none !important; }}\n"
     + "  " + _BAR_SELECTOR + " {{\n"
     "    background: rgba({dark}, {nav}) !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"

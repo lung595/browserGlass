@@ -25,11 +25,17 @@
     "gemini.google.com": [
       {"store": "local", "key": "Bard-Color-Theme", "op": "set", "from": ["Bard-Light-Theme"], "to": "Bard-Dark-Theme", "verified": "2026-11-15", "note": "signed out, Settings > Theme writes Bard-Color-Theme; absent, the page follows the system colour scheme"}
     ],
+    "service-public.gouv.fr": [
+      {"store": "local", "key": "scheme", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-16", "note": "DSFR: the server renders <html data-fr-scheme=\"light\">, the DSFR script reads localStorage scheme (light, dark, system) over it and writes it back, no reload; system already follows a dark system; service-public.fr redirects here, www, entreprendre and lannuaire checked"}
+    ],
     "www.digitec.ch": [
       {"store": "cookie", "key": ".themeshade", "op": "set", "from": [null, "light"], "to": "dark", "path": "/", "reload": true, "verified": "2026-11-16", "note": "the server renders <html class=\"digitec light-mode\"> when absent, even on a dark system, and dark-mode from .themeshade=dark (light, dark, system); the theme menu sets it HttpOnly and host-only: then the write is refused, one reload, failed"}
     ],
     "www.galaxus.ch": [
       {"store": "cookie", "key": ".themeshade", "op": "set", "from": [null, "light"], "to": "dark", "path": "/", "reload": true, "verified": "2026-11-16", "note": "the server renders <html class=\"galaxus light-mode\"> when absent, even on a dark system, and dark-mode from .themeshade=dark (light, dark, system); the theme menu sets it HttpOnly and host-only: then the write is refused, one reload, failed"}
+    ],
+    "www.info.gouv.fr": [
+      {"store": "local", "key": "scheme", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-16", "note": "DSFR, as on service-public.gouv.fr: data-fr-scheme=\"light\" from the server, localStorage scheme read over it, no reload"}
     ],
     "www.npmjs.com": [
       {"store": "local", "key": "npm-color-mode", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-15", "note": "an inline head script reads npm-color-mode, light when absent; the moon toggle writes it"}

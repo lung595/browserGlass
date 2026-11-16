@@ -23,7 +23,9 @@ the list). Checked:
     style, tone light), the wrapper, its lowest layer, still glass; a dark
     theme darkens it again; the helper turning darken off live (a message)
     gives the page back at once;
-  - left alone: a page that declares a dark version, an excluded page, and
+  - left alone: a page that declares a dark version (on <html>, or on
+    <body> only: a web app dark by its own style, measured dark despite
+    its black skip link out of sight), an excluded page, and
     any page with darkPages off, a page under the style file's colours
     while the helper says darken false, and a page that sets the darkening
     colours itself, under a light theme and under a dark one (darken
@@ -43,7 +45,13 @@ the list). Checked:
     page's origin or a data: URL; left alone: a photo as wide as the page,
     the same ink from another origin (its pixels cannot be read), a light
     logo, an opaque picture, an icon under 24 px; a light theme takes the
-    tiles off.
+    tiles off. A multiplied photo loaded late (a lazy one: no width, so
+    no tile, until it is in) is tiled once loaded, with nothing else
+    moving on the page;
+  - inline SVG logos in a header Dark Reader inverts: one whose shapes the
+    page's style sheet paints (Dark Reader lightens that rule) shows its
+    light ink with no filter, one dark by its attributes alone stays
+    inverted; a light theme takes the mark off.
 """
 
 import json
@@ -61,7 +69,7 @@ import marionette as mn  # noqa: E402
 import test_e2e_tone as tone  # noqa: E402
 
 bg = tone.bg
-CANVAS, OFF, TILE = bg.ATTR_CANVAS, bg.ATTR_OFF, bg.ATTR_TILE
+CANVAS, OFF, TILE, UNINVERT = bg.ATTR_CANVAS, bg.ATTR_OFF, bg.ATTR_TILE, bg.ATTR_UNINVERT
 EXT = os.path.join(tone.REPO, "extension")
 
 TEXT = "<p>" + "Some readable dark text on a light page. " * 8 + "</p>"
@@ -116,8 +124,9 @@ def svg(width, height, body):
 # page (#hero); see-through black ink of the page's origin (#ink, from
 # /ink.svg) and of a data: URL (#mark), and the same ink from another
 # origin (#far, its source set by the test: its pixels cannot be read);
-# a see-through light logo (#sun), an opaque picture (#opaque) and a
-# black icon under 24 px (#icon).
+# a see-through light logo (#sun), an opaque picture (#opaque), a
+# black icon under 24 px (#icon), and a multiplied photo of a fixed height
+# whose source the test sets late (#late: a lazy picture, no width before).
 INK_RECT = '<rect x="10" y="10" width="100" height="20" fill="black"/>'
 INK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">' + INK_RECT + '</svg>'
 PHOTO = svg(120, 80, '<rect width="120" height="80" fill="white"/>'
@@ -131,6 +140,7 @@ PICTURES = (
     ("sun", svg(120, 40, INK_RECT.replace("black", "rgb(255,200,0)")), 'width="120" height="40"'),
     ("opaque", svg(120, 40, '<rect width="120" height="40" fill="white"/>' + INK_RECT), 'width="120" height="40"'),
     ("icon", svg(16, 16, '<rect x="2" y="2" width="12" height="12" fill="black"/>'), 'width="16" height="16"'),
+    ("late", "", 'class="blend" style="height:80px"'),
 )
 TILE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
@@ -162,6 +172,26 @@ return win.drawSnapshot(new DOMRect(x - pad, y - pad, w + 2 * pad, h + 2 * pad),
   return [inner, at(0, 0)];
 });"""
 LOADED = "return [...document.images].every((i) => !i.src || i.complete);"
+
+# Inline SVG logos in a fixed header, see-through, on a page Dark Reader
+# darkens; Dark Reader inverts both (a "logo" class, dark fills in their
+# markup on nothing). #styled's shapes are painted by the page's style
+# sheet (next.ink's .next-logo path { fill: var(--color-text) }), which
+# Dark Reader lightens: its ink is light already, the invert must go.
+# #plain's dark fills come from its attributes only: the invert stays.
+LOGO_PATHS = ('<path d="M2 2h40v24H2z" fill="#242424"/><path d="M50 2h40v24H50z" fill="#242424"/>'
+              '<path class="accent" d="M96 2h16v24H96z" fill="#4F62FF"/>')
+LOGO = '<svg id="%s" class="%s" width="115" height="29" viewBox="0 0 115 29" fill="none" xmlns="http://www.w3.org/2000/svg">' + LOGO_PATHS + '</svg>'
+LOGO_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+:root {--color-text: #242424}
+html, body {margin:0; background:rgb(255,255,255); color:var(--color-text)}
+header {position:fixed; top:0; left:0; right:0; height:60px; background:rgb(255,255,255)}
+.styled-logo path {fill: var(--color-text)}
+.styled-logo .accent {fill: rgb(79, 98, 255)}
+main {padding-top:80px}
+</style></head><body><header>""" + LOGO % ("styled", "styled-logo") + LOGO % ("plain", "plain-logo") + \
+    "</header><main>" + TEXT * 4 + "</main></body></html>"
+FILTER = "return getComputedStyle(document.getElementById(arguments[0])).filter;"
 
 
 # A Stacks page as Stack Overflow serves it signed out (no dark theme):
@@ -249,6 +279,7 @@ class DarkenE2E(unittest.TestCase):
                 self.check_native(binary)
                 self.check_stacks(binary)
                 self.check_tiles(binary)
+                self.check_logos(binary)
 
     def run_content(self, b, excluded=(), darken=True):
         """content.js with the stored list `excluded` and darken flag
@@ -391,6 +422,12 @@ class DarkenE2E(unittest.TestCase):
                 self.assertFalse(b.js(MARKED, name, TILE), name + " tiled")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('hero')).mixBlendMode;"),
                              "multiply")
+            # a multiplied photo loaded late, the passes over: tiled once in
+            self.assertEqual(b.js("return document.getElementById('late').getBoundingClientRect().width;"), 0)
+            self.assertFalse(b.js(MARKED, "late", TILE), "late photo tiled with no width")
+            b.js("document.getElementById('late').src = arguments[0];", PHOTO)
+            self.assertTrue(b.wait_for(TILED + " === 'blend';", 3.0, "late", TILE),
+                            "multiplied photo loaded late not tiled")
             # a light theme: the page's own white, no tile left
             tone.set_scheme(b, False)
             self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
@@ -398,6 +435,34 @@ class DarkenE2E(unittest.TestCase):
                                        mn.WAIT_TIMEOUT, TILE), "still tiled under a light theme")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('photo')).mixBlendMode;"),
                              "multiply")
+
+    def check_logos(self, binary):
+        routes = {"/l.html": ("text/html; charset=utf-8", LOGO_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/l.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            for name in ("styled", "plain"):
+                self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, name, "data-darkreader-inline-invert"),
+                                name + " not inverted by Dark Reader")
+            fill = b.js("return getComputedStyle(document.querySelector('#styled path')).fill;")
+            self.assertGreater(tone.luminance(tone.rgba(fill)), 0.4, "styled logo's ink not lightened")
+            # the light ink of the styled logo shown as it is, no filter
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "styled", UNINVERT),
+                            "a light logo inverted to dark")
+            self.assertEqual(b.js(FILTER, "styled"), "none")
+            # the dark fills of the plain one still inverted
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertFalse(b.js(MARKED, "plain", UNINVERT), "a dark logo left dark")
+            self.assertIn("invert(1)", b.js(FILTER, "plain"))
+            # a light theme: Dark Reader and the mark gone
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader')"
+                                       " && !document.querySelector('[' + arguments[0] + ']');",
+                                       mn.WAIT_TIMEOUT, UNINVERT), "still marked under a light theme")
+            self.assertEqual(b.js(FILTER, "styled"), "none")
 
     def check_native(self, binary):
         routes = {"/n.html": ("text/html; charset=utf-8", NATIVE_PAGE.encode("utf-8"))}
@@ -436,13 +501,25 @@ class DarkenE2E(unittest.TestCase):
     def check_left_alone(self, binary):
         routes = {"/w.html": ("text/html; charset=utf-8", WRAPPED_PAGE.encode("utf-8")),
                   "/d.html": ("text/html; charset=utf-8", tone.DARK_PAGE.encode("utf-8")),
-                  "/s.html": ("text/html; charset=utf-8", SPOOF_PAGE.encode("utf-8"))}
+                  "/s.html": ("text/html; charset=utf-8", SPOOF_PAGE.encode("utf-8")),
+                  "/app.html": ("text/html; charset=utf-8", tone.APP_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
             b.navigate(srv.url("/d.html", "dark.test"))
             self.run_content(b)
             self.left_alone(b, "a page with a dark version")
+            # a web app dark by its own style, its dark class on <body>
+            # only, a black skip link out of sight: its own dark, no
+            # darkening colours, no marks added on <html>
+            b.navigate(srv.url("/app.html", "light.test"))
+            self.run_content(b)
+            self.left_alone(b, "a page dark by its own style")
+            self.assertEqual(b.js("return document.documentElement.getAttribute(arguments[0]);",
+                                  tone.TONE), "dark")
+            self.assertEqual(b.js(CLASSES), "")
+            self.assertEqual(b.js("return getComputedStyle(document.documentElement)"
+                                  ".getPropertyValue('--browserglass-darken-bg');"), "")
             b.navigate(srv.url("/w.html", "light.test"))
             self.run_content(b, ["light.test"])
             self.left_alone(b, "an excluded page")

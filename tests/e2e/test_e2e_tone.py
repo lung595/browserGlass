@@ -42,6 +42,14 @@ declared) and dark.test (light text on a dark background). Checked:
     shop's banners drawn over pictures, nor a dark band below the first
     screen (a shop's tall footer) that is as wide as the page and taller
     than most of the window: both are read like cards;
+  - a web app dark by its own style (Grafana: the dark class on <body>
+    only, a header and a sidebar, the dashboard's light text on an opaque
+    wrapper read like a card) whose only text on the page's background is
+    black and out of sight (a skip link above the page, a label in a box
+    of a pixel, clip, clip-path), or one short visible line, is dark under
+    either scheme: glass under a dark theme, the dark tint under a light
+    one; a dark marker on <body> counts as a declared dark version (no
+    light tint, even measured light);
   - a site style that makes the text white (white.test.css) on a light
     page: under a dark theme the tone is that of the text shown, "dark"
     (the site style applies once the tone is set), so the page is glass
@@ -166,6 +174,30 @@ html{background:rgb(234,237,237)} body{margin:0;color:rgb(15,17,17)}
     "<div class=\"card\"><h3>Lampe de chevet en bois</h3><p>Livraison gratuite d\u00e8s demain</p></div>") * 40 + (
     "</div><div class=\"band\">") + "<a href=\"#\">Informations sur la livraison</a>" * 40 + (
     "</div></body></html>")
+# A web app dark by its own style (Grafana): the dark theme is a class on
+# <body> only, <html> has none; a header and a sidebar (the site's menus),
+# the dashboard's light text on an opaque dark wrapper beside the sidebar
+# (read like a card); on the page's background, only black text out of
+# sight: a skip link placed above the page until focused, a label for
+# screen readers in a box of a pixel and clipped, one clipped with
+# clip-path. With class "loading" on <html>, one short black line is
+# left visible on the page (a loading message): too little to decide.
+APP_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{background:rgb(255,255,255)} body{margin:0;color:rgb(0,0,0)}
+body.theme-dark{background:rgb(17,18,23);color:rgb(204,204,220)}
+.skip{position:absolute;top:-999px;left:12px} .skip span{color:rgb(0,0,0)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);color:rgb(0,0,0)}
+.clipped{position:absolute;clip-path:inset(50%);color:rgb(0,0,0)}
+.loader{display:none;color:rgb(0,0,0)} html.loading .loader{display:block}
+header{height:40px;background:rgb(24,27,31)} header a,nav a{display:block;color:rgb(204,204,220)}
+.app{display:flex} nav{width:240px;background:rgb(24,27,31)}
+.wrapper{flex:1;min-height:100vh;background:rgb(17,18,23)}
+</style></head><body class="theme-dark"><a class="skip" href="#main"><span>Skip to main content</span></a>
+<span class="sr">Open the menu</span><span class="clipped">Search dashboards</span>
+<p class="loader">Loading Grafana</p><header>""" + "<a>Home</a>" * 3 + """</header>
+<div class="app"><nav>""" + "<a>Dashboards</a>" * 12 + """</nav><div class="wrapper" id="main">""" + (
+    "<h3>CPU usage per instance</h3><p>Requests per second</p>") * 10 + "</div></div></body></html>"
+APP_LOADING_PAGE = APP_PAGE.replace("<html>", '<html class="loading">', 1)
 # A light page with a web component: a light section in a shadow root.
 SHADOW_PAGE = LIGHT_PAGE.replace("<p>Readable text</p>", """<p>Readable text</p><div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML =
@@ -318,6 +350,11 @@ class ToneE2E(unittest.TestCase):
             self.assertEqual(colors(b)[1:], ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
             b.js("document.documentElement.removeAttribute('dark');")
             self.assertEqual(colors(b)[1], self.tint["light"])
+            # nor one declaring it on <body> only (Grafana's theme-dark)
+            b.js("document.body.classList.add('theme-dark');")
+            self.assertEqual(colors(b)[1:], ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
+            b.js("document.body.classList.remove('theme-dark');")
+            self.assertEqual(colors(b)[1], self.tint["light"])
             # under a light theme the light page is glass, untinted
             set_scheme(b, False)
             self.assertEqual(colors(b)[1:], ("rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"))
@@ -359,7 +396,9 @@ class ToneE2E(unittest.TestCase):
                   "/menu.html": ("text/html; charset=utf-8", MENU_PAGE.encode("utf-8")),
                   "/g.html": ("text/html; charset=utf-8", GREY_PAGE.encode("utf-8")),
                   "/cards.html": ("text/html; charset=utf-8", CARDS_PAGE.encode("utf-8")),
-                  "/shop.html": ("text/html; charset=utf-8", SHOP_PAGE.encode("utf-8"))}
+                  "/shop.html": ("text/html; charset=utf-8", SHOP_PAGE.encode("utf-8")),
+                  "/app.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
+                  "/loading.html": ("text/html; charset=utf-8", APP_LOADING_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -424,6 +463,17 @@ class ToneE2E(unittest.TestCase):
                 b.js(RUN_CONTENT, self.content_js)
                 with self.subTest(page="/shop.html", dark=dark):
                     self.tone_is(b, "light")
+            # a web app dark by its own style: text out of sight, and one
+            # short line on the page, do not outvote the dashboard on its
+            # wrapper; glass under a dark theme, the dark tint under a light
+            for dark in (True, False):
+                set_scheme(b, dark)
+                for path in ("/app.html", "/loading.html"):
+                    b.navigate(srv.url(path, "light.test"))
+                    b.js(RUN_CONTENT, self.content_js)
+                    with self.subTest(page=path, dark=dark):
+                        self.tone_is(b, "dark")
+                        self.assertEqual(colors(b)[1], "rgba(0, 0, 0, 0)" if dark else self.tint["dark"])
 
 
 if __name__ == "__main__":
