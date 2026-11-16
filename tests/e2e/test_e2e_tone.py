@@ -50,6 +50,13 @@ declared) and dark.test (light text on a dark background). Checked:
     either scheme: glass under a dark theme, the dark tint under a light
     one; a dark marker on <body> counts as a declared dark version (no
     light tint, even measured light);
+  - a light portal (Swisscom: a white body, its sections at opacity 0
+    until scrolled to, a hero carousel's white headlines over pictures,
+    the next slide's beside the window) is light under either scheme: the
+    hidden text and the slide beside the window do not vote, and with no
+    text left on the page's background the body's own colour decides;
+    under a cookie dialog's half-opaque scrim too, the headline shown
+    read on its picture, not on the scrim over it;
   - a drawing board (Excalidraw: a canvas filling the window, painted by
     its script, pale grey hints over it, dark text only on a toolbar) is
     light from its pixels, under either scheme, and dark once painted dark;
@@ -201,6 +208,55 @@ header{height:40px;background:rgb(24,27,31)} header a,nav a{display:block;color:
 <div class="app"><nav>""" + "<a>Dashboards</a>" * 12 + """</nav><div class="wrapper" id="main">""" + (
     "<h3>CPU usage per instance</h3><p>Requests per second</p>") * 10 + "</div></div></body></html>"
 APP_LOADING_PAGE = APP_PAGE.replace("<html>", '<html class="loading">', 1)
+# A light portal (Swisscom): a white body, navy text, every section kept
+# at opacity 0 until scrolled to (a reveal on scroll), a navy header (the
+# site's menus) with white links; a hero carousel whose slides hold white
+# headlines over pictures, the next slide laid beside the one shown, its
+# middle right of the window. Neither the hidden text nor the next slide's
+# headline votes; the white body decides, light, under either scheme.
+# REVEAL_DIALOG_PAGE: the same under a cookie dialog, a white card over
+# a fixed scrim of half-opaque black across the window: the headline shown
+# is still read on its picture, not on the scrim painted over it.
+REVEAL_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html{overflow-x:hidden} body{margin:0;background:rgb(255,255,255);color:rgb(0,17,85)}
+header{background:rgb(0,17,85)} header a{display:inline-block;margin:6px;color:rgb(255,255,255)}
+.hero{position:relative;height:420px;overflow:hidden} .track{display:flex;gap:2vw;width:300vw}
+.slide{position:relative;flex:0 0 80vw;height:420px}
+.slide img{position:absolute;left:0;top:0;width:100%;height:100%}
+.slide h2,.slide p{position:relative;margin:0;padding:12px 24px;color:rgb(255,255,255)}
+.reveal{opacity:0} .card{background:rgb(255,255,255);border:1px solid rgb(200,200,210)}
+</style></head><body><header>""" + "<a>Abos</a>" * 8 + """</header><div class="hero"><div class="track">""" + (
+    "<div class=\"slide\"><img alt=\"\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'"
+    " width='24' height='28'%3E%3Crect width='24' height='28' fill='%23102050'/%3E%3C/svg%3E\">"
+    "<h2>Le meilleur abonnement Internet de Suisse</h2><p>Internet et TV 1 an pour 39.90</p></div>") * 3 + (
+    "</div></div>") + ("<div class=\"reveal\"><h2>Nos offres du moment</h2><p>Un abonnement mobile pour"
+                       " toute la famille.</p><div class=\"card\"><p>Voir l'offre</p></div></div>") * 20 + (
+    "</body></html>")
+REVEAL_DIALOG_PAGE = REVEAL_PAGE.replace("</body>", (
+    "<div style=\"position:fixed;inset:0;z-index:5;background:rgba(0,0,0,0.5)\"></div>"
+    "<div style=\"position:fixed;top:60px;right:40px;width:420px;z-index:6;background:rgb(255,255,255);"
+    "color:rgb(51,51,51);padding:16px\"><h2>Vous nous rendez visite depuis l'etranger</h2>"
+    "<p>Afin d'assurer un fonctionnement de base du site, des cookies sont utilises.</p></div></body>"), 1)
+# REVEAL_PROMO_PAGE: the same with a promotion shown at once in a modal
+# <dialog> across the window (Swisscom's Black Weeks), see-through on its
+# black backdrop, its headline and offer in white: the dialog's tone, not
+# the page's (and the page under it, inert, is out of the hit tests: its
+# carousel's headlines are not seen on their pictures). REVEAL_SHEET_PAGE:
+# the same promotion in a fixed role="dialog" laid over the page, its
+# black drawn by a ::before.
+REVEAL_PROMO_PAGE = REVEAL_PAGE.replace("</body>", (
+    "<dialog id=\"promo\" style=\"position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;"
+    "margin:0;border:0;padding:460px 40px 0;background:transparent;color:rgb(255,255,255)\">"
+    "<h2>Les Black Weeks sont la!</h2><p>Offres exceptionnelles et cadeaux pour tous les abonnements.</p>"
+    "<p>Profitez maintenant des meilleurs prix de l'annee.</p></dialog>"
+    "<style>#promo::backdrop{background:rgb(0,0,0)}</style>"
+    "<script>document.getElementById('promo').showModal();</script></body>"), 1)
+REVEAL_SHEET_PAGE = REVEAL_PAGE.replace("</body>", (
+    "<div id=\"sheet\" role=\"dialog\" style=\"position:fixed;inset:0;z-index:9;padding:460px 40px 0;"
+    "color:rgb(255,255,255)\"><h2>Les Black Weeks sont la!</h2>"
+    "<p>Offres exceptionnelles et cadeaux pour tous les abonnements.</p>"
+    "<p>Profitez maintenant des meilleurs prix de l'annee.</p></div>"
+    "<style>#sheet::before{content:'';position:absolute;inset:0;z-index:-1;background:rgb(0,0,0)}</style></body>"), 1)
 # A drawing board (Excalidraw): a <canvas> filling the window, painted
 # white by its script (no style says so), under an empty transparent top
 # canvas; over it, a welcome screen of pale grey hints (pointer-events
@@ -425,7 +481,11 @@ class ToneE2E(unittest.TestCase):
                   "/app.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8")),
                   "/loading.html": ("text/html; charset=utf-8", APP_LOADING_PAGE.encode("utf-8")),
                   "/board.html": ("text/html; charset=utf-8", BOARD_PAGE.encode("utf-8")),
-                  "/night.html": ("text/html; charset=utf-8", BOARD_NIGHT_PAGE.encode("utf-8"))}
+                  "/night.html": ("text/html; charset=utf-8", BOARD_NIGHT_PAGE.encode("utf-8")),
+                  "/reveal.html": ("text/html; charset=utf-8", REVEAL_PAGE.encode("utf-8")),
+                  "/dialog.html": ("text/html; charset=utf-8", REVEAL_DIALOG_PAGE.encode("utf-8")),
+                  "/promo.html": ("text/html; charset=utf-8", REVEAL_PROMO_PAGE.encode("utf-8")),
+                  "/sheet.html": ("text/html; charset=utf-8", REVEAL_SHEET_PAGE.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=self.gated, prefs=browser_prefs(), firefox=binary) as b:
             set_scheme(b, True)
@@ -509,6 +569,19 @@ class ToneE2E(unittest.TestCase):
                     b.js(RUN_CONTENT, self.content_js)
                     with self.subTest(page=path, dark=dark):
                         self.tone_is(b, want)
+            # a light portal whose text is hidden until scrolled to: the
+            # next slide's headline beside the window does not vote, the
+            # white body decides (no site style: read past the page rules);
+            # under a cookie dialog's scrim too, the headline shown read on
+            # its picture; under a promotion's dialog, its white text
+            # telling the dialog's tone
+            for path in ("/reveal.html", "/dialog.html", "/promo.html", "/sheet.html"):
+                for dark in (True, False):
+                    set_scheme(b, dark)
+                    b.navigate(srv.url(path, "plain.test"))
+                    b.js(RUN_CONTENT, self.content_js)
+                    with self.subTest(page=path, dark=dark):
+                        self.tone_is(b, "light")
 
 
 if __name__ == "__main__":

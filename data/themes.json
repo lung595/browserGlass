@@ -4,6 +4,9 @@
     "map": {"light": "dark", "Light": "Dark", "LIGHT": "DARK", "\"light\"": "\"dark\""}
   },
   "sites": {
+    "account.proton.me": [
+      {"store": "local", "key": "theme", "op": "set", "from": [null, "2"], "to": "1", "verified": "2026-11-16", "note": "signed out, the theme menu (Light, Dark, Auto) writes theme as a number: 2 light, 1 dark (Carbon), 0 Auto (follows the system live); absent, the page is light even on a dark system; client JS applies it, no reload; mail, calendar and drive.proton.me redirect here signed out; the signup page is always light (Storefront)"}
+    ],
     "alternativeto.net": [
       {"store": "local", "key": "theme", "op": "set", "from": ["light", null], "to": "dark", "verified": "2026-11-15", "note": "next-themes, light when absent and the system scheme ignored; the theme toggle writes theme"}
     ],
@@ -30,6 +33,9 @@
     ],
     "gemini.google.com": [
       {"store": "local", "key": "Bard-Color-Theme", "op": "set", "from": ["Bard-Light-Theme"], "to": "Bard-Dark-Theme", "verified": "2026-11-15", "note": "signed out, Settings > Theme writes Bard-Color-Theme; absent, the page follows the system colour scheme"}
+    ],
+    "impots.gouv.fr": [
+      {"store": "local", "key": "scheme", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-16", "note": "DSFR from a module script at the end of body (no data-fr-scheme from the server): absent, it follows the system and stores the scheme it resolved (light or dark, never system), so a visit under a dark system stays dark under a light one; the recipe owns the key and puts the prior value back, no reload; www checked"}
     ],
     "service-public.gouv.fr": [
       {"store": "local", "key": "scheme", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-16", "note": "DSFR: the server renders <html data-fr-scheme=\"light\">, the DSFR script reads localStorage scheme (light, dark, system) over it and writes it back, no reload; system already follows a dark system; service-public.fr redirects here, www, entreprendre and lannuaire checked"}

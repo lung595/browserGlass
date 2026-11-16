@@ -34,10 +34,19 @@ the list). Checked:
     <html>, its text colour animated) gets it instead of Dark Reader, and
     gives it back under a light theme; a page without one is left with no
     such mark once darkened;
+  - a darkened page that turns its own dark theme on late (DSFR's
+    data-fr-theme set by a module script) gets Dark Reader off, its own
+    dark kept; a mark that leaves the page light (data-header-theme)
+    gets Dark Reader back at once;
   - a site style of data/sites/ on a darkened page: Stack Overflow's
     filled buttons and search field (the real Stacks var() fallback chains,
     which Dark Reader maps to the page's white) keep a fill of their own
     under a dark theme, and the site's own colours under a light one;
+  - Wikipedia's site style on its own night and day themes: the infobox's
+    cells and lines and a plain hatnote see-through (a cell's own inline
+    colour kept), its header and section bars and a hatnote banner under
+    a light veil with a thin border, the search field translucent on a
+    clear form;
   - pictures on a white card Dark Reader darkens: a photo blended with
     multiply is shown on a white tile (not blended, not inverted, a white
     margin drawn by a shadow, rounded outside, with no seam of the dark
@@ -47,9 +56,11 @@ the list). Checked:
     light ink, its hues turned back, with no tile, and so are icons (a
     black square under 24 px, thin black lines with a red accent 24 px
     square, whatever the share of red, a black one blended with multiply);
+    an opaque product photo shot on white (a JPEG, in an absolute box,
+    faded in once loaded) is on a white tile too;
     left alone: a photo as wide as the page, the same ink from another
-    origin (its pixels cannot be read), a light logo, an opaque picture, a
-    shaded round avatar; a light theme takes the tiles off. A multiplied photo loaded late (a lazy one: no width, so
+    origin (its pixels cannot be read), a light logo, an opaque photo
+    filling its frame, a shaded round avatar, a round avatar shot on white; a light theme takes the tiles off. A multiplied photo loaded late (a lazy one: no width, so
     no tile, until it is in) is tiled once loaded, with nothing else
     moving on the page;
   - inline SVG logos in a header Dark Reader inverts: one whose shapes the
@@ -76,10 +87,16 @@ the list). Checked:
     white back;
   - buttons in a saturated brand colour Dark Reader dulls (a link whose
     ::before paints postfinance.ch's yellow from a variable under a petrol
-    label, proton.me's violet button, an input button) keep their fill and
-    label colours as the page had them; left alone: a pale button, a wide
-    banner, a coloured link with no label, a label that does not read on
-    its fill; a light theme takes the marks and their inline colours off;
+    label, proton.me's violet button, an input button, a crimson fill in
+    oklch(), a pastel teal under a dark label) keep their fill and label
+    colours as the page had them; a black button under a white label in
+    a fixed header keeps them with a thin light ring ("lift"); text
+    buttons whose background is a var() the page never sets, which Dark
+    Reader fills, are see-through again ("clear"), a tab the page fills
+    once darkened is not; left alone: a pale button, a light grey and a
+    light blue one under a dark label, a wide banner, a coloured link with
+    no label, a label that does not read on its fill; a light theme takes
+    the marks and their inline colours off;
   - a page whose only opaque surface is a white column half the window
     wide (ch.ch), light words on its see-through half: the column's navy
     text votes, the page is darkened; under a light theme the column is
@@ -98,7 +115,13 @@ the list). Checked:
     never becomes the page's layer; a yellow half kept while the page was
     measured dark is glass once it is light; under a dark theme, a dark
     section in a shadow tree that made the layer of a page measured dark
-    while it loads is kept, its own colour back, once the page is light.
+    while it loads is kept, its own colour back, once the page is light;
+  - a dark page with a light section (GitLab's feature cards, the real
+    generic style): the section's ::before, its tint clipped by its
+    padding to a band, is no face behind the dark heading, so the section
+    keeps its own colour and the heading is not inked, under either
+    theme; the sticky header's mid-grey links, drawn for its white, are
+    inked light on its dark veil once stuck.
 """
 
 import json
@@ -117,6 +140,7 @@ import test_e2e_tone as tone  # noqa: E402
 
 bg = tone.bg
 CANVAS, OFF, TILE, UNINVERT = bg.ATTR_CANVAS, bg.ATTR_OFF, bg.ATTR_TILE, bg.ATTR_UNINVERT
+BAR = bg.ATTR_BAR
 EXT = os.path.join(tone.REPO, "extension")
 
 TEXT = "<p>" + "Some readable dark text on a light page. " * 8 + "</p>"
@@ -135,6 +159,35 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20); transiti
 html.dark, html.dark body {background:rgb(17,17,17); color:rgb(230,230,230)}
 </style></head><body>""" + TEXT + """</body></html>"""
 CLASSES = "return document.documentElement.className;"
+
+# A light page whose own dark theme turns its text light, so it is kept,
+# then shows dark text of its own (#late, an inline colour the ".dark"
+# scope does not change): the theme is taken back and the page
+# darkened. Its crimson button easing to a coral token under ".dark"
+# (#ease, letemps.ch's subscribe button) keeps its own colours, read once
+# the theme is gone, not on its way back.
+TAKEN_BACK_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+.dark body {color:rgb(230,230,230)}
+#ease {background:rgb(176,20,50); color:rgb(255,255,255); padding:10px 20px; transition:background-color 2s, color 2s}
+.dark #ease {background:rgb(240,99,104); color:rgb(20,20,20)}
+</style></head><body><div id="wrap">""" + TEXT + """<p><a id="ease" href="#">S'abonner</a></p></div>
+<script>setTimeout(() => {
+  const late = document.createElement("div");
+  late.id = "late";
+  late.style.color = "rgb(20,20,20)";
+  late.innerHTML = """ + repr(TEXT * 4) + """;
+  document.getElementById("wrap").append(late);
+}, 1500);</script></body></html>"""
+
+# A light page whose own dark theme a late script turns on with DSFR's
+# mark (data-fr-theme on <html>); data-header-theme="dark" darkens nothing.
+LATE_DARK_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#wrap {background:rgb(255,255,255); min-height:100vh}
+html[data-fr-theme="dark"], html[data-fr-theme="dark"] body, html[data-fr-theme="dark"] #wrap
+  {background:rgb(22,22,22); color:rgb(230,230,230)}
+</style></head><body><div id="wrap">""" + TEXT + """</div></body></html>"""
 
 # Dark Reader as a module (its UMD wrapper fills `exports`), then content.js
 # with it and a stand-in WebExtension API (the stored exclusion list and
@@ -167,13 +220,15 @@ def svg(width, height, body):
 
 
 # Pictures on a white shop card Dark Reader darkens: a product photo whose
-# white the site wipes out with multiply (#photo), and one as wide as the
-# page (#hero); see-through black ink of the page's origin (#ink, from
-# /ink.svg) and of a data: URL (#mark), and navy ink (#navy), of one tone
+# white the site wipes out with multiply (#photo), one as wide as the
+# page (#hero), one fitted in a square box (#fit: tiled whole);
+# see-through black ink of the page's origin (#ink, from /ink.svg) and of a data: URL (#mark), and navy ink (#navy), of one tone
 # (inverted), a black product cut out of its photo (#puck, see-through,
 # shaded grey: tiled), and the same ink from another origin (#far, its
 # source set by the test: its pixels cannot be read); a see-through light
-# logo (#sun), an opaque picture (#opaque), a black icon under 24 px
+# logo (#sun), an opaque photo filling its frame (#opaque: an editorial
+# one), a product photo shot on white (#shot: opaque, tiled) and a round
+# avatar shot on white (#round: left alone), a black icon under 24 px
 # (#icon: inverted), icons 24 px square of thin black lines with a red
 # accent, more or less of it (#line1 to #line3, as a bank's list of
 # services draws them: all inverted, none tiled), a shaded round avatar
@@ -184,9 +239,27 @@ INK_RECT = '<rect x="10" y="10" width="100" height="20" fill="black"/>'
 INK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">' + INK_RECT + '</svg>'
 PHOTO = svg(120, 80, '<rect width="120" height="80" fill="white"/>'
                      '<circle cx="60" cy="40" r="30" fill="rgb(200,40,40)"/>')
+# A product photo shot on white, opaque (a JPEG): a shaded can on a white
+# background; an editorial photo filling its frame (a sky over a field).
+SHOT_BODY = ('<rect width="%d" height="%d" fill="white"/><defs><linearGradient id="c">'
+             '<stop offset="0" stop-color="rgb(180,20,30)"/><stop offset="1" stop-color="rgb(60,10,10)"/>'
+             '</linearGradient></defs><rect x="25%%" y="15%%" width="50%%" height="70%%" rx="6" fill="url(#c)"/>')
+SHOT_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="100">%s</svg>'
+            % (SHOT_BODY % (120, 100))).encode("utf-8")
+SHOT = svg(120, 100, SHOT_BODY % (120, 100))
+SCENE = ('<defs><linearGradient id="s" x2="0" y2="1"><stop offset="0" stop-color="rgb(90,150,220)"/>'
+         '<stop offset="1" stop-color="rgb(230,240,250)"/></linearGradient></defs>'
+         '<rect width="120" height="80" fill="url(#s)"/><rect y="55" width="120" height="25" fill="rgb(60,120,40)"/>')
+# #shot fills an absolute box in its card, taller than the photo (fitted
+# with object-fit: contain, empty bands above and below it), with a label
+# in white laid on the lower band, and fades in once loaded (as migros.ch
+# shows its product photos).
+CARD = ('<article class="card"><img id="shot" class="fade-in" onload="this.classList.add(\'loaded\')"'
+        ' src="' + SHOT + '"><span id="badge">2 for 1</span></article>')
 PICTURES = (
     ("photo", PHOTO, 'class="blend" width="120" height="80"'),
     ("hero", PHOTO, 'class="blend" style="width:100%; height:80px; margin:0"'),
+    ("fit", PHOTO, 'class="blend" style="width:120px; height:120px; object-fit:contain"'),
     ("ink", "/ink.svg", 'width="120" height="40"'),
     ("mark", svg(120, 40, INK_RECT), 'width="120" height="40"'),
     ("navy", svg(120, 40, INK_RECT.replace("black", "rgb(20,40,120)")), 'width="120" height="40"'),
@@ -196,7 +269,8 @@ PICTURES = (
      'width="120" height="80"'),
     ("far", "", 'width="120" height="40"'),
     ("sun", svg(120, 40, INK_RECT.replace("black", "rgb(255,200,0)")), 'width="120" height="40"'),
-    ("opaque", svg(120, 40, '<rect width="120" height="40" fill="white"/>' + INK_RECT), 'width="120" height="40"'),
+    ("opaque", svg(120, 80, SCENE), 'width="120" height="80"'),
+    ("round", svg(64, 64, SHOT_BODY % (64, 64)), 'style="width:64px; height:64px; border-radius:50%"'),
     ("icon", svg(16, 16, '<rect x="2" y="2" width="12" height="12" fill="black"/>'), 'width="16" height="16"'),
 ) + tuple(
     ("line%d" % (i + 1), svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="none" stroke="black" stroke-width="1"/>'
@@ -216,9 +290,15 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #shop {background:rgb(255,255,255); padding:20px 0}
 #shop img {display:block; margin:12px}
 .blend {mix-blend-mode:multiply}
+.card {position:relative; width:140px; height:160px; background:rgb(255,255,255)}
+.card img {position:absolute; inset:10px; width:120px; height:140px; margin:0; object-fit:contain}
+#badge {position:absolute; left:14px; top:132px; font:bold 12px sans-serif; color:rgb(255,255,255);
+  background:rgb(220,80,0); padding:0 2px}
+.fade-in {opacity:0; transition:opacity 0.3s}
+.fade-in.loaded {opacity:1}
 </style></head><body>""" + TEXT + '<div id="shop">' + "".join(
     '<img id="%s"%s %s>' % (name, ' src="%s"' % src if src else "", attrs)
-    for name, src, attrs in PICTURES) + "</div></body></html>"
+    for name, src, attrs in PICTURES) + CARD + "</div></body></html>"
 TILED = "return document.getElementById(arguments[0]).getAttribute(arguments[1])"
 # The tile around a picture as shown (drawn in the chrome): the darkest
 # channel within 3 px of each corner of the picture (the picture's own
@@ -239,6 +319,22 @@ return win.drawSnapshot(new DOMRect(x - pad, y - pad, w + 2 * pad, h + 2 * pad),
       for (let j = cy - 3; j < cy + 3; j++)
         inner = Math.min(inner, at(i, j));
   return [inner, at(0, 0)];
+});"""
+# The darkest channel of the brightest pixel of a rect of the page as
+# shown (drawn in the chrome).
+BRIGHTEST = """
+const [x, y, w, h] = arguments;
+const win = gBrowser.selectedBrowser.browsingContext.currentWindowGlobal;
+return win.drawSnapshot(new DOMRect(x, y, w, h), 1, "rgb(0, 0, 0)").then((bmp) => {
+  const c = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  c.width = bmp.width; c.height = bmp.height;
+  const g = c.getContext("2d");
+  g.drawImage(bmp, 0, 0);
+  const px = g.getImageData(0, 0, c.width, c.height).data;
+  let best = 0;
+  for (let i = 0; i < px.length; i += 4)
+    best = Math.max(best, Math.min(px[i], px[i + 1], px[i + 2]));
+  return best;
 });"""
 LOADED = "return [...document.images].every((i) => !i.src || i.complete);"
 
@@ -303,6 +399,8 @@ GLYPH = bg.ATTR_GLYPH
 RULE = bg.ATTR_RULE
 PART_BG = "return getComputedStyle(document.getElementById(arguments[0]), arguments[1]).backgroundColor;"
 PART_COLOR = "return getComputedStyle(document.getElementById(arguments[0]), arguments[1]).color;"
+RING = "return getComputedStyle(document.getElementById(arguments[0])).boxShadow;"
+TILED_IS = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === arguments[2];"
 
 # White blocks on a light page, which Dark Reader turns into opaque
 # near-black panels: a strip of links across the window at its top
@@ -315,7 +413,17 @@ PART_COLOR = "return getComputedStyle(document.getElementById(arguments[0]), arg
 # <canvas> filling it). Before them in the page's order, a closed menu of
 # more links than INK_ELEMENTS, indented (more nodes than INK_NODES with
 # the blank ones), as boursorama.com's header holds: the cards are still
-# read.
+# read. A card whose empty ::before paints a white band along its top
+# (#banded, raiffeisen.ch's teaser card): veiled, the band cleared. Kept
+# opaque: a caption card laid over the foot of its photo (#caption, the
+# same teaser) and a card on a hero's background picture (#herocard).
+# Veiled: a card (#below, ldlc.com's div.bloc-universe) just under a cover
+# image cut down to its frame (overflow hidden), whose own box runs over
+# the card.
+# the hero's photo (/hero.svg), dark: Dark Reader hides a large light
+# background picture
+HERO_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80">'
+            '<rect width="120" height="80" fill="rgb(30,60,90)"/><circle cx="60" cy="40" r="30" fill="rgb(200,140,40)"/></svg>')
 MEGA_MENU = ('<nav id="mega" hidden><ul>'
              + "".join('\n  <li>\n    <a href="#">Entry %d</a>\n  </li>' % i for i in range(1100))
              + "\n</ul></nav>")
@@ -332,11 +440,26 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #player {background:rgb(0,0,0); color:rgb(255,255,255); width:320px; height:180px; position:relative}
 #player canvas {position:absolute; inset:0; width:100%; height:100%}
 #dialog {position:fixed; bottom:0; left:0; width:400px; background:rgb(255,255,255); padding:10px}
+#banded::before {content:""; display:block; height:16px; background:rgb(255,255,255)}
+#teaser {width:400px; margin:20px}
+#teaser img {display:block; width:400px; height:200px}
+#caption {position:relative; margin-top:-80px; width:300px; background:rgb(255,255,255); padding:16px}
+#hero {background:url("/hero.svg") center / cover; padding:40px; width:500px; margin:20px}
+#cover {width:400px; height:120px; overflow:hidden; margin:20px 20px 0}
+#cover img {display:block; width:400px; height:400px}
+#below {background:rgb(255,255,255); border:1px solid rgb(220,220,220); width:380px; padding:10px; margin:0 20px}
+#herocard {background:rgb(255,255,255); padding:16px; width:300px}
 </style></head><body><div id="wrap">""" + MEGA_MENU + """<div id="meta"><a href="#">Private</a><a href="#">Business</a></div>
 <div class="cards"><div class="card" id="news"><div class="card__content" id="body"><h3 id="title">Council news</h3>
 <p>""" + "A short report on the latest decision of the council. " * 3 + """</p>
 <button id="more" type="button">More</button> <button id="buy" type="button">Open an account</button></div></div>
-<div class="card"><div class="card__content"><h3>Second card</h3><p>Another short report.</p></div></div></div>
+<div class="card"><div class="card__content"><h3>Second card</h3><p>Another short report.</p></div></div>
+<div class="card" id="banded"><div class="card__content"><h3>Third card</h3><p>A band along its top.</p></div></div></div>
+<div id="teaser"><img src=""" + '"%s"' % PHOTO + """ alt=""><div id="caption"><h3>Dreams come true</h3>
+<p>A caption laid over the foot of its photo.</p></div></div>
+<div id="cover"><img src=""" + '"%s"' % PHOTO + """ alt=""></div><div id="below"><h3>Televisions</h3>
+<p>Every screen size, from the kitchen to the living room.</p></div>
+<div id="hero"><div id="herocard"><h3>On a hero</h3><p>A card on a background picture.</p></div></div>
 <div id="player"><canvas width="32" height="18"></canvas><span>Live</span></div>""" + TEXT + """
 <div id="menu">Menu entries over the page</div></div>
 <div id="dialog">This site uses cookies to improve its offer.</div></body></html>"""
@@ -346,9 +469,21 @@ BLOCK = bg.ATTR_BLOCK
 # whose ::before paints the brand yellow from a variable under a petrol
 # label in a span (#yellow, postfinance.ch's .styled-button--primary), a
 # violet button with a white label (#violet, proton.me), an input button
-# (#send). Left alone: a pale button (#pale, low chroma), a banner link
-# wider than a button (#banner), a coloured link with no label (#dot), a
-# button whose label does not read on it (#faint).
+# (#send), a crimson link whose computed colour stays oklch() (#crimson,
+# letemps.ch's subscribe button), a pastel teal under a dark label (#teal).
+# A black button under a white label in a fixed header (#black,
+# raiffeisen.ch's E-Banking): kept, with a thin light ring. Text buttons
+# whose background-color is a var() the page never sets (#ghost in the
+# header, #close with no label, #aside in the text: letemps.ch's
+# .lt-button--text), which Dark Reader fills with its own colour:
+# see-through again. Left alone: a pale button (#pale, low chroma), a
+# light grey one and a light blue one under a dark label (#grey, GitHub's
+# secondary button; #tint), a banner link wider than a button (#banner), a
+# coloured link with no label (#dot), a button whose label does not read
+# on it (#faint), a see-through tab the page fills once darkened (#tab).
+# A crimson button easing its colours (#ease, letemps.ch's subscribe
+# button) that a ".dark" token scope turns coral under a dark label, while
+# the page's own dark theme is tried and taken back: its own colours kept.
 BRAND_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 :root {--gelb: #FFCC00}
@@ -362,7 +497,25 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #banner {display:block; width:900px; height:200px; background:rgb(0,102,204); color:rgb(255,255,255)}
 #dot {display:inline-block; width:20px; height:20px; background:rgb(255,0,0)}
 #faint {background:rgb(255,204,0); color:rgb(255,255,255); border:0; padding:10px 20px}
-</style></head><body><div id="wrap">""" + TEXT + """
+#crimson {background:oklch(0.4199 0.1684 19.11); color:rgb(255,255,255); padding:10px 20px}
+#teal {background:rgb(126,201,197); color:rgb(20,20,20); padding:10px 20px}
+#grey {background:rgb(246,248,250); color:rgb(36,41,47); border:1px solid rgb(208,215,222); padding:10px 20px}
+#tint {background:rgb(219,234,254); color:rgb(30,58,138); border:0; padding:10px 20px}
+#top {position:fixed; top:0; left:0; right:0; height:60px; background:rgb(255,255,255)}
+#black {background:rgb(26,26,26); color:rgb(255,255,255); padding:10px 20px}
+.lt-button {background-color:var(--c-button-background); color:rgb(20,20,20); border:0; padding:10px}
+.lt-button:not(.lt-button--text) {--c-button-background: rgb(255,255,255)}
+#tab.on {background:rgb(240,240,240)}
+#ease {background:rgb(176,20,50); color:rgb(255,255,255); padding:10px 20px; transition:background-color 2s, color 2s}
+.dark #ease {background:rgb(240,99,104); color:rgb(20,20,20)}
+</style></head><body><div id="wrap">
+<div id="top"><a id="black" href="#">E-Banking</a> <button id="ghost" class="lt-button lt-button--text">Menu</button>
+<button id="close" class="lt-button lt-button--text" aria-label="Close"></button></div>
+<div style="height:60px"></div>""" + TEXT + """
+<p><a id="crimson" href="#">S'abonner</a> <a id="teal" href="#">Je m'inscris</a>
+<button id="aside" class="lt-button lt-button--text">Partager</button>
+<button id="grey" type="button">Code</button> <button id="tint" type="button">Tint</button>
+<a id="tab" href="#">Tab</a> <a id="ease" href="#">S'abonner</a></p>
 <p><a id="yellow" class="styled-button" href="#"><span id="label">Fermer</span></a>
 <button id="violet" type="button">Get Proton for free</button>
 <input id="send" type="submit" value="Send"></p>
@@ -395,14 +548,19 @@ STACKS_HOST = "stackoverflow.test"
 def stacks_sites():
     """The bundled Stack Overflow style and its site fix, under a .test
     host."""
+    return bundled_site(STACKS, STACKS_HOST + ".css")
+
+
+def bundled_site(key, name):
+    """The bundled style `key` and its site fix, as the style `name` (of a
+    .test host)."""
     data = os.path.join(tone.REPO, "data")
     with open(os.path.join(data, "styles.json"), encoding="utf-8") as f:
-        style = json.load(f)["website"][STACKS]
-    with open(os.path.join(data, bg.SITES_OWN_DIR, STACKS), encoding="utf-8") as f:
+        style = json.load(f)["website"][key]
+    with open(os.path.join(data, bg.SITES_OWN_DIR, key), encoding="utf-8") as f:
         fix = f.read()
     tmp = tempfile.mkdtemp()
     try:
-        name = STACKS_HOST + ".css"
         with open(os.path.join(tmp, "styles.json"), "w", encoding="utf-8") as f:
             json.dump({"website": {name: style}}, f)
         os.mkdir(os.path.join(tmp, bg.SITES_OWN_DIR))
@@ -412,6 +570,39 @@ def stacks_sites():
     finally:
         shutil.rmtree(tmp)
 
+
+# A Wikipedia article as its skin paints it, day and night (the night
+# theme follows the system here): the infobox's cells and lines, its
+# header and section bars in the colour of the infobox's kind (frwiki's
+# .entete and caption, inline), a hatnote banner (frwiki), a plain hatnote
+# (enwiki), and the search field on its form.
+WIKI_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(32,33,34)}
+html.night, html.night body {background:rgb(16,16,16); color:rgb(234,236,240)}
+.night .infobox td, .night .infobox th, .night .infobox p {background:rgb(32,33,34)}
+.night .entete, .night caption {background-color:rgb(12,12,12) !important}
+.bandeau-container {background:rgb(255,255,255); border:1px solid rgb(162,169,177)}
+.night .bandeau-container, .night .hatnote {background:rgb(32,33,34)}
+.cdx-search-input {background:rgb(255,255,255); border:1px solid rgb(162,169,177)}
+.night .cdx-search-input {background:rgb(16,20,24)}
+.cdx-text-input__input {background:rgb(255,255,255); border:1px solid rgb(162,169,177)}
+.night .cdx-text-input__input {background:rgb(16,16,16)}
+</style><script>
+const mq = matchMedia("(prefers-color-scheme: dark)");
+const paint = () => document.documentElement.classList.toggle("night", mq.matches);
+paint();
+mq.addEventListener("change", paint);
+</script></head><body>
+<form id="form" class="cdx-search-input"><input id="field" class="cdx-text-input__input"></form>
+<div id="banner" class="bandeau-container hatnote">For the homonymous articles, see Switzerland.</div>
+<div id="note" class="hatnote">This article is about the country.</div>""" + TEXT + """
+<div class="infobox_v3 infobox" style="width:320px"><div id="head" class="entete"
+style="background-color: #e3e3e3;">Swiss Confederation</div><p id="line">(de) Schweiz</p>
+<table><caption id="bar" style="background-color:#e3e3e3;">Geography</caption>
+<tr><th id="label">Capital</th><td id="cell">Bern</td>
+<td id="own" style="background:rgb(200,30,40)">Party</td></tr></table></div></body></html>"""
+WIKI = "+wikipedia.org.css"
+WIKI_HOST = "fr.wikipedia.test"
 
 # A page whose only opaque surface is a white column (ch.ch): its left
 # half, its navy text and a tagline on a white label, a white popup menu
@@ -494,6 +685,27 @@ document.getElementById("host").attachShadow({mode: "open"}).innerHTML = `<style
 # background colour.
 NIGHT = ("const el = document.getElementById('host').shadowRoot.getElementById(arguments[0]);"
          " return arguments[1] ? el.hasAttribute(arguments[1]) : getComputedStyle(el).backgroundColor;")
+# A dark page with a light section (GitLab's feature cards): its dark
+# heading drawn for the section's own light colour, a ::before over the
+# whole section whose tint is clipped by its padding to a band across the
+# middle (background-clip: content-box), the heading above the band; a
+# sticky header turned white by the site over light content, its links a
+# mid-grey that reads on white.
+MIXED_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(24,23,29); color:rgb(236,236,239)}
+#nav {position:sticky; top:0; z-index:10; height:56px; display:flex; gap:24px; align-items:center;
+  padding:0 24px; background:rgb(255,255,255)}
+#nav a {color:rgb(116,113,122)}
+#cards {position:relative; min-height:900px; padding:40px; background:rgb(252,251,252); color:rgb(24,23,29)}
+#cards::before {content:""; position:absolute; inset:0; box-sizing:border-box; padding-block:300px;
+  background-clip:content-box; background-color:rgb(236,234,240)}
+#cardtitle, #cardtext {position:relative; margin:0} #cardtitle {color:rgb(26,26,26)}
+</style></head><body><header id="nav"><a id="navlink" href="#">Platform</a><a href="#">Pricing</a>
+<a href="#">Sign in</a></header>""" + ("<p>" + "Light text of a dark page. " * 8 + "</p>") * 6 + """
+<section id="cards"><h2 id="cardtitle">Ship faster. Stay in control.</h2>
+<p id="cardtext">Dark text drawn for the light section.</p></section>""" + (
+    "<p>" + "Light text of a dark page. " * 8 + "</p>") * 12 + "</body></html>"
+MIXED_BG = "rgb(252, 251, 252)"
 INK = bg.ATTR_INK
 TONE_IS = "return document.documentElement.getAttribute(arguments[0]) === arguments[1];"
 
@@ -509,6 +721,14 @@ def stylesheet(dark_pages, sites=None):
 
 
 SCHEME = "return getComputedStyle(document.getElementById(arguments[0])).colorScheme;"
+
+
+def alpha(colour):
+    """The opacity of a computed colour: rgb(), rgba() or color(srgb … / a)
+    (color-mix())."""
+    if colour.startswith("color("):
+        return float(colour.rsplit("/", 1)[1].rstrip(") ")) if "/" in colour else 1.0
+    return tone.rgba(colour)[3]
 
 
 def saturation(rgba):
@@ -547,6 +767,98 @@ class DarkenE2E(unittest.TestCase):
                 self.check_blocks(binary)
                 self.check_brands(binary)
                 self.check_panel(binary)
+
+    def test_late_dark(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_late_dark(binary)
+
+    def test_taken_back(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_taken_back(binary)
+
+    def check_taken_back(self, binary):
+        routes = {"/t.html": ("text/html; charset=utf-8", TAKEN_BACK_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/t.html", "light.test"))
+            self.run_content(b)
+            # its own dark theme kept first, while its text is light
+            self.assertTrue(b.wait_for("return document.documentElement.classList.contains('dark');"),
+                            "own dark theme not kept")
+            # the dark text shows: taken back, darkened
+            self.assertTrue(b.wait_for(DARKENED), "not darkened once the page shows dark text")
+            self.assertNotIn("dark", b.js(CLASSES).split())
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "ease", BRAND), "crimson button not kept")
+            # its own colours, not those it eased from
+            self.assertEqual(b.js("return document.getElementById('ease').style"
+                                  ".getPropertyValue('--browserglass-brand-fill');"), "rgb(176, 20, 50)")
+            self.assertEqual(b.js(PART_COLOR, "ease", None), "rgb(255, 255, 255)")
+
+    def check_late_dark(self, binary):
+        routes = {"/d.html": ("text/html; charset=utf-8", LATE_DARK_PAGE.encode("utf-8"))}
+        root = "document.documentElement"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/d.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            # the site's own dark theme comes on: Dark Reader goes
+            b.js(root + ".setAttribute('data-fr-theme', 'dark');")
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader');"),
+                            "Dark Reader left over the page's own dark theme")
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark"), "own dark not dark")
+            self.assertEqual(b.js("return " + root + ".getAttribute('data-fr-theme');"), "dark")
+            # its own dark wrapper, or glass once found a layer of the page
+            # (markCanvas may have run by then)
+            self.assertEqual(b.js("return getComputedStyle(document.body).color;"), "rgb(230, 230, 230)")
+            wrap = self.bg_of(b, "wrap")
+            if not b.js(MARKED, "wrap", CANVAS):
+                self.assertEqual(wrap, "rgb(22, 22, 22)")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertFalse(b.js(DARKENED), "Dark Reader back over the page's own dark theme")
+            # light again: Dark Reader again
+            b.js(root + ".removeAttribute('data-fr-theme');")
+            self.assertTrue(b.wait_for(DARKENED), "not darkened once light again")
+            # a dark mark that leaves the page light: Dark Reader stays
+            b.js(root + ".setAttribute('data-header-theme', 'dark');")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertTrue(b.js(DARKENED), "a light page left undarkened")
+            self.assertEqual(b.js("return " + root + ".getAttribute(arguments[0]);", tone.TONE), "dark")
+
+    def test_wiki_panels(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_wiki_panels(binary)
+
+    def check_wiki_panels(self, binary):
+        # the bundled Wikipedia style and its site fix, night then day:
+        # no solid panel in the article, a light veil and a thin border on
+        # the bars and the banner, the search field translucent
+        routes = {"/w.html": ("text/html; charset=utf-8", WIKI_PAGE.encode("utf-8"))}
+        prefs = tone.browser_prefs()
+        prefs.update(mn.test_host_prefs(list(tone.HOSTS) + [WIKI_HOST]))
+        look = ("const s = getComputedStyle(document.getElementById(arguments[0]));"
+                "return [s.backgroundColor, s.borderTopWidth];")
+        sites = bundled_site(WIKI, "+wikipedia.test.css")
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True, sites), prefs=prefs, firefox=binary) as b:
+            for dark in (True, False):
+                tone.set_scheme(b, dark)
+                b.navigate(srv.url("/w.html", WIKI_HOST))
+                self.run_content(b)
+                self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark" if dark else "light"))
+                self.assertEqual(b.js("return document.documentElement.classList.contains('night');"), dark)
+                for name in ("cell", "label", "line", "note", "form"):
+                    self.assertEqual(self.bg_of(b, name), "rgba(0, 0, 0, 0)", (name, dark))
+                self.assertEqual(self.bg_of(b, "own"), "rgb(200, 30, 40)", "a cell's own colour lost")
+                for name, most in (("head", 0.5), ("bar", 0.5), ("banner", 0.5), ("field", 0.6)):
+                    fill, border = b.js(look, name)
+                    self.assertTrue(0 < alpha(fill) <= most, (name, dark, fill))
+                    self.assertEqual(border, "1px", (name, dark))
 
     def test_own_surfaces(self):
         for name, binary in tone.browsers():
@@ -687,6 +999,33 @@ class DarkenE2E(unittest.TestCase):
             # see-through shaded dark ink on a white tile
             self.assertTrue(b.wait_for(TILED + " === 'ink';", mn.WAIT_TIMEOUT, "puck", TILE),
                             "puck: dark ink not tiled: %r" % b.js(TILED, "puck", TILE))
+            # an opaque product photo shot on white, in an absolute box,
+            # faded in: on a white tile, as it is (no filter, no blending)
+            self.assertTrue(b.wait_for(TILED + " === 'photo';", mn.WAIT_TIMEOUT, "shot", TILE),
+                            "photo shot on white not tiled: %r" % b.js(TILED, "shot", TILE))
+            look = b.js("const s = getComputedStyle(document.getElementById('shot'));"
+                        "return [s.mixBlendMode, s.filter, s.backgroundColor, s.boxShadow];")
+            self.assertEqual(look[:3], ["normal", "none", "rgb(255, 255, 255)"])
+            self.assertIn("0px 0px 0px %dpx" % bg.TILE_PAD, look[3])
+            # fitted in its box: the tile around the photo as shown (the
+            # 20 px bands above and below it left clear, the label on the
+            # lower one on the dark card, not on white)
+            sides = b.js("const s = document.getElementById('shot').style;"
+                         "return arguments[0].map((name) => s.getPropertyValue(name));", list(bg.TILE_SIDES))
+            self.assertEqual(sides, ["20px", "0px", "20px", "0px"])
+            box = b.js("const el = document.getElementById('shot'); el.scrollIntoView({block: 'center'});"
+                       "const r = el.getBoundingClientRect();"
+                       "return [r.left + scrollX, r.top + scrollY, r.width, r.height];")
+            band = [box[0] + 40, box[1] + 2, 40, 6]
+            self.assertLess(b.chrome_js(BRIGHTEST, *band), 128, "the tile over the empty band")
+            photo = [box[0] + 2, box[1] + 22, 10, 6]
+            self.assertGreaterEqual(b.chrome_js(BRIGHTEST, *photo), 250, "the photo's white not shown")
+            # a multiplied photo fitted in its box: tiled whole (the white
+            # card it was blended into)
+            self.assertTrue(b.wait_for(TILED + " === 'blend';", mn.WAIT_TIMEOUT, "fit", TILE), "fit not tiled")
+            self.assertEqual(b.js("const s = document.getElementById('fit').style;"
+                                  "return arguments[0].map((name) => s.getPropertyValue(name));",
+                                  list(bg.TILE_SIDES)), ["", "", "", ""])
             # see-through dark ink of one tone, of the page's origin or a
             # data: URL, black or navy, and icons, a red accent beside
             # their lines or not: inverted to light ink, no tile around it
@@ -697,10 +1036,10 @@ class DarkenE2E(unittest.TestCase):
                             "return [s.filter, s.backgroundColor, s.boxShadow];", name)
                 self.assertEqual(look, ["invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT, "rgba(0, 0, 0, 0)", "none"], name)
             # left as they are: a full-bleed photo, a picture of another
-            # origin (unreadable), a light logo, an opaque picture, a
-            # shaded avatar
+            # origin (unreadable), a light logo, an opaque photo filling
+            # its frame, a shaded avatar, a round one shot on white
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
-            for name in ("hero", "far", "sun", "opaque", "avatar"):
+            for name in ("hero", "far", "sun", "opaque", "avatar", "round"):
                 self.assertFalse(b.js(MARKED, name, TILE), name + " tiled")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('hero')).mixBlendMode;"),
                              "multiply")
@@ -790,7 +1129,8 @@ class DarkenE2E(unittest.TestCase):
                                        mn.WAIT_TIMEOUT, RULE), "rules still marked under a light theme")
 
     def check_blocks(self, binary):
-        routes = {"/b.html": ("text/html; charset=utf-8", BLOCKS_PAGE.encode("utf-8"))}
+        routes = {"/b.html": ("text/html; charset=utf-8", BLOCKS_PAGE.encode("utf-8")),
+                  "/hero.svg": ("image/svg+xml", HERO_SVG.encode("utf-8"))}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
@@ -809,6 +1149,16 @@ class DarkenE2E(unittest.TestCase):
             self.assertEqual(b.js(TILED, "body", BLOCK), "glass")
             self.assertEqual(self.bg_of(b, "body"), "rgba(0, 0, 0, 0)")
             self.assertEqual(b.js(TILED, "more", BLOCK), "veil")
+            # a card's empty ::before in its colour (a band along its top):
+            # cleared with the veil, not an opaque dark band on it
+            self.assertEqual(b.js(TILED, "banded", BLOCK), "veil before")
+            self.assertEqual(b.js(PART_BG, "banded", "::before"), "rgba(0, 0, 0, 0)")
+            # a card over a picture keeps Dark Reader's opaque fill
+            for name in ("caption", "herocard"):
+                self.assertEqual(b.js(TILED, name, BLOCK), "solid", name)
+                self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
+            # not a card under a picture whose overflow its frame cuts off
+            self.assertEqual(b.js(TILED, "below", BLOCK), "veil")
             # the strip across the window: glass, a layer of the page
             self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "meta", CANVAS), "strip not glass")
             self.assertEqual(self.bg_of(b, "meta"), "rgba(0, 0, 0, 0)")
@@ -846,9 +1196,34 @@ class DarkenE2E(unittest.TestCase):
             self.assertEqual(b.js(PART_BG, "violet", None), "rgb(109, 74, 255)")
             self.assertEqual(b.js(PART_COLOR, "violet", None), "rgb(255, 255, 255)")
             self.assertEqual(b.js(PART_BG, "send", None), "rgb(220, 53, 69)")
-            # left alone: a pale button, a banner, a link with no label, a
-            # label that does not read on its fill
-            for name in ("pale", "banner", "dot", "faint"):
+            # a fill in another colour space, a pastel under a dark label
+            self.assertEqual(b.js(PART_BG, "crimson", None), "oklch(0.4199 0.1684 19.11)")
+            self.assertEqual(b.js(PART_BG, "teal", None), "rgb(126, 201, 197)")
+            self.assertEqual(b.js(PART_COLOR, "teal", None), "rgb(20, 20, 20)")
+            # read once the page's own dark theme is taken back, not on its way
+            # (its transition run out)
+            self.assertTrue(b.wait_for(PART_BG.replace("return ", "return 'rgb(176, 20, 50)' === "),
+                                       mn.WAIT_TIMEOUT, "ease", None), "eased: %r" % b.js(PART_BG, "ease", None))
+            self.assertEqual(b.js(PART_COLOR, "ease", None), "rgb(255, 255, 255)")
+            # a black button: its colours and a thin light ring
+            self.assertEqual(b.js(TILED, "black", BRAND), "self lift")
+            self.assertEqual(b.js(PART_BG, "black", None), "rgb(26, 26, 26)")
+            self.assertEqual(b.js(PART_COLOR, "black", None), "rgb(255, 255, 255)")
+            self.assertEqual(b.js(RING, "black"), "rgba(255, 255, 255, 0.25) 0px 0px 0px 1px inset")
+            # text buttons Dark Reader filled from an unset var(): see-through
+            for name in ("ghost", "close", "aside"):
+                self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, name, BRAND, "clear"), name + " not cleared")
+                self.assertEqual(self.bg_of(b, name), "rgba(0, 0, 0, 0)", name)
+                self.assertFalse(b.js(MARKED, name, BLOCK), name + " veiled")
+            # the page fills a see-through tab once darkened: its fill stays
+            b.js("document.getElementById('tab').classList.add('on');")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 1500));")
+            self.assertFalse(b.js(MARKED, "tab", BRAND), "a tab the page filled cleared")
+            self.assertGreater(alpha(self.bg_of(b, "tab")), 0)
+            # left alone: a pale button, light grey and light blue ones, a
+            # banner, a link with no label, a label that does not read on
+            # its fill
+            for name in ("pale", "grey", "tint", "banner", "dot", "faint"):
                 self.assertFalse(b.js(MARKED, name, BRAND), name + " kept as a brand button")
             self.assertNotEqual(b.js(PART_BG, "pale", None), "rgb(232, 240, 254)")
             # a light theme: the page's own colours, no mark or inline style left
@@ -973,6 +1348,40 @@ class DarkenE2E(unittest.TestCase):
                             "own colour not back: %s" % b.js(SHADOW, "shero", None))
             self.assertFalse(b.js(SHADOW, "shero", CANVAS), "still glass under a light theme")
             self.assertEqual(self.bg_of(b, "hero"), OWN_BG)
+
+    def test_mixed_tone(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_mixed_tone(binary)
+
+    def check_mixed_tone(self, binary):
+        real = bg.sites_load(os.path.join(tone.REPO, "data"))
+        sites = bg.Sites({bg.SITES_GENERIC_KEY: real.styles[bg.SITES_GENERIC_KEY]}, {})
+        routes = {"/m.html": ("text/html; charset=utf-8", MIXED_PAGE.encode("utf-8"))}
+        inked = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === arguments[2];"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True, sites), prefs=tone.browser_prefs(), firefox=binary) as b:
+            for dark in (True, False):
+                tone.set_scheme(b, dark)
+                b.navigate(srv.url("/m.html", "light.test"))
+                self.run_content(b)
+                with self.subTest(dark=dark):
+                    self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark"), "page not dark")
+                    # the light section keeps its colour for its dark
+                    # text: the ::before's band is no face behind it
+                    self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "cards", bg.ATTR_OWN),
+                                    "light section not kept: %s" % self.bg_of(b, "cards"))
+                    self.assertEqual(self.bg_of(b, "cards"), MIXED_BG)
+                    for name in ("cardtitle", "cardtext"):
+                        self.assertFalse(b.js(MARKED, name, INK), name + " inked")
+                    # over the light section, the header's mid-grey links
+                    # are inked light on its dark veil
+                    b.js("window.scrollTo(0, document.getElementById('cards').offsetTop);")
+                    self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "nav", BAR), "the sticky header not a bar")
+                    self.assertTrue(b.wait_for(inked, mn.WAIT_TIMEOUT, "navlink", INK, "light"),
+                                    "mid-grey links on the dark veil not inked light: %s"
+                                    % b.js("return document.getElementById('navlink').getAttribute(arguments[0]);",
+                                           INK))
 
     def test_own_tone_swap(self):
         for name, binary in tone.browsers():

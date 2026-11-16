@@ -179,9 +179,10 @@ ATTR_FILLED = "data-browserglass-filled"
 # whose parts draw a glyph with a background (a menu button's bars) left
 # without contrast (see _CONTENT_LAYERS): painted in the text colour.
 ATTR_GLYPH = "data-browserglass-glyph"
-# ... and BLOCK, "veil" or "glass", on a block Dark Reader turned into an
-# opaque near-black panel (a white card; see _CONTENT_LAYERS): a light veil,
-# or see-through inside one.
+# ... and BLOCK, "veil", "glass" or "solid" (and "before", "after"), on a
+# block Dark Reader turned into an opaque near-black panel (a white card;
+# see _CONTENT_LAYERS): a light veil, see-through inside one, or kept over
+# a picture, its empty pseudo-elements in its colour cleared.
 ATTR_BLOCK = "data-browserglass-block"
 # ... and RULE on a thin rule in a neutral colour (a separator) Dark Reader
 # left without contrast (see _CONTENT_LAYERS): a light neutral.
@@ -189,7 +190,8 @@ ATTR_RULE = "data-browserglass-rule"
 # ... and BRAND, "self", "before" or "after", on a small button in a
 # saturated colour, just before Dark Reader dulls it (see _CONTENT_LAYERS),
 # with its fill and its label's colour in BRAND_FILL and BRAND_INK, inline:
-# both painted back.
+# both painted back; "lift" with the part on a dark one (a thin light
+# ring), "clear" alone on one Dark Reader filled though it painted none.
 ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
 # text (skip links): hidden until the focus enters it, not cleared.
@@ -1839,12 +1841,15 @@ _CONTENT_DARKEN = (
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
 # - a picture made for a white page on a background now dark (ATTR_TILE: a
-#   product photo whose white the site wipes out with multiply, a black
-#   logo on a page Dark Reader darkens): on a white tile, as shops show
-#   their photos in a dark theme: a white background, a white margin
-#   TILE_PAD wide drawn by a shadow (the layout stays), its outer corners
-#   rounded to TILE_RADIUS by a clip-path, no blending, no filter. The
-#   picture keeps square corners: rounded ones (the shadow's hole rounded
+#   product photo whose white the site wipes out with multiply, one shot
+#   on white or a black logo on a page Dark Reader darkens): on a white
+#   tile, as shops show their photos in a dark theme: a white background,
+#   a white margin TILE_PAD wide drawn by a shadow (the layout stays), its
+#   outer corners rounded to TILE_RADIUS by a clip-path, no blending, no
+#   filter (a photo shot on white fitted in a box of another shape: the
+#   clip-path brought in to the photo as shown, by the space the add-on
+#   sets on each side, inline in TILE_SIDES, so the box's empty edges stay
+#   clear). The picture keeps square corners: rounded ones (the shadow's hole rounded
 #   alike) would let the dark background through where the two smoothed
 #   edges meet, a grey dot at each corner. Dark ink of one tone (a black
 #   word mark, a navy pictogram, an icon's lines; ATTR_TILE "invert") is
@@ -1864,12 +1869,21 @@ _CONTENT_DARKEN = (
 #   a white card, a panel, in a plain colour close to the page's): "veil",
 #   the dark surface at BLOCK_VEIL_OPACITY, lighter than a bar, its border
 #   kept, as dense content is slightly veiled on the glass; "glass", a
-#   block inside a veiled one, see-through (veils do not stack).
+#   block inside a veiled one, see-through (veils do not stack); "solid",
+#   a block laid over a picture (a caption card over its photo): no rule,
+#   Dark Reader's opaque fill stays. "before" or "after" with it names an
+#   empty pseudo-element painting the block's colour (a band along a
+#   card's top): cleared, or it stays an opaque band on the veil.
 # - a small button in a saturated colour (ATTR_BRAND, the part painting its
 #   fill named): that fill and its label's colour as the page had them
 #   before Dark Reader ran (a brand yellow it turns olive), the label's on
-#   the whole button. Without the two ids: a site style that gives such a
-#   button colours of its own (data/sites/) wins, and so does ATTR_INK.
+#   the whole button; "lift" with the part, a dark button under a light
+#   label: also a thin light ring (white at RULE_OPACITY, inset), or it
+#   reads as plain text on the dark glass or a bar; "clear", a button that
+#   painted no fill before Dark Reader filled it (a var() the page never
+#   set): see-through, its colours Dark Reader's. Without the two ids: a
+#   site style that gives such a button colours of its own (data/sites/)
+#   wins, and so does ATTR_INK.
 # Scrollbars follow the page's tone (ATTR_TONE): a thumb of the light
 # surface at SCROLL_THUMB_OPACITY on a dark page, of the dark one on a light
 # page, over a see-through track. Firefox picks a scrollbar's look from the
@@ -1884,6 +1898,7 @@ _CONTENT_DARKEN = (
 NAV_BAR_OPACITY = 0.65
 SCROLL_THUMB_OPACITY = 0.4
 BLOCK_VEIL_OPACITY = 0.35
+RULE_OPACITY = 0.25
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 # The bar's colour for the page's tone, set on the root: a custom property
@@ -1893,28 +1908,35 @@ _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglas
 _TILE_SELECTOR = "[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not(#browserglass-a):not(#browserglass-b)"
 _INVERT_SELECTOR = "[" + ATTR_TILE + "=\"invert\"]:not(#browserglass-a):not(#browserglass-b)"
 _RULE_SELECTOR = "[" + ATTR_RULE + "]:not(#browserglass-a):not(#browserglass-b)"
-_BLOCK_SELECTOR = "[" + ATTR_BLOCK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
+_BLOCK_SELECTOR = "[" + ATTR_BLOCK + "~=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _UNINVERT_SELECTOR = "[" + ATTR_UNINVERT + "]:not(#browserglass-a):not(#browserglass-b)"
-_BRAND_SELECTOR = "[" + ATTR_BRAND + "=\"%s\"]"
+_BRAND_SELECTOR = "[" + ATTR_BRAND + "~=\"%s\"]"
+_BRAND_PARTS = "%s" + _BRAND_SELECTOR % "self" + ", %s" + _BRAND_SELECTOR % "before" + "::before, %s" \
+    + _BRAND_SELECTOR % "after" + "::after"
+_BRAND_LIFT = _BRAND_SELECTOR % "lift"
+_BRAND_INKED = "[" + ATTR_BRAND + "]:not(" + _BRAND_SELECTOR % "clear" + ")"
 _BRAND_RULE = (
-    "  " + _BRAND_SELECTOR % "self" + ", " + _BRAND_SELECTOR % "before" + "::before, "
-    + _BRAND_SELECTOR % "after" + "::after {{ background-color: var(" + BRAND_FILL + ") !important; }}\n"
-    "  [" + ATTR_BRAND + "], [" + ATTR_BRAND + "] * {{ color: var(" + BRAND_INK + ") !important; }}\n"
+    "  " + _BRAND_PARTS % ("", "", "") + " {{ background-color: var(" + BRAND_FILL + ") !important; }}\n"
+    "  " + _BRAND_INKED + ", " + _BRAND_INKED + " * {{ color: var(" + BRAND_INK + ") !important; }}\n"
+    "  " + _BRAND_PARTS % ((_BRAND_LIFT,) * 3) + " {{ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, "
+    + str(RULE_OPACITY) + ") !important; }}\n"
+    "  " + _BRAND_SELECTOR % "clear" + " {{ background-color: transparent !important; }}\n"
 )
 _GLYPH_SELECTOR = ("[" + ATTR_GLYPH + "~=\"self\"]:not(#browserglass-a):not(#browserglass-b), "
                    "[" + ATTR_GLYPH + "~=\"before\"]:not(#browserglass-a):not(#browserglass-b)::before, "
                    "[" + ATTR_GLYPH + "~=\"after\"]:not(#browserglass-a):not(#browserglass-b)::after")
 TILE_PAD = 6
+TILE_SIDES = tuple("--browserglass-tile-" + side for side in ("top", "right", "bottom", "left"))
 TILE_RADIUS = 8
 TILE_INVERT = 0.9
-RULE_OPACITY = 0.25
 _TILE_RULE = (
     "  " + _TILE_SELECTOR + " {{\n"
     "    filter: none !important; mix-blend-mode: normal !important;\n"
     "    background-color: rgb(255, 255, 255) !important;\n"
     "    border-radius: 0 !important;\n"
     "    box-shadow: 0 0 0 " + str(TILE_PAD) + "px rgb(255, 255, 255) !important;\n"
-    "    clip-path: inset(-" + str(TILE_PAD) + "px round " + str(TILE_RADIUS) + "px) !important;\n"
+    "    clip-path: inset(" + " ".join("calc(var(" + side + ", 0px) - " + str(TILE_PAD) + "px)" for side in TILE_SIDES)
+    + " round " + str(TILE_RADIUS) + "px) !important;\n"
     "  }}\n"
 )
 _CONTENT_LAYERS = (
@@ -1938,6 +1960,8 @@ _CONTENT_LAYERS = (
     + "  " + _RULE_SELECTOR + " {{ background-color: rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
+    + "  " + _BLOCK_SELECTOR % "before" + "::before, " + _BLOCK_SELECTOR % "after" + "::after"
+    " {{ background-color: transparent !important; }}\n"
     + "  " + _BAR_SELECTOR + " {{\n"
     "    background: var(" + NAV_BAR_VAR + ") !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
@@ -2521,11 +2545,12 @@ def chrome_css(settings, opacity, surfaces, off=False):
     return text
 
 
-def _content_block(rx, rules, gate=None):
+def _content_block(rx, rules, gate=None, keep=False):
     """@-moz-document regexp("`rx`") block holding `rules` ("\\n" ends),
-    gated on the root condition `gate` when given (css_gate_rules)."""
+    gated on the root condition `gate` when given (css_gate_rules, with
+    `keep`)."""
     if gate:
-        rules = css_gate_rules(rules, gate)
+        rules = css_gate_rules(rules, gate, keep=keep)
     return '@-moz-document regexp("%s") {\n%s}\n' % (rx, rules)
 
 
@@ -2549,8 +2574,10 @@ def content_css(settings, opacity, sites_css="", off=False, surfaces=None, sites
     gate = live_gate(settings)
     parts = [_css_head("page backgrounds are transparent (the DMS tint is behind them); "
                        "images, videos and text stay opaque")]
+    # keep: the add-on reads the body's own colour through ATTR_OWN (the
+    # page's tone when no text on its background decides)
     parts.append(_content_block("https?://%s.*" % exclusion_lookahead(settings["excluded"]),
-                                _CONTENT_GENERIC_TONE if gate else _CONTENT_GENERIC, gate))
+                                _CONTENT_GENERIC_TONE if gate else _CONTENT_GENERIC, gate, keep=True))
     if not settings["readerOpaque"]:
         parts.append(_CONTENT_READER_GLASS)
     if settings["newTabGlass"]:
@@ -2602,7 +2629,7 @@ def content_live_section(settings, sites):
         return ""
     look = inclusion_lookahead(domains)
     out = [_CONTENT_LIVE_COMMENT + "\n"
-           + _content_block("https?://%s.*" % look, _CONTENT_GENERIC_TONE, GATE_LIVE_ROOT)]
+           + _content_block("https?://%s.*" % look, _CONTENT_GENERIC_TONE, GATE_LIVE_ROOT, keep=True)]
     if sites is not None:
         generic = settings["genericStyle"]
         hosts = _live_hosts(_sites_index(sites, generic), domains)

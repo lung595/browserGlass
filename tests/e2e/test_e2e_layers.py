@@ -55,10 +55,12 @@ test_e2e_darken.py. Checked:
     origin whose server allows it (CORS), a 24 px icon of black lines
     with a red accent and a navy pictogram from another origin are
     inverted to light ink, the hues turned back; the same word mark on
-    the site's own dark card, one with a filter of its own, a shaded
+    the site's own dark card, one with a filter of its own or under an
+    element with one (Wikipedia's night logo), a shaded
     picture from another origin, a word mark from another origin whose
-    server does not allow it and an illustrated badge (a flat dark sky,
-    the rest in many tones) are left alone;
+    server does not allow it, an illustrated badge (a flat dark sky,
+    the rest in many tones) and an opaque photo shot on white are left
+    alone;
   - page columns narrower than the window (test_columns): a feed centred
     in it, in the page's dark colour or white on a light page, and a dark
     side panel down to the bottom are marked, a card on the feed is not;
@@ -78,6 +80,12 @@ test_e2e_darken.py. Checked:
     hidden (UNDER) until its link gets the focus, the list of links in
     the bar's colour, each link in it and a cell as tall as the bar
     see-through, a white button kept;
+  - a header stuck from load (test_stuck_header): a sticky header at the
+    top before any scroll, see-through but for its first row in the
+    page's colour, is a bar and that row see-through, while the search
+    field's box and the toggle in the row keep their colour, scrolled as
+    well; a side panel down the page in a colour near the page's, holding
+    a sticky list (a bar), is a page layer, see-through;
   - a page built of web components (test_shadow): in open shadow trees,
     its background layer, painted by an empty ::before, is marked, the
     ::before see-through, and so is a band in its colour; its fixed header and the bottom bar
@@ -88,7 +96,8 @@ test_e2e_darken.py. Checked:
   - sections in the page's colour (test_sections): on a dark page cleared
     by the glass, the bands across the window in a colour near the page's
     are see-through, those below the first screen once scrolled to, a
-    band in it too; a hero's gradient from the page's colour into blue
+    band in it too, one whose top shows only along the window's bottom
+    edge (below the grid's last row) before any scroll; a hero's gradient from the page's colour into blue
     loses its solid top, the blue kept; a white island, a blue band and a
     grey card in a band stay; a sticky scrim in a sidebar fading the
     page's colour out paints nothing; the scrollbars of a dark page get a
@@ -369,6 +378,27 @@ html, body {background:transparent}
 </style></head><body><div id="skipbar"><div id="skip"><a id="skiplink" href="#long">Skip to the content</a></div>
 <header id="skiphead"><a href="#">Logo</a><div id="links"><ul id="list"><li><a id="item" href="#">Guide</a></li></ul></div>
 <a id="cta" href="#">Sign up</a><div id="lang">FR</div></header></div><div id="long">""" + dk.TEXT * 30 + """</div></body></html>"""
+# A shop's header stuck at the top from load (Migros): see-through, its
+# first row in the page's colour over half of it, holding a search field
+# and a toggle drawn in a lighter grey; its nav row see-through. Below, a
+# tall side panel in a colour near the page's (the drawer) holds a sticky
+# list, a bar down the right edge. The page's colour on a wrapper.
+STUCK_PAGE = STYLE + """
+html, body {background:transparent}
+#shop {background:rgb(18,20,22)}
+#stuck {position:sticky; top:0; z-index:40}
+#first {height:60px; margin:0 24px; display:flex; gap:8px; align-items:center; background:rgb(18,20,22)}
+#field, #toggle {height:44px; background:rgb(27,30,33)} #field {width:40vw} #toggle {width:20vw}
+#second {height:48px}
+#grid {display:flex; align-items:flex-start} #main {flex:1}
+#drawer {width:22vw; min-height:300vh; position:relative; background:rgb(27,30,33)}
+#list {position:sticky; top:108px; height:calc(100vh - 108px); background:rgb(27,30,33)}
+#long {height:auto}
+</style></head><body><div id="shop"><header id="stuck"><div id="first"><a href="#">Logo</a>
+<div id="field"><input placeholder="Search"></div><div id="toggle"><input type="radio" name="t">Store</div></div>
+<nav id="second"><a href="#">Home</a></nav></header>
+<div id="grid"><main id="main"><div id="long">""" + dk.TEXT * 30 + """</div></main>
+<aside id="drawer"><div id="list">Shopping list</div></aside></div></div></body></html>"""
 
 # A dark page by design (1Password): the page's colour on a wrapper, and on
 # it a hero (a gradient from a colour near the page's into blue), bands in
@@ -386,6 +416,16 @@ html, body {background:transparent}
 </style></head><body><div id="page"><div id="hero">Secure access</div><div id="band">Logos</div>
 <div id="outer"><div id="inner">One platform</div></div><div id="island">A story</div><div id="blue">Blue</div>
 <div id="last"><div id="card">A card</div></div></div></body></html>""".replace("SECTION", SECTION)
+# A band in the page's colour whose top is 30px above the window's
+# bottom, below the last row of the grid (impots.gouv.fr's news band);
+# at the top, above the grid's first row, the site's header in the flow,
+# 48px in that colour (GitHub's): kept solid.
+EDGE_PAGE = STYLE + """
+html, body {background:transparent}
+#page {background:rgb(18,20,22)} #masthead {height:48px; background:SECTION}
+#lead {height:calc(100vh - 78px)} #edge {height:100vh; background:SECTION}
+</style></head><body><div id="page"><div id="masthead">Code</div><div id="lead">Lead</div><div id="edge">News</div></div>
+<div id="long"></div></body></html>""".replace("SECTION", SECTION)
 # The same page on a white wrapper (1Password at its sections): its light
 # text measures it dark, so its white is the page's colour hidden under
 # the dark glass, and the dark hero top and bands, the tone's own colour,
@@ -417,8 +457,10 @@ html, body {background:transparent}
 # origin; left alone: the
 # same word mark on the site's own dark card, one with a filter of its own,
 # a shaded picture from another origin (a shop's photo), a word mark from
-# another origin whose server does not allow it, and an illustrated badge
-# from another origin, its dark part flat, the rest in many tones.
+# another origin whose server does not allow it, an illustrated badge
+# from another origin, its dark part flat, the rest in many tones, and an
+# opaque product photo shot on white (the site shows its photos as it means
+# to: only a page Dark Reader darkens gets them on a tile).
 def icon_svg(width, height, body):
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">%s</svg>'
             % (width, height, body)).encode("utf-8")
@@ -460,9 +502,11 @@ header img {margin:0 8px}
 <a id="find" href="#" aria-label="Search">""" + CHEVRON % "search" + """</a>
 <img id="picto" width="140" height="160" src="%(far)s/picto.svg">
 <img id="own" width="140" height="28" style="filter:brightness(0.5)" src="/wordmark.svg">
+<span style="display:block; filter:invert(1) hue-rotate(180deg)"><img id="under" width="140" height="28" src="/wordmark.svg"></span>
 <img id="photo" width="120" height="80" src="%(far)s/shaded.svg">
 <img id="closed" width="140" height="28" src="%(far)s/closed.svg">
 <img id="badge" width="64" height="64" src="%(far)s/badge.svg">
+<img id="shot" width="120" height="100" src="/shot.svg">
 <div id="long">""" + dk.TEXT + """</div></body></html>"""
 
 
@@ -552,7 +596,7 @@ class LayersE2E(unittest.TestCase):
     def check_icons(self, binary):
         svg = "image/svg+xml"
         routes = {"/wordmark.svg": (svg, WORDMARK, CORS), "/picto.svg": (svg, PICTO, CORS),
-                  "/shaded.svg": (svg, SHADED, CORS), "/closed.svg": (svg, WORDMARK),
+                  "/shaded.svg": (svg, SHADED, CORS), "/shot.svg": (svg, dk.SHOT_SVG), "/closed.svg": (svg, WORDMARK),
                   "/accent.svg": (svg, ACCENT), "/badge.svg": (svg, BADGE, CORS)}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
@@ -581,10 +625,11 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('accent')).filter;"),
                              "invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT)
             # left alone: on the site's own dark card, with a filter of its
-            # own, a shaded picture of another origin, one not allowed, an
-            # illustrated badge (its dark sky flat, the rest in many tones)
+            # own or under one (Wikipedia's inverted logo), a shaded picture of another origin, one not allowed, an
+            # illustrated badge (its dark sky flat, the rest in many tones),
+            # an opaque photo shot on white
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
-            for name in ("cardmark", "own", "photo", "closed", "badge"):
+            for name in ("cardmark", "own", "under", "photo", "closed", "badge", "shot"):
                 self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
 
     def test_sections(self):
@@ -594,13 +639,21 @@ class LayersE2E(unittest.TestCase):
 
     def check_sections(self, binary):
         routes = {"/s.html": ("text/html; charset=utf-8", SECTIONS_PAGE.encode("utf-8")),
-                  "/scrim.html": ("text/html; charset=utf-8", SCRIM_PAGE.encode("utf-8"))}
+                  "/scrim.html": ("text/html; charset=utf-8", SCRIM_PAGE.encode("utf-8")),
+                  "/edge.html": ("text/html; charset=utf-8", EDGE_PAGE.encode("utf-8"))}
         image = "return getComputedStyle(document.getElementById(arguments[0])).backgroundImage"
         clear = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor === 'rgba(0, 0, 0, 0)';"
         to = "window.scrollTo(0, document.getElementById(arguments[0]).offsetTop);"
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             tone.set_scheme(b, True)
+            # a band showing only along the window's bottom edge, no scroll
+            b.navigate(srv.url("/edge.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the page's layer not marked")
+            self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, "edge"), "a band at the bottom edge left opaque")
+            self.assertEqual(b.js("return window.scrollY;"), 0)
+            self.assertEqual(self.bg_of(b, "masthead"), "rgb(29, 29, 33)", "a header in the flow made see-through")
             b.navigate(srv.url("/s.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the page's layer not marked")
@@ -779,6 +832,37 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(self.bg_of(b, "cta"), "rgb(255, 255, 255)")
             b.js("document.getElementById('skiplink').focus();")
             self.assertEqual(b.js(opacity, "skip"), "1")
+
+    def test_stuck_header(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_stuck_header(binary)
+
+    def check_stuck_header(self, binary):
+        routes = {"/stuck.html": ("text/html; charset=utf-8", STUCK_PAGE.encode("utf-8"))}
+        filled = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === 'fill';"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/stuck.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            # stuck from load, nothing under it yet: one veil already, its
+            # row in the page's colour see-through under it
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "stuck", BAR),
+                            "a header stuck at the top from load, its row painted, not a bar")
+            self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "first", CANVAS), "the header's row left opaque")
+            # the drawer down the page in a colour near the page's: glass
+            # under its sticky list
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "drawer", CANVAS),
+                            "a side panel in the page's colour holding a bar left opaque")
+            self.assertEqual(self.bg_of(b, "drawer"), "rgba(0, 0, 0, 0)")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "list", BAR), "the drawer's sticky list not a bar")
+            # the search field and the toggle keep their box, also scrolled
+            b.js("window.scrollTo(0, 700);")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
+            for name in ("field", "toggle"):
+                self.assertFalse(self.marked(b, name, CANVAS), name + ": a field in the bar's row filled")
+                self.assertEqual(self.bg_of(b, name), "rgb(27, 30, 33)", name)
 
     def check_columns(self, binary):
         routes = {"/c.html": ("text/html; charset=utf-8", COLUMN_PAGE.encode("utf-8")),

@@ -77,12 +77,19 @@ added by the helper: a page where a write failed is tried again only once
    gives its dark theme under a dark system and follows the system live.
    The recipe lists `null` and the light JSON in `from`, exactly as the
    site writes it (key order and spacing included).
+   A value need not say light or dark: Proton's account pages keep
+   `theme` as a number (`2` light, `1` dark, `0` Auto, which follows the
+   system live; absent, light even under a dark system), so the recipe
+   writes `1` over `null` and `2`, and leaves `0` alone.
 3. Check that the light value (or none) gives the light theme, so that
    putting it back restores the site.
    A site that stores its own default on a first visit (the French
    state's DSFR stores `scheme` = `light`) needs both `null` and that
    value in `from`; a value that already follows the system (`system`)
-   stays out of it.
+   stays out of it. A site that stores the scheme it resolved from the
+   system (DSFR on impots.gouv.fr: `light` or `dark`, never `system`)
+   stays dark under a light theme after a visit under a dark one; a
+   recipe makes the key the add-on's, so the value it had is put back.
 4. Write the recipe with today's date in `verified`, and run
    `python3 -m unittest tests/py/test_themes.py`.
 

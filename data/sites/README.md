@@ -7,6 +7,9 @@ fix or improve how a site looks under the glass.
   its subdomains. If [my-internet](https://github.com/sameerasw/my-internet) has
   a style with that name, the file is added at the end of that style. If it has
   none, the file becomes a new style of its own.
+  A my-internet style named with a leading `+` covers a domain and all its
+  subdomains (`+wikipedia.org`, every Wikipedia language): its fix keeps that
+  name, `+wikipedia.org.css`.
 - **Use the glass tint** for anything that floats over the page (fixed headers,
   toolbars, overlay menus): `background: var(--browserglass-bar)` is the DMS
   surface at 80 %, light or dark like the browser. Add a

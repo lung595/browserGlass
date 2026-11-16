@@ -51,7 +51,8 @@ localStorage). Checked:
     scripts, the write refused): one reload at most, then failed and Dark
     Reader, never reloaded again;
   - the bundled recipes of the French state's design system (DSFR:
-    service-public.gouv.fr, www.info.gouv.fr) on a page built like theirs:
+    service-public.gouv.fr, www.info.gouv.fr, impots.gouv.fr) on a page
+    built like theirs:
     the server marks <html data-fr-scheme="light">, a script at the end of
     <body> reads localStorage.scheme over it and writes the scheme it
     applies back. A first visit is created dark (no Dark Reader), removed
@@ -63,7 +64,12 @@ localStorage). Checked:
     when absent, and without a dark key the page follows the system live.
     A first visit is created '{"theme":"default"}' (dark, no Dark Reader)
     and removed under a light theme; the stored light JSON is written and
-    put back.
+    put back;
+  - the bundled recipe of Proton's account pages on a page built like
+    them: localStorage.theme holds a number ("2" light, "1" dark, "0" the
+    system), light when absent. A first visit is created "1" (dark, no
+    Dark Reader) and removed under a light theme; a stored "2" is written
+    "1" and put back; "0" (dark under a dark system) is left alone.
 """
 
 import json
@@ -86,7 +92,8 @@ bg = tone.bg
 EXT = os.path.join(tone.REPO, "extension")
 HOSTS = ("ls.test", "user.test", "back.test", "force.test", "ignore.test", "odd.test",
          "absent.test", "excl.test", "cookie.test", "late.test", "wiki.test", "wiki2.test", "create.test",
-         "slash.test", "shade.test", "hidden.test", "dsfr.test", "dsfr2.test", "ha.test")
+         "slash.test", "shade.test", "hidden.test", "dsfr.test", "dsfr2.test", "dsfr3.test", "ha.test",
+         "proton.test")
 RECORD = "browserGlass.theme"
 
 TEXT = "<p>" + "Some readable text on a page with its own theme menu. " * 8 + "</p>"
@@ -159,6 +166,19 @@ try { o = t ? JSON.parse(t) : {theme: "default", dark: false}; } catch (e) { o =
 var mq = matchMedia("(prefers-color-scheme: dark)");
 function paint() {
   document.documentElement.classList.toggle("night", o.dark === undefined ? mq.matches : o.dark === true);
+}
+paint();
+mq.addEventListener("change", paint);
+</script>""" + STYLE + "</head><body>" + TEXT + "</body></html>")
+
+# Proton's account pages: localStorage.theme holds a number, "2" light,
+# "1" dark, "0" Auto (the system, live); light when absent.
+PROTON_PAGE = ("""<!doctype html><html><head><meta charset="utf-8"><script>
+var t = localStorage.getItem("theme");
+window.__boot = t;
+var mq = matchMedia("(prefers-color-scheme: dark)");
+function paint() {
+  document.documentElement.classList.toggle("night", t === "1" || t === "0" && mq.matches);
 }
 paint();
 mq.addEventListener("change", paint);
@@ -252,7 +272,7 @@ class Server:
                     body = {"/ls.html": LS_PAGE, "/force.html": FORCE_PAGE, "/hide.html": LS_PAGE,
                             "/ignore.html": IGNORE_PAGE, "/w.html": WIKI_PAGE,
                             "/rts.html": SLASH_PAGE, "/dsfr.html": DSFR_PAGE,
-                            "/ha.html": HA_PAGE}.get(path)
+                            "/ha.html": HA_PAGE, "/proton.html": PROTON_PAGE}.get(path)
                     if body is None:
                         self.send_error(404)
                         return
@@ -591,11 +611,14 @@ class ThemeE2E(unittest.TestCase):
                 self.assertFalse(s["night"], s)
             self.feed(b)
 
-            # 15. DSFR (service-public.gouv.fr, www.info.gouv.fr), the
-            # bundled recipes: a first visit created dark, no Dark Reader
+            # 15. DSFR (service-public.gouv.fr, www.info.gouv.fr,
+            # impots.gouv.fr), the bundled recipes: a first visit created
+            # dark, no Dark Reader
             dsfr = ("return [localStorage.getItem('scheme'),"
                     " document.documentElement.getAttribute('data-fr-theme')];")
-            sites = {"dsfr.test": bundled("service-public.gouv.fr"), "dsfr2.test": bundled("www.info.gouv.fr")}
+            sites = {"dsfr.test": bundled("service-public.gouv.fr"),
+                     "dsfr2.test": bundled("www.info.gouv.fr"),
+                     "dsfr3.test": bundled("impots.gouv.fr")}
             self.load(b, srv.url("absent.test"))
             self.feed(b, sites=sites)
             for host in sites:
@@ -664,6 +687,45 @@ class ThemeE2E(unittest.TestCase):
                                        " && localStorage.getItem(arguments[0]) === null;",
                                        mn.WAIT_TIMEOUT, RECORD, HA_LIGHT), self.state(b))
             tone.set_scheme(b, True)
+            self.feed(b)
+
+            # 17. Proton's account pages, the bundled recipe: a numeric
+            # value, created on a first visit, then the stored light "2"
+            url = srv.url("proton.test", "/proton.html")
+            sites = {"proton.test": bundled("account.proton.me")}
+            self.load(b, srv.url("absent.test"))
+            self.feed(b, sites=sites)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"]), ("1", True), s)
+            self.assertEqual(s["record"]["keys"], {"local:theme": {"prior": None, "wrote": "1"}})
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
+            self.assertNotIn("failed", s["record"])
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('theme') === null"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            b.js("localStorage.setItem('theme', '2');")
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"], s["record"]), ("2", False, None), s)
+            tone.set_scheme(b, True)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"]), ("1", True), s)
+            self.assertEqual(s["record"]["keys"], {"local:theme": {"prior": "2", "wrote": "1"}})
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return localStorage.getItem('theme') === '2'"
+                                       " && localStorage.getItem(arguments[0]) === null;",
+                                       mn.WAIT_TIMEOUT, RECORD), self.state(b))
+            tone.set_scheme(b, True)
+            # "0" (Auto), dark under a dark system by the page itself: left alone
+            self.load(b, srv.url("absent.test"))
+            self.feed(b)  # no recipe while preset opens the page
+            self.preset(b, url, {"theme": "0"})
+            self.feed(b, sites=sites)
+            s = self.load(b, url)
+            self.assertEqual((s["boot"], s["night"], s["record"]), ("0", True, None), s)
+            s = self.settled(b)
+            self.assertFalse(s["darkreader"], s)
             self.feed(b)
 
 

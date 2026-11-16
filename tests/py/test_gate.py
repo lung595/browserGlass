@@ -540,8 +540,10 @@ class ToneTest(unittest.TestCase):
         normal = bg._Nest(bg.GATE_NORMAL_ROOT)
         self.assertIn("    %s,\n    %s > body" % (bg._DARK_PAGE_TONE_ROOT, bg._DARK_PAGE_TONE_ROOT),
                       bg._CONTENT_GENERIC_TONE)
-        self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_NORMAL_ROOT), css)
-        self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_LIVE_ROOT), css)
+        # never on the body kept for a read of its own colour (ATTR_OWN)
+        self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_NORMAL_ROOT, keep=True), css)
+        self.assertIn(bg.css_gate_rules(bg._CONTENT_GENERIC_TONE, bg.GATE_LIVE_ROOT, keep=True), css)
+        self.assertIn("body:where(&,& *)%s { background: transparent !important; }" % bg._GATE_KEEP, css)
         tint = bg._content_block("https?://.*", bg._CONTENT_TONE.format(
             a="0.88", bar="0.8", **self.rgb(surfaces)), bg.GATE_NORMAL_ROOT)
         self.assertEqual(css.count(tint), 1)

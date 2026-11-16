@@ -1,0 +1,24 @@
+/* browserGlass: Wikipedia's infoboxes, hatnotes and search field under the
+   glass, day and night. The style above clears the infobox itself, but its
+   cells and lines (night: grey panels), the header and section bars of
+   frwiki's infobox (.entete and caption, in the colour of the infobox's
+   kind, black at night), its hatnote banners (.bandeau-container: white by
+   day, grey at night) and enwiki's hatnotes (grey at night) stay solid.
+   The cells, lines and plain hatnotes are see-through (one with a colour
+   of its own, from its inline style, keeps it); the bars and the banners
+   get a light veil of the glass tint and a thin border; the search field
+   is translucent with a thin border, on no solid box of its form. */
+.infobox :is(table, tbody, tr, td, th, caption, p):not([style*="background"]),
+.hatnote:not(.bandeau-container),
+.cdx-search-input {
+  background-color: transparent !important;
+}
+.infobox_v3 :is(.entete, caption),
+.bandeau-container {
+  background-color: color-mix(in srgb, var(--browserglass-bar, rgba(16, 16, 20, 0.8)) 40%, transparent) !important;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent) !important;
+}
+.cdx-text-input__input {
+  background-color: color-mix(in srgb, var(--browserglass-bar, rgba(16, 16, 20, 0.8)) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent) !important;
+}
