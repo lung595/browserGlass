@@ -119,7 +119,7 @@ The widget is optional: the glass works without it. It shows whether the glass i
 
 <img src="screenshots/widget-menu.png" alt="The Browser Glass menu with no restart pending" width="320">
 
-**Most changes need a browser restart.** Firefox only loads its style files when it starts. Changes in DMS (colours, blur, window opacity) and in the plugin settings are written at once; the widget then tells you which browser to restart. Two changes need none: switching DMS between light and dark (with *Sync with portal* on), and, with [Live control](#advanced--help), excluding a site or putting it back.
+**Most changes need a browser restart.** Firefox only loads its style files when it starts. Changes in DMS (colours, blur, window opacity) and in the plugin settings are written at once; the widget then tells you which browser to restart. Two changes need none: switching DMS between light and dark (with *Sync with portal* on), and, with [Live control](#live-control), excluding a site or putting it back.
 
 **Excluding a site.** The quickest way is the launcher: with the page in front, open the DMS launcher and type `gs blist` (see [Launcher](#launcher)). Or copy the address of the page in the browser, then use **Exclude copied URL** in the widget, in the settings or from a key binding (see [below](#command-line-and-keybindings)). The site and its subdomains keep their normal look, at once with Live control, otherwise after the next restart. Remove it with `gs unblist`, from `gs list`, or from **Settings → Sites → Excluded sites**.
 
@@ -138,7 +138,7 @@ Open the DMS launcher and type `glass` or `gs`: the Browser Glass commands show 
 
 A short toast confirms each action: *Glass on*, *Glass off*, *Glass on, but not shown* (with the reason, for example when DMS blur is off), *example.org excluded*, *example.org back under glass*, *example.org is already excluded* or *example.org is not excluded*. When the site cannot be told, a warning says why and nothing is done: *No browser in the foreground*, *Private window: site not detected*, *Not a web page* (a `file:` or `about:` page), *Address not supported* (an IPv6 address, or a name such as `github.io` that holds other people's sites), *Current tab uncertain*, *Browser session unreadable*, *Restart the browser once more* (after a plugin update), or *Current site not found* (try again in a few seconds).
 
-**At once, or at the next restart.** With **Live control** on (the default, see [Settings](#advanced--help)) and its companion add-on running in the browser, an exclusion applies to the open pages at once: the toast says *example.org excluded*. Otherwise the toast says *example.org excluded — applies after a restart* (or *example.org back under glass — applies after a restart*): the change is written, and the browser shows it after its next restart. That is the case on Firefox release builds, before the first browser restart after the add-on was installed, in Flatpak and Snap browsers and in private windows (see [Troubleshooting](#troubleshooting)). `gs on` and `gs off` always need a browser restart for the browser's own bars: the window itself follows at once.
+**At once, or at the next restart.** With **Live control** on (the default, see [Settings](#live-control)) and its companion add-on running in the browser, an exclusion applies to the open pages at once: the toast says *example.org excluded*. Otherwise the toast says *example.org excluded — applies after a restart* (or *example.org back under glass — applies after a restart*): the change is written, and the browser shows it after its next restart. That is the case on Firefox release builds, before the first browser restart after the add-on was installed, in Flatpak and Snap browsers and in private windows (see [Troubleshooting](#troubleshooting)). `gs on` and `gs off` always need a browser restart for the browser's own bars: the window itself follows at once.
 
 **Which site.** The site is taken from the browser window in focus, or the one that was in focus just before the launcher opened; with several browsers open, it is that window's browser. The companion add-on reports the open tab's host; without it, Browser Glass reads the browser's saved session, which can be some seconds late (when it is more than 10 s old, the toast adds *from the session saved 25 s ago*). A private window is never read: `gs blist` refuses there.
 
@@ -146,11 +146,13 @@ The Browser Glass results come after the apps whose name matches, ten lines at m
 
 ## Settings
 
-Open **Settings → Plugins → Browser Glass**.
+Open **Settings → Plugins → Browser Glass**. A search field sits on top, the categories on the left (**Status**, **Opacity**, **Pages**, **Sites**, **Live control**, **Files & uninstall**, **Help**), and the open category on the right.
+
+**Search.** Type in the field (or press **Ctrl+F** or **/** to reach it) and the page becomes the answer: only the matching settings show, grouped by category, and you can change them right there. The rail shows how many matches each category has. **Enter** opens the best match in its category, a click on a category opens it at its match, and **Esc** clears the search and gives the page back. The search reads the labels and help lines as they show on screen, so it works in French too, accents or not. In a narrow window the rail shows its icons only.
 
 ### Status
 
-<img src="screenshots/settings-status.png" alt="The Status section: glass is on, the DMS opacity, the tint, the niri rule, the browsers found and the Copy report and Re-sync buttons" width="480">
+<img src="screenshots/settings-status.png" alt="The Status page: glass is on, the DMS opacity, the tint, the niri rule, the browsers found and the Copy report and Re-sync buttons" width="480">
 
 | Item | What it shows or does |
 | --- | --- |
@@ -158,22 +160,28 @@ Open **Settings → Plugins → Browser Glass**.
 | Restart line | Which browser to restart to see the latest change |
 | Opacity, tint, niri | The opacity in use and its source, the tint colour and mode, whether the niri rule is in place |
 | Browsers | Each browser found and how many of its profiles are set up |
-| Live control | Where [Live control](#advanced--help) stands (see below) |
+| Live control | Where [Live control](#live-control) stands (see below) |
 | Warnings | Anything that was skipped, in plain words (a read-only file, a Zen transparency mod...) |
 | **Turn glass on** | Shown when the glass was switched off |
 | **Copy report** | Copies an anonymous report for a bug report (see [Privacy](#privacy)) |
 | **Re-sync** | Writes everything again now |
 
-### Appearance
+### Opacity
 
-<img src="screenshots/settings-appearance.png" alt="The Appearance section: the DMS window opacity, the Override switch, the Site theme choice and four switches" width="480">
+<img src="screenshots/settings-appearance.png" alt="The DMS window opacity, the Override switch, the Site theme choice and four switches" width="480">
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | DMS window opacity | | Read only: the opacity of the first global DMS window rule |
 | **Override** | Off | Use an opacity of your own for the browsers instead of the DMS one |
 | **Browser opacity** | 85% | Shown with Override on. 20% to 100%; 100% turns the glass off |
+
+### Pages
+
+| Setting | Default | What it does |
+| --- | --- | --- |
 | **Site theme** | Follow DMS | The light or dark scheme websites are asked for: *Follow DMS*, *Always dark* or *Leave as is* (your browser's own choice) |
+| **Dark pages** | On | Under a dark theme, the companion add-on switches light pages to their own dark theme when they have one, otherwise turns them dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass. Needs *Live control* |
 | **Glass web pages** | On | Off: only the browser's own interface (tabs, address bar) is glass |
 | **Glass new tab** | On | The new tab, home and private browsing pages |
 | **Opaque reader view and PDF** | On | Keeps reader view and the PDF viewer solid, for reading |
@@ -181,22 +189,21 @@ Open **Settings → Plugins → Browser Glass**.
 
 ### Sites
 
-<img src="screenshots/settings-sites.png" alt="The Sites section: the generic style switch, the excluded sites list with Exclude copied URL, and the searchable list of dedicated site styles" width="480">
+<img src="screenshots/settings-sites.png" alt="The generic style switch, the excluded sites list with Exclude copied URL, and the searchable list of dedicated site styles" width="480">
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Generic style for other sites** | On | Adds see-through backgrounds to the inner parts of sites without a dedicated style (the page background is see-through either way) |
-| **Dark pages** | On | Under a dark theme, the companion add-on switches light pages to their own dark theme when they have one, otherwise turns them dark with the bundled [Dark Reader](https://darkreader.org) engine, and their background becomes glass. Needs *Live control* |
 | **Excluded sites** | Empty | These sites keep their normal background. Type a domain and press **Add**, or use **Exclude copied URL**. Subdomains included |
 | **Dedicated site styles** | All on | The my-internet styles, searchable. Switch one off and that site loses its tailored style |
 
-### Advanced & help
+### Live control
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Live control** | On | Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets `xpinstall.signatures.required` to `false` and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. A signed add-on, which they accept, is planned for a later version. Uninstalling Browser Glass removes the add-on and puts these settings back |
 
-The **Status** section has a line for it:
+The page, like the **Status** page, has a line for it:
 
 | Line | Meaning |
 | --- | --- |
@@ -208,7 +215,9 @@ The **Status** section has a line for it:
 
 The [user guide](docs/GUIDE.md#live-control) explains how it works.
 
-The section also has what the plugin writes, how to uninstall it by hand, notes on Zen and niri, and links to this page, the [user guide](docs/GUIDE.md) and the [issue tracker](https://github.com/lung595/browserGlass/issues).
+### Files & uninstall, Help
+
+**Files & uninstall** lists what the plugin writes and how to uninstall it by hand, with a button that copies the command. **Help** has the notes on Zen and niri, and links to this page, the [user guide](docs/GUIDE.md) and the [issue tracker](https://github.com/lung595/browserGlass/issues).
 
 ## Command line and keybindings
 
