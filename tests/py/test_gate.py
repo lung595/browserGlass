@@ -36,7 +36,7 @@ EXCLUDED_HEAVY = ("google.com", "chatgpt.com", "youtube.com", "github.com", "red
 # Size growth allowed by the gating (gated / ungated - 1) on data/.
 MAX_GROWTH = 0.45
 # The same for the live section (see test_growth).
-MAX_GROWTH_LIVE = 0.50
+MAX_GROWTH_LIVE = 0.60
 # The content file with each site style once per colour scheme, against
 # one copy (see test_scheme_size).
 MAX_SCHEME_RATIO = 2.75
@@ -73,9 +73,11 @@ SELECTOR_CASES = [
 def ungate(text, cond, shadow=True):
     """`text` (css_gate_rules output for `cond` and `shadow`) without what
     the gating inserted: each wrapper (":where(cond){", or the @scope
-    declarations' one) with its "}", each selector gate. Wrappers never
-    nest (group rules stay outside them)."""
+    declarations' one) with its "}", each selector gate (the generic
+    style's with its exemption, _GATE_KEEP). Wrappers never nest (group
+    rules stay outside them)."""
     nest = bg._Nest(cond, shadow)
+    keep = bg._Nest(cond, shadow, True)
     out = []
     pos = 0
     while True:
@@ -89,7 +91,8 @@ def ungate(text, cond, shadow=True):
         out += [text[pos:at], text[brace + 1:close - 1]]
         pos = close
     out.append(text[pos:])
-    return "".join(out).replace(nest.amp, "").replace(nest.plain, "")
+    text = "".join(out).replace(keep.amp, "").replace(keep.plain, "")
+    return text.replace(nest.amp, "").replace(nest.plain, "")
 
 
 def ungate_scheme(text, gate):
@@ -486,10 +489,12 @@ class SchemeTest(unittest.TestCase):
                     want = bg._sites_block_text(comment, "https?://" + tail, body, gate)
                     self.assertIn(want, css)
                     self.assertIn('") {\n@media not (prefers-color-scheme: dark) {\n', want)
-                    light = bg.css_gate_rules(body, gate) if gate else body
                     shadow = comment != bg.SITES_GENERIC_COMMENT
+                    # the generic style, live-gated, skips ATTR_OWN
+                    keep = not shadow and gate is not None
+                    light = bg.css_gate_rules(body, gate, keep=keep) if gate else body
                     self.assertIn("{\n" + light + "\n}\n@media (prefers-color-scheme: dark) {\n"
-                                  + bg.css_gate_rules(body, bg.GATE_DARK[gate], shadow) + "\n}\n}",
+                                  + bg.css_gate_rules(body, bg.GATE_DARK[gate], shadow, keep) + "\n}\n}",
                                   want)
 
     def test_one_envelope(self):
@@ -616,12 +621,16 @@ class LayersTest(unittest.TestCase):
         self.assertIn("[%s]:where(&,& *) { background-color: transparent !important; }"
                       % bg.ATTR_CANVAS, block)
         self.assertEqual((bg.NAV_BAR_OPACITY, bg.NAV_BAR_BLUR), (0.65, "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"))
-        self.assertIn("%s:where(&,& *) {\n    background: rgba(%s, 0.65) !important;\n"
+        self.assertIn("%s:where(&,& *) {\n    background: var(--browserglass-nav) !important;\n"
                       "    backdrop-filter: blur(20px) saturate(1.5) url(\"#browserglass-veil\") !important;"
-                      % (bar, rgb["dark"]), block)
+                      % bar, block)
+        self.assertIn(":root:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }" % rgb["dark"], block)
+        self.assertIn(":root:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }" % rgb["light"], block)
+        # the bar's colour is a custom property of the root: it reaches the
+        # bars of shadow trees, where html:root[tone] cannot match
         for tone in bg.MODES:
-            self.assertIn('html:root[%s="%s"] %s:where(&,& *) { background: rgba(%s, 0.65) !important; }'
-                          % (bg.ATTR_TONE, tone, bar, rgb[tone]), block)
+            self.assertIn('html:root[%s="%s"]:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }'
+                          % (bg.ATTR_TONE, tone, rgb[tone]), block)
         # the tone wins over the theme: last
         self.assertLess(block.index("not (prefers-color-scheme: dark)"), block.index(bg.ATTR_TONE))
         self.assertLess(css.index('[%s="light"]' % bg.ATTR_TONE), css.index(block))
@@ -700,8 +709,9 @@ class ContentTest(unittest.TestCase):
         liveControl-off file (scheme-gated too: about +17 %), and the live
         section against its ungated text, by at most MAX_GROWTH_LIVE (its
         dark branch has the longer GATE_DARK[GATE_LIVE_ROOT] in each
-        wrapper: about +47 % with google.com alone, the style with the most
-        runs). The live section itself repeats the blocks of the excluded
+        wrapper, and the generic style it repeats the exemption of
+        ATTR_OWN on each selector: about +56 % with google.com alone, the
+        style with the most runs). The live section itself repeats the blocks of the excluded
         domains (EXCLUDED_HEAVY: the largest), so it is not counted in the
         first ratio; the whole file is held to MAX_GROWTH for typical
         exclusions only."""
@@ -732,8 +742,8 @@ class ContentTest(unittest.TestCase):
         sites = real_sites()
         single = bg._scheme_gated
 
-        def one_copy(css, gate=None, shadow=True):
-            return bg.css_gate_rules(css, gate) if gate else css
+        def one_copy(css, gate=None, shadow=True, keep=False):
+            return bg.css_gate_rules(css, gate, keep=keep) if gate else css
 
         for live in (False, True):
             with self.subTest(live=live):

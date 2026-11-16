@@ -41,14 +41,15 @@ the list). Checked:
   - pictures on a white card Dark Reader darkens: a photo blended with
     multiply is shown on a white tile (not blended, not inverted, a white
     margin drawn by a shadow, rounded outside, with no seam of the dark
-    background at the photo's corners), and so is see-through dark ink in
-    a colour (navy) and a black product cut out of its photo (shaded
-    grey); see-through black ink of the page's origin or a data:
-    URL (a monochrome logo) is inverted to light ink, with no tile; left
-    alone: a photo as wide as the page,
-    the same ink from another origin (its pixels cannot be read), a light
-    logo, an opaque picture, an icon under 24 px; a light theme takes the
-    tiles off. A multiplied photo loaded late (a lazy one: no width, so
+    background at the photo's corners), and so is a black product cut out
+    of its photo (shaded grey); see-through dark ink of one tone of the
+    page's origin or a data: URL (a black or navy logo) is inverted to
+    light ink, its hues turned back, with no tile, and so are icons (a
+    black square under 24 px, thin black lines with a red accent 24 px
+    square, whatever the share of red, a black one blended with multiply);
+    left alone: a photo as wide as the page, the same ink from another
+    origin (its pixels cannot be read), a light logo, an opaque picture, a
+    shaded round avatar; a light theme takes the tiles off. A multiplied photo loaded late (a lazy one: no width, so
     no tile, until it is in) is tiled once loaded, with nothing else
     moving on the page;
   - inline SVG logos in a header Dark Reader inverts: one whose shapes the
@@ -78,7 +79,26 @@ the list). Checked:
     label, proton.me's violet button, an input button) keep their fill and
     label colours as the page had them; left alone: a pale button, a wide
     banner, a coloured link with no label, a label that does not read on
-    its fill; a light theme takes the marks and their inline colours off.
+    its fill; a light theme takes the marks and their inline colours off;
+  - a page whose only opaque surface is a white column half the window
+    wide (ch.ch), light words on its see-through half: the column's navy
+    text votes, the page is darkened; under a light theme the column is
+    glass and the white label of its tagline too, not a popup menu laid
+    over it; a view whose navy line was inked light on the dark glass
+    turns light once its light text is gone (the inked line votes with
+    its own colour); text in a see-through fixed footer over a white box
+    of the page is not inked, beside it over the glass it is;
+  - a light page with dark sections holding white text, with the real
+    generic style (MeteoSuisse's forecast): under a light theme the
+    section and one in an open shadow tree (white text of its own, and a
+    heading slotted in from the page) keep their own colour, their text
+    not inked, while a white section is cleared; under Dark Reader the
+    shadow section is glass or a light veil, not an opaque slab; a light
+    theme gives its colour back; a kept section grown to fill the window
+    never becomes the page's layer; a yellow half kept while the page was
+    measured dark is glass once it is light; under a dark theme, a dark
+    section in a shadow tree that made the layer of a page measured dark
+    while it loads is kept, its own colour back, once the page is light.
 """
 
 import json
@@ -149,13 +169,17 @@ def svg(width, height, body):
 # Pictures on a white shop card Dark Reader darkens: a product photo whose
 # white the site wipes out with multiply (#photo), and one as wide as the
 # page (#hero); see-through black ink of the page's origin (#ink, from
-# /ink.svg) and of a data: URL (#mark), monochrome (inverted), see-through
-# navy ink (#navy, coloured: tiled), a black product cut out of its photo
-# (#puck, see-through, shaded grey: tiled), and the same ink from another
-# origin (#far, its source set by the test: its pixels cannot be read);
-# a see-through light logo (#sun), an opaque picture (#opaque), a
-# black icon under 24 px (#icon), and a multiplied photo of a fixed height
-# whose source the test sets late (#late: a lazy picture, no width before).
+# /ink.svg) and of a data: URL (#mark), and navy ink (#navy), of one tone
+# (inverted), a black product cut out of its photo (#puck, see-through,
+# shaded grey: tiled), and the same ink from another origin (#far, its
+# source set by the test: its pixels cannot be read); a see-through light
+# logo (#sun), an opaque picture (#opaque), a black icon under 24 px
+# (#icon: inverted), icons 24 px square of thin black lines with a red
+# accent, more or less of it (#line1 to #line3, as a bank's list of
+# services draws them: all inverted, none tiled), a shaded round avatar
+# 32 px wide (#avatar: left alone), a black icon blended with multiply
+# (#blendicon: inverted, never on a tile), and a multiplied photo of a fixed height whose source the test
+# sets late (#late: a lazy picture, no width before).
 INK_RECT = '<rect x="10" y="10" width="100" height="20" fill="black"/>'
 INK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">' + INK_RECT + '</svg>'
 PHOTO = svg(120, 80, '<rect width="120" height="80" fill="white"/>'
@@ -174,6 +198,17 @@ PICTURES = (
     ("sun", svg(120, 40, INK_RECT.replace("black", "rgb(255,200,0)")), 'width="120" height="40"'),
     ("opaque", svg(120, 40, '<rect width="120" height="40" fill="white"/>' + INK_RECT), 'width="120" height="40"'),
     ("icon", svg(16, 16, '<rect x="2" y="2" width="12" height="12" fill="black"/>'), 'width="16" height="16"'),
+) + tuple(
+    ("line%d" % (i + 1), svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="none" stroke="black" stroke-width="1"/>'
+                                     '<circle cx="12" cy="15" r="%d" fill="none" stroke="rgb(230,0,0)"'
+                                     ' stroke-width="1.5"/>' % r), 'width="24" height="24"')
+    for i, r in enumerate((1, 2, 3))
+) + (
+    ("avatar", svg(32, 32, '<defs><radialGradient id="a"><stop offset="0" stop-color="rgb(160,130,110)"/>'
+                           '<stop offset="1" stop-color="black"/></radialGradient></defs>'
+                           '<circle cx="16" cy="16" r="16" fill="url(#a)"/>'), 'width="32" height="32"'),
+    ("blendicon", svg(24, 24, '<rect x="4" y="4" width="16" height="16" fill="black"/>'),
+     'class="blend" width="24" height="24"'),
     ("late", "", 'class="blend" style="height:80px"'),
 )
 TILE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
@@ -378,6 +413,91 @@ def stacks_sites():
         shutil.rmtree(tmp)
 
 
+# A page whose only opaque surface is a white column (ch.ch): its left
+# half, its navy text and a tagline on a white label, a white popup menu
+# laid over it, the rest of the page see-through, with light words there
+# (a heading drawn for a dark hero).
+PANEL_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; color:rgb(10,30,80)}
+#row {display:flex; min-height:100vh}
+#left {width:50vw; background:rgb(255,255,255)} #right {flex:1}
+#claim {position:relative; background:rgb(255,255,255)} .hero {color:rgb(250,250,250)}
+#pop {position:absolute; top:40px; left:20px; background:rgb(255,255,255)}
+</style></head><body><div id="row"><div id="left"><p><span id="claim">The federal portal</span></p>
+<div id="pop">A menu over the page</div>""" + (
+    "<p>" + "Navy text of the page on its white column. " * 4 + "</p>") * 3 + """</div>
+<div id="right"><h1 class="hero">Light words on the glass</h1><p class="hero">Over a picture once</p></div>
+</div></body></html>"""
+# A page's view swapped (a single-page app): first light text and one navy
+# line on the glass of a dark theme (the line inked light), then the light
+# text gone and the theme class set: the navy line is a light page.
+SWAP_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0} #lights {color:rgb(240,240,240)} #navy {color:rgb(10,30,80)}
+</style></head><body><div id="lights">""" + (
+    "<p>" + "Light text of the dark view. " * 6 + "</p>") * 4 + """</div>
+<p id="navy">""" + "Navy text of the light view. " * 6 + """</p></body></html>"""
+# A see-through fixed footer of a dark page (half the window wide: no
+# bar), its left line of navy text over a white box of the page under it,
+# its right one over the glass.
+FOOTER_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; color:rgb(235,235,235)}
+#box {position:absolute; left:0; top:calc(100vh - 120px); width:30vw; height:120px; background:rgb(255,255,255)}
+#foot {position:fixed; left:0; bottom:0; width:50vw; height:40px; display:flex; z-index:2}
+#foot p {margin:0; color:rgb(10,30,80)} #onbox {width:30vw} #onglass {margin-left:5vw}
+</style></head><body>""" + ("<p>" + "Light text of a dark page. " * 6 + "</p>") * 4 + """
+<div id="box"></div><footer id="foot"><p id="onbox">Navy claim</p><p id="onglass">Navy link</p></footer>
+</body></html>"""
+# A light page with sections of the opposite tone (MeteoSuisse's forecast
+# hero): a dark one holding white text, and a full-width one in a shadow
+# tree, white text of its own and a heading slotted in from the page; a
+# white section of navy text beside them; at the end a dark one that grows
+# to fill the window once kept.
+OWN_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(10,30,80)}
+#hero, #big {background:rgb(28,40,52); color:rgb(255,255,255); padding:20px}
+#slotted {color:rgb(255,255,255)} #plain {background:rgb(255,255,255)}
+</style></head><body>""" + TEXT + """<section id="hero"><h2 id="herotitle">Forecast</h2>
+<p id="herotext">White text drawn for its own dark section.</p></section>
+<div id="host"><h2 id="slotted" slot="title">A heading slotted in</h2></div>
+<section id="plain">""" + TEXT + """</section>
+<section id="big"><p id="bigtext">White text of a section filling the window.</p></section>
+<script>
+document.getElementById("host").attachShadow({mode: "open"}).innerHTML = "<style>"
+  + "section {background:rgb(28,40,52); color:rgb(255,255,255); min-height:300px; padding:20px}</style>"
+  + "<section id='shero'><slot name='title'></slot><p id='stext'>White text in a shadow tree.</p></section>";
+</script></body></html>"""
+SHADOW = ("const el = document.getElementById('host').shadowRoot.getElementById(arguments[0]);"
+          " return arguments[1] ? el.hasAttribute(arguments[1]) : getComputedStyle(el).backgroundColor;")
+OWN_BG = "rgb(28, 40, 52)"
+# A page measured dark while it loads (ch.ch): light text that goes, and
+# navy text on a yellow half of its own.
+YELLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255)} #lights {color:rgb(240,240,240)}
+#yellow {display:block; background:rgb(240,225,117); color:rgb(1,46,90); min-height:60vh; padding:20px}
+</style></head><body><div id="lights">""" + (
+    "<p>" + "Light text of the loading view. " * 6 + "</p>") * 4 + """</div>
+<main id="yellow"><p id="yellowtext">""" + "Navy text on the yellow half. " * 6 + """</p></main></body></html>"""
+# A page measured dark while it loads (MeteoSuisse): a dark section of
+# white text filling the window, in a shadow tree the generic style never
+# reaches, light text that goes, then navy text.
+SHADOW_NIGHT_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; color:rgb(10,30,80)} #lights {color:rgb(240,240,240)}
+</style></head><body><x-forecast id="host"></x-forecast><div id="lights">""" + (
+    "<p>" + "Light text of the loading view. " * 6 + "</p>") * 16 + """</div>""" + (
+    "<p>" + "Navy text of the page. " * 6 + "</p>") * 8 + """
+<script>
+document.getElementById("host").attachShadow({mode: "open"}).innerHTML = `<style>
+#night {display:block; background:rgb(28,40,52); color:rgb(255,255,255); min-height:100vh; padding:20px}
+</style><section id="night"><p id="nighttext">Forecast</p></section>`;
+</script></body></html>"""
+# In the host's shadow tree: has the element the attribute given, or its
+# background colour.
+NIGHT = ("const el = document.getElementById('host').shadowRoot.getElementById(arguments[0]);"
+         " return arguments[1] ? el.hasAttribute(arguments[1]) : getComputedStyle(el).backgroundColor;")
+INK = bg.ATTR_INK
+TONE_IS = "return document.documentElement.getAttribute(arguments[0]) === arguments[1];"
+
+
 def stylesheet(dark_pages, sites=None):
     sites = sites or bg.Sites({}, {})
     values = bg.settings_from_json("{}")
@@ -426,6 +546,12 @@ class DarkenE2E(unittest.TestCase):
                 self.check_glyphs(binary)
                 self.check_blocks(binary)
                 self.check_brands(binary)
+                self.check_panel(binary)
+
+    def test_own_surfaces(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_own(binary)
 
     def run_content(self, b, excluded=(), darken=True):
         """content.js with the stored list `excluded` and darken flag
@@ -558,22 +684,23 @@ class DarkenE2E(unittest.TestCase):
             inner, outer = b.chrome_js(CORNERS, *box, bg.TILE_PAD)
             self.assertGreaterEqual(inner, 250, "a seam at the photo's corners")
             self.assertLess(outer, 128, "the tile's outer corner not rounded")
-            # see-through dark ink in a colour, or shaded, on a white tile
-            for name in ("navy", "puck"):
-                self.assertTrue(b.wait_for(TILED + " === 'ink';", mn.WAIT_TIMEOUT, name, TILE),
-                                name + ": dark ink not tiled: %r" % b.js(TILED, name, TILE))
-            # see-through black ink, of the page's origin or a data: URL:
-            # monochrome, inverted to light ink, no tile around it
-            for name in ("ink", "mark"):
+            # see-through shaded dark ink on a white tile
+            self.assertTrue(b.wait_for(TILED + " === 'ink';", mn.WAIT_TIMEOUT, "puck", TILE),
+                            "puck: dark ink not tiled: %r" % b.js(TILED, "puck", TILE))
+            # see-through dark ink of one tone, of the page's origin or a
+            # data: URL, black or navy, and icons, a red accent beside
+            # their lines or not: inverted to light ink, no tile around it
+            for name in ("ink", "mark", "navy", "icon", "line1", "line2", "line3", "blendicon"):
                 self.assertTrue(b.wait_for(TILED + " === 'invert';", mn.WAIT_TIMEOUT, name, TILE),
                                 name + ": monochrome ink not inverted: %r" % b.js(TILED, name, TILE))
                 look = b.js("const s = getComputedStyle(document.getElementById(arguments[0]));"
                             "return [s.filter, s.backgroundColor, s.boxShadow];", name)
-                self.assertEqual(look, ["invert(%s)" % bg.TILE_INVERT, "rgba(0, 0, 0, 0)", "none"], name)
+                self.assertEqual(look, ["invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT, "rgba(0, 0, 0, 0)", "none"], name)
             # left as they are: a full-bleed photo, a picture of another
-            # origin (unreadable), a light logo, an opaque picture, an icon
+            # origin (unreadable), a light logo, an opaque picture, a
+            # shaded avatar
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
-            for name in ("hero", "far", "sun", "opaque", "icon"):
+            for name in ("hero", "far", "sun", "opaque", "avatar"):
                 self.assertFalse(b.js(MARKED, name, TILE), name + " tiled")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('hero')).mixBlendMode;"),
                              "multiply")
@@ -757,6 +884,151 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for("return document.documentElement.classList.contains('dark');"),
                             "own dark theme not tried again")
             self.assertFalse(b.js(DARKENED))
+
+    def check_panel(self, binary):
+        routes = {"/p.html": ("text/html; charset=utf-8", PANEL_PAGE.encode("utf-8")),
+                  "/s.html": ("text/html; charset=utf-8", SWAP_PAGE.encode("utf-8")),
+                  "/f.html": ("text/html; charset=utf-8", FOOTER_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            # the white column is the page's: its navy text votes, the page
+            # is light and darkened
+            b.navigate(srv.url("/p.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "a page on a white column not darkened")
+            # under a light theme the column is glass, and the white label
+            # of its tagline with it (no white strip left)
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "left", CANVAS), "column not marked")
+            self.assertTrue(b.wait_for("return document.getElementById('claim').getAttribute(arguments[0])"
+                                       " === 'fill';", mn.WAIT_TIMEOUT, CANVAS), "tagline label not cleared")
+            self.assertEqual(self.bg_of(b, "claim"), "rgba(0, 0, 0, 0)")
+            self.assertFalse(b.js(MARKED, "pop", CANVAS), "a menu over the column cleared")
+            # text inked light on the glass of the dark view votes with its
+            # own navy once the view is light
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/s.html", "light.test"))
+            self.run_content(b, darken=False)
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark"), "dark view not dark")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "navy", INK), "navy line not inked")
+            b.js("document.getElementById('lights').remove(); document.documentElement.className = 'swap';")
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"),
+                            "inked navy text voted light")
+            # a see-through fixed footer: its text read on what is under it
+            b.navigate(srv.url("/f.html", "dark.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "onglass", INK), "footer text on the glass not inked")
+            self.assertFalse(b.js(MARKED, "onbox", INK), "footer text over a white box inked")
+
+    def check_own(self, binary):
+        real = bg.sites_load(os.path.join(tone.REPO, "data"))
+        sites = bg.Sites({bg.SITES_GENERIC_KEY: real.styles[bg.SITES_GENERIC_KEY]}, {})
+        routes = {"/o.html": ("text/html; charset=utf-8", OWN_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True, sites), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/o.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"), "page not light")
+            # the dark sections keep their own colour, their white text
+            # reads on it: not inked
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "hero", bg.ATTR_OWN), "hero not kept")
+            self.assertEqual(self.bg_of(b, "hero"), OWN_BG)
+            self.assertTrue(b.wait_for(SHADOW, mn.WAIT_TIMEOUT, "shero", bg.ATTR_OWN),
+                            "section in a shadow tree not kept: %s" % b.js(SHADOW, "shero", None))
+            b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
+            self.assertEqual(b.js(SHADOW, "shero", None), OWN_BG)
+            for name in ("herotitle", "herotext", "slotted"):
+                self.assertFalse(b.js(MARKED, name, INK), name + " inked")
+            self.assertFalse(b.js(SHADOW, "stext", INK), "shadow text inked")
+            # the white section is cleared as before
+            self.assertFalse(b.js(MARKED, "plain", bg.ATTR_OWN), "white section kept")
+            self.assertEqual(self.bg_of(b, "plain"), "rgba(0, 0, 0, 0)")
+            # a kept section grown to fill the window: kept, no page layer
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "big", bg.ATTR_OWN), "big section not kept")
+            b.js("const big = document.getElementById('big'); window.bgLayered = false;"
+                 " new MutationObserver(() => { window.bgLayered ||= big.hasAttribute(arguments[0]); })"
+                 ".observe(big, {attributes: true, attributeFilter: [arguments[0]]});"
+                 " big.style.minHeight = '120vh'; window.scrollTo(0, big.offsetTop);", CANVAS)
+            b.js("return new Promise((resolve) => setTimeout(resolve, 1500));")
+            self.assertFalse(b.js("return window.bgLayered;"), "a kept section made the page's layer")
+            self.assertEqual(self.bg_of(b, "big"), OWN_BG)
+            b.js("window.scrollTo(0, 0);")
+            # Dark Reader: the dark section in the shadow tree is no
+            # opaque slab (glass, or a light veil)
+            tone.set_scheme(b, True)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(
+                "const c = (() => { " + SHADOW + " })();"
+                " const m = /rgba\\([^)]*,\\s*([\\d.]+)\\)/.exec(c);"
+                " return c === 'transparent' || (m !== null && parseFloat(m[1]) <= arguments[2]);",
+                mn.WAIT_TIMEOUT, "shero", None, bg.BLOCK_VEIL_OPACITY),
+                "shadow section an opaque slab: %s" % b.js(SHADOW, "shero", None))
+            # a light theme: the own colours back
+            tone.set_scheme(b, False)
+            self.assertTrue(b.wait_for("return !document.querySelector('style.darkreader');"), "still darkened")
+            self.assertTrue(b.wait_for("const c = (() => { " + SHADOW + " })(); return c === arguments[2];",
+                                       mn.WAIT_TIMEOUT, "shero", None, OWN_BG),
+                            "own colour not back: %s" % b.js(SHADOW, "shero", None))
+            self.assertFalse(b.js(SHADOW, "shero", CANVAS), "still glass under a light theme")
+            self.assertEqual(self.bg_of(b, "hero"), OWN_BG)
+
+    def test_own_tone_swap(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_own_tone_swap(binary)
+
+    def check_own_tone_swap(self, binary):
+        real = bg.sites_load(os.path.join(tone.REPO, "data"))
+        sites = bg.Sites({bg.SITES_GENERIC_KEY: real.styles[bg.SITES_GENERIC_KEY]}, {})
+        routes = {"/y.html": ("text/html; charset=utf-8", YELLOW_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True, sites), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/y.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark"), "loading view not dark")
+            # navy text on the dark glass: its yellow half kept for it
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "yellow", bg.ATTR_OWN), "yellow half not kept")
+            b.js("document.getElementById('lights').remove(); document.documentElement.className = 'loaded';")
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"), "page not light")
+            # light now, the navy text reads on the glass: the yellow half
+            # is judged again, glass like the rest
+            self.assertTrue(b.wait_for("return !document.getElementById('yellow').hasAttribute(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, bg.ATTR_OWN), "yellow half still kept once light")
+            self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('yellow')).backgroundColor"
+                                       " === 'rgba(0, 0, 0, 0)';"),
+                            "yellow half left opaque: %s" % self.bg_of(b, "yellow"))
+            self.assertFalse(b.js(MARKED, "yellowtext", INK), "navy text inked on the light glass")
+
+    def test_own_shadow_section(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_own_shadow_section(binary)
+
+    def check_own_shadow_section(self, binary):
+        real = bg.sites_load(os.path.join(tone.REPO, "data"))
+        sites = bg.Sites({bg.SITES_GENERIC_KEY: real.styles[bg.SITES_GENERIC_KEY]}, {})
+        routes = {"/s.html": ("text/html; charset=utf-8", SHADOW_NIGHT_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(False, sites), prefs=tone.browser_prefs(), firefox=binary) as b:
+            # a dark theme: the page's root clear while it is dark, tinted
+            # once light, glass all along
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/s.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "dark"), "loading view not dark")
+            # dark on the dark page: its layer
+            self.assertTrue(b.wait_for(NIGHT, mn.WAIT_TIMEOUT, "night", CANVAS), "dark section no layer")
+            b.js("document.getElementById('lights').remove(); document.documentElement.className = 'loaded';")
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"), "page not light")
+            # light now, white text on it: a section of the site's own,
+            # kept, no longer the page's layer (its text on the light glass)
+            self.assertTrue(b.wait_for(NIGHT, mn.WAIT_TIMEOUT, "night", bg.ATTR_OWN), "dark section not kept")
+            self.assertFalse(b.js(NIGHT, "night", CANVAS), "dark section left a page layer")
+            self.assertEqual(b.js(NIGHT, "night"), OWN_BG)
+            self.assertFalse(b.js(NIGHT, "nighttext", INK), "its white text inked")
 
     def left_alone(self, b, why):
         # content.js decides once the list is there and the page loaded:

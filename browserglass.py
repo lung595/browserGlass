@@ -191,6 +191,18 @@ ATTR_RULE = "data-browserglass-rule"
 # with its fill and its label's colour in BRAND_FILL and BRAND_INK, inline:
 # both painted back.
 ATTR_BRAND = "data-browserglass-brand"
+# ... and UNDER on a layer laid behind a bar's content that holds hidden
+# text (skip links): hidden until the focus enters it, not cleared.
+ATTR_UNDER = "data-browserglass-under"
+# ... and OWN on a surface the generic style cleared though its text was
+# drawn for it (a dark section holding light text on a light page): the
+# generic style skips it (_Nest keep), the site's own colour stays.
+ATTR_OWN = "data-browserglass-own"
+# ... and FADE on an element painting a linear gradient of the page's
+# colour (a scrim under a sticky header, the top of a hero), with the same
+# gradient, that colour see-through, in FADE_IMAGE, inline: painted instead.
+ATTR_FADE = "data-browserglass-fade"
+FADE_IMAGE = "--browserglass-fade"
 BRAND_FILL = "--browserglass-brand-fill"
 BRAND_INK = "--browserglass-brand-ink"
 
@@ -1805,7 +1817,14 @@ _CONTENT_DARKEN = (
 #   app's surface beside its menu) or across the window (a menu row):
 #   glass, and so is an empty ::before or ::after of a fixed or sticky
 #   element in that colour (ATTR_FILLED names it: a strip under a sticky
-#   header's rounded corners);
+#   header's rounded corners), and so is a row of a bar (ATTR_BAR) in the
+#   bar's own colour or the page's: the veil shows through it. A layer
+#   behind a bar's content that holds text (skip links a header covers)
+#   is hidden instead (ATTR_UNDER), until the focus enters it. A section
+#   across the window (or the column) in the page's colour laid on such a
+#   layer is one too, and a linear gradient of that colour (ATTR_FADE: a
+#   scrim under a sticky header, the top of a hero) is painted see-through
+#   where it had that colour (FADE_IMAGE);
 # - a navigation bar (ATTR_BAR): fixed or sticky along an edge of the
 #   window (a header, a bottom bar, a sidebar), with a background of its
 #   own, whatever its colours. Every site gets the same: the DMS surface at NAV_BAR_OPACITY over a
@@ -1827,10 +1846,11 @@ _CONTENT_DARKEN = (
 #   rounded to TILE_RADIUS by a clip-path, no blending, no filter. The
 #   picture keeps square corners: rounded ones (the shadow's hole rounded
 #   alike) would let the dark background through where the two smoothed
-#   edges meet, a grey dot at each corner. Dark ink in shades of grey (a
-#   black word mark; ATTR_TILE "invert") is inverted to light ink instead,
-#   TILE_INVERT of the way (a light grey like Dark Reader's text), with no
-#   tile: the logo stays whole beside its coloured parts;
+#   edges meet, a grey dot at each corner. Dark ink of one tone (a black
+#   word mark, a navy pictogram, an icon's lines; ATTR_TILE "invert") is
+#   inverted to light ink instead, TILE_INVERT of the way (a light grey
+#   like Dark Reader's text), its hues turned back (a red accent stays
+#   red), with no tile: the logo stays whole beside its coloured parts;
 # - an inline SVG logo Dark Reader inverts, its shapes painted light by a
 #   style sheet Dark Reader lightened (ATTR_UNINVERT): no filter, so the
 #   light ink is not turned dark again;
@@ -1850,12 +1870,25 @@ _CONTENT_DARKEN = (
 #   before Dark Reader ran (a brand yellow it turns olive), the label's on
 #   the whole button. Without the two ids: a site style that gives such a
 #   button colours of its own (data/sites/) wins, and so does ATTR_INK.
+# Scrollbars follow the page's tone (ATTR_TONE): a thumb of the light
+# surface at SCROLL_THUMB_OPACITY on a dark page, of the dark one on a light
+# page, over a see-through track. Firefox picks a scrollbar's look from the
+# background under it, which the glass made see-through: a sidebar
+# scrolling on a dark page got a white track. Not !important and set on
+# the root only (inherited): a page's own scrollbar-color wins.
+# The add-on also keeps a surface the generic style cleared though its text
+# was drawn for it (ATTR_OWN: a dark section holding light text on a light
+# page): no rule here, the generic style skips it (_GATE_KEEP).
 # Two ids in :not() outweigh the selectors of the generic and site styles
 # (user !important rules too, so specificity decides).
 NAV_BAR_OPACITY = 0.65
+SCROLL_THUMB_OPACITY = 0.4
 BLOCK_VEIL_OPACITY = 0.35
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
+# The bar's colour for the page's tone, set on the root: a custom property
+# reaches the bars of shadow trees, where html:root[tone] cannot match.
+NAV_BAR_VAR = "--browserglass-nav"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _TILE_SELECTOR = "[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not(#browserglass-a):not(#browserglass-b)"
 _INVERT_SELECTOR = "[" + ATTR_TILE + "=\"invert\"]:not(#browserglass-a):not(#browserglass-b)"
@@ -1893,10 +1926,12 @@ _CONTENT_LAYERS = (
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
+    "  [" + ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}\n"
+    "  [" + ATTR_FADE + "] {{ background-image: var(" + FADE_IMAGE + ") !important; }}\n"
     "  [" + ATTR_FILLED + "~=\"before\"]::before, [" + ATTR_FILLED + "~=\"after\"]::after"
     " {{ background-color: transparent !important; }}\n"
     + _TILE_RULE
-    + "  " + _INVERT_SELECTOR + " {{ filter: invert(" + str(TILE_INVERT) + ") !important;"
+    + "  " + _INVERT_SELECTOR + " {{ filter: invert(" + str(TILE_INVERT) + ") hue-rotate(180deg) !important;"
     " mix-blend-mode: normal !important; }}\n"
     + "  " + _UNINVERT_SELECTOR + " {{ filter: none !important; }}\n"
     + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"
@@ -1904,16 +1939,19 @@ _CONTENT_LAYERS = (
     + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BAR_SELECTOR + " {{\n"
-    "    background: rgba({dark}, {nav}) !important;\n"
+    "    background: var(" + NAV_BAR_VAR + ") !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
     "  }}\n"
+    "  :root {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
-    "    " + _BAR_SELECTOR + " {{ background: rgba({light}, {nav}) !important; }}\n"
+    "    :root {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
     "  }}\n"
-    "  html:root[" + ATTR_TONE + "=\"dark\"] " + _BAR_SELECTOR
-    + " {{ background: rgba({dark}, {nav}) !important; }}\n"
-    "  html:root[" + ATTR_TONE + "=\"light\"] " + _BAR_SELECTOR
-    + " {{ background: rgba({light}, {nav}) !important; }}\n"
+    "  html:root[" + ATTR_TONE + "=\"dark\"] {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
+    "  html:root[" + ATTR_TONE + "=\"light\"] {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
+    "  html:root[" + ATTR_TONE + "=\"dark\"] {{ scrollbar-color: rgba({light}, " + str(SCROLL_THUMB_OPACITY)
+    + ") transparent; }}\n"
+    "  html:root[" + ATTR_TONE + "=\"light\"] {{ scrollbar-color: rgba({dark}, " + str(SCROLL_THUMB_OPACITY)
+    + ") transparent; }}\n"
 )
 # --browserglass-bar: the DMS surface (the tint's colour) at SITES_BAR_OPACITY,
 # for site parts that float over the page (data/sites/), with the light
@@ -2117,6 +2155,9 @@ GATE_SHADOW_TREE = ":not(:root,:root *)"
 # with "& *" it lets every element of a shadow tree through, testing each
 # ancestor in constant time (see "Shadow trees" above).
 GATE_SHADOW_TOP = ":not(:root,* *)"
+# Appended to each selector of the generic style: never on an element the
+# add-on kept (ATTR_OWN, a surface its text was drawn for).
+_GATE_KEEP = ":where(:not([%s]))" % ATTR_OWN
 # The root condition of a site style under a dark theme (_scheme_gated), for
 # each gate it is built with (None: liveControl off): the page declares a
 # dark version, or with liveControl carries the add-on's measured tone. The
@@ -2323,13 +2364,16 @@ class _Nest:
     the shadow branch for GATE_NORMAL_ROOT and its GATE_DARK conditions
     unless `shadow` is false: see "live gating" above)."""
 
-    def __init__(self, cond, shadow=True):
+    def __init__(self, cond, shadow=True, keep=False):
         shadow = shadow and cond in _GATE_SHADOW_CONDS
         top = "," + GATE_SHADOW_TOP if shadow else ""
         tree = "," + GATE_SHADOW_TREE if shadow else ""
+        # keep: no subject carrying ATTR_OWN (the generic style), with zero
+        # added specificity
+        own = _GATE_KEEP if keep else ""
         self.open = ":where(%s%s){" % (cond, top)  # wraps a run of style rules
-        self.amp = ":where(&,& *)"          # each selector of the run
-        self.plain = ":where(%s, %s *%s)" % (cond, cond, tree)  # each selector in @scope
+        self.amp = ":where(&,& *)" + own    # each selector of the run
+        self.plain = ":where(%s, %s *%s)%s" % (cond, cond, tree, own)  # each selector in @scope
         self.scope_open = ":where(:scope%s){" % self.plain  # each declaration in @scope
         # the at-rules with a block that cannot be gated are left out of
         # the live section, which applies on excluded domains without
@@ -2337,17 +2381,18 @@ class _Nest:
         self.ungated_at_rules = cond not in _GATE_LIVE_CONDS
 
 
-def css_gate_rules(text, root_cond, shadow=True):
+def css_gate_rules(text, root_cond, shadow=True, keep=False):
     """The rule list `text` gated on the root condition `root_cond`
     (GATE_NORMAL_ROOT, GATE_LIVE_ROOT, a GATE_DARK one), without the shadow
-    branch when `shadow` is false: see "live gating" above. Memoized:
-    sync gates the same site styles again for its restart render."""
-    return _gate_rules_memo(text, root_cond, shadow)
+    branch when `shadow` is false, and with `keep` never on an element
+    carrying ATTR_OWN: see "live gating" above. Memoized: sync gates the
+    same site styles again for its restart render."""
+    return _gate_rules_memo(text, root_cond, shadow, keep)
 
 
 @functools.lru_cache(maxsize=4096)
-def _gate_rules_memo(text, root_cond, shadow):
-    return _gate_rule_list(text, _Nest(root_cond, shadow), 0, len(text))
+def _gate_rules_memo(text, root_cond, shadow, keep):
+    return _gate_rule_list(text, _Nest(root_cond, shadow, keep), 0, len(text))
 
 
 def _gate_rule_list(text, nest, pos, end, scoped=False):
@@ -3000,9 +3045,11 @@ def _sites_block_text(comment, rx, body, gate=None):
     """One site style block: `comment` line, then `body` in an
     @-moz-document regexp("`rx`") block, gated on the colour scheme and
     `gate` (_scheme_gated; the generic style without the shadow branch
-    under a dark theme)."""
+    under a dark theme, and, live-gated, never on an element carrying
+    ATTR_OWN: the add-on's marks need liveControl)."""
+    generic = comment == SITES_GENERIC_COMMENT
     return '%s\n@-moz-document regexp("%s") {\n%s\n}' % (
-        comment, rx, _scheme_gated(body, gate, comment != SITES_GENERIC_COMMENT))
+        comment, rx, _scheme_gated(body, gate, not generic, generic and gate is not None))
 
 
 def _sites_blocks(sites, excluded=(), disabled=(), generic=True, problems=None):
@@ -3097,7 +3144,7 @@ def _live_hosts(index, domains):
     return sorted(hosts)
 
 
-def _scheme_gated(css, gate=None, shadow=True):
+def _scheme_gated(css, gate=None, shadow=True, keep=False):
     """The site style `css` gated on `gate` (live_gate, GATE_LIVE_ROOT, None)
     under a light theme; under a dark one on GATE_DARK[gate], so only on
     pages that declare a dark version (as the generic content rule), or
@@ -3109,9 +3156,10 @@ def _scheme_gated(css, gate=None, shadow=True):
     a dark theme they get the style on every page (the dark branch's
     shadow branch, not under GATE_LIVE_ROOT) when `shadow` is true (a
     dedicated style, as before the scheme gating), none when it is false
-    (the generic style, as in v1.0)."""
-    light = css_gate_rules(css, gate) if gate else css
-    dark = css_gate_rules(css, GATE_DARK[gate], shadow)
+    (the generic style, as in v1.0). `keep` (the generic style): the gated
+    rules skip an element carrying ATTR_OWN."""
+    light = css_gate_rules(css, gate, keep=keep) if gate else css
+    dark = css_gate_rules(css, GATE_DARK[gate], shadow, keep)
     return ("@media not (prefers-color-scheme: dark) {\n%s\n}\n"
             "@media (prefers-color-scheme: dark) {\n%s\n}" % (light, dark))
 

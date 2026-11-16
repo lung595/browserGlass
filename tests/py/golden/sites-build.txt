@@ -1251,12 +1251,12 @@ default gated
 /* Other sites: generic style (example.com.css) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
-:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
 }}
 }
 @media (prefers-color-scheme: dark) {
-:where(:root:not([data-browserglass-off]):where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *), body:where(&,& *) {
+:where(:root:not([data-browserglass-off]):where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
 }}
 }
@@ -1492,12 +1492,12 @@ excluded gated
 /* Other sites: generic style (example.com.css) */
 @-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
-:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
+:where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
 }}
 }
 @media (prefers-color-scheme: dark) {
-:where(:root:not([data-browserglass-off]):where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *), body:where(&,& *) {
+:where(:root:not([data-browserglass-off]):where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), [data-browserglass-tone])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
 }}
 }

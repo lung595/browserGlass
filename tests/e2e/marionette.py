@@ -718,7 +718,9 @@ def make_pdf(text="browserGlass test PDF"):
 
 
 class TestServer:
-    """Local HTTP server on 127.0.0.1 (free port) serving fixed routes."""
+    """Local HTTP server on 127.0.0.1 (free port) serving fixed routes:
+    {path: (content type, body)}, or with a third item, a dict of headers
+    to add (Access-Control-Allow-Origin for a picture of another origin)."""
 
     def __init__(self, routes=None, cacheable=False):
         """cacheable=True drops `Cache-Control: no-store`, so pages can enter
@@ -738,9 +740,11 @@ class TestServer:
                 if path not in routes_ref:
                     self.send_error(404)
                     return
-                ctype, body = routes_ref[path]
+                ctype, body, *extra = routes_ref[path]
                 self.send_response(200)
                 self.send_header("Content-Type", ctype)
+                for name, value in (extra[0] if extra else {}).items():
+                    self.send_header(name, value)
                 self.send_header("Content-Length", str(len(body)))
                 if no_store:
                     self.send_header("Cache-Control", "no-store")
