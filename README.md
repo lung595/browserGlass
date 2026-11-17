@@ -1,17 +1,18 @@
 <div align="center">
 
-<img src="screenshots/hero.png" alt="Browser Glass, a plugin for DankMaterialShell: the same Firefox window split in two, opaque on the left (without Browser Glass styling) and glass on the right, with the wallpaper tinted behind the page while the video stays solid" width="100%">
+<img src="screenshots/hero.png" alt="Two LibreWolf windows with Browser Glass, GitHub and YouTube in dark mode, floating over a painted wallpaper of a cottage in a flower field: the wallpaper shows blurred through the page backgrounds and the browser bars, while text, thumbnails and buttons stay sharp" width="100%">
 
-*Left: without Browser Glass styling. Right: with Browser Glass.*
+**Translucent glass for Firefox-family browsers on [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) + niri.**
 
-**Glass Firefox-family browsers for [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) on niri.**
-
-Firefox, LibreWolf, Zen, Floorp and Waterfox take the DMS window opacity, blur and colours.
-Page backgrounds turn see-through; video, images and text stay solid.
+Your wallpaper shows through the browser and its pages; text, pictures and video stay sharp.
+Opacity, blur and colours follow DMS, light or dark.
 
 [Getting started](#getting-started) · [Usage](#usage) · [Launcher](#launcher) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [User guide](docs/GUIDE.md) · [Changelog](CHANGELOG.md)
 
 </div>
+
+> [!NOTE]
+> **Firefox: in progress.** LibreWolf gets the full look today. Firefox release builds refuse the unsigned companion add-on, so the page glass is incomplete there until the add-on is signed by Mozilla (planned).
 
 ## Getting started
 
