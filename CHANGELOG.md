@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-17
+
 ### Added
 
 - **Settings**: a search field on top, a category rail on the left (Status, Opacity, Pages, Sites, Live control, Files & uninstall, Help) and one page at a time; typing shows only the matching settings, editable in place, Esc gives the page back, Ctrl+F or / focuses the field; a narrow window shows the rail as icons.
@@ -282,7 +284,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/lung595/browserGlass/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/lung595/browserGlass/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/lung595/browserGlass/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/lung595/browserGlass/compare/v1.3.0...v1.3.1

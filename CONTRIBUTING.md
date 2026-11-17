@@ -248,7 +248,7 @@ Browser Glass must cost nothing while nothing changes:
 ## Releasing a version
 
 1. Freeze `extension/`: the signed add-on is made from it, so any change after signing needs a new version. Bump `version` in `plugin.json` ([Semantic Versioning](https://semver.org/)), together with `version` in `extension/manifest.json` (`tests/py/test_companion.py` checks the two agree), `VERSION` in `browserglass.py`, `version` in `tests/fixtures/contract/status.json` and the `version:` line of `tests/fixtures/contract/report.txt`. `tests/py/test_contract.py` checks that the last two agree. Nothing checks `plugin.json` against them, so compare it by eye.
-2. When the AMO API keys are at hand, have Mozilla sign the companion add-on (see *Signing the companion* below) and commit the signed xpi as `companion/browserglass@companion.xpi`, outside `extension/`. Without them the release ships the unsigned add-on (as 1.3.0 to 1.3.3 do), and the docs must say so.
+2. When the AMO API keys are at hand, have Mozilla sign the companion add-on (see *Signing the companion* below) and commit the signed xpi as `companion/browserglass@companion.xpi`, outside `extension/`. Without them the release ships the unsigned add-on (as 1.3.0 to 1.4.0 do), and the docs must say so.
 3. Move the `Unreleased` entries of `CHANGELOG.md` under the new version and date, and add its link at the bottom.
 4. Refresh the screenshots if the look changed (see [Screenshots](#screenshots)).
 5. Run every test, commit, then tag and publish. Attach the signed xpi to the release only when it is signed (otherwise drop it from the command):
