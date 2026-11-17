@@ -201,8 +201,14 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("x < 0 || x >= window.innerWidth", hidden)
         self.assertIn("if (!onCard(p, cards) && !onPicture(p, pictures)) {", measure)
         card = js[js.index("function onCard("):js.index("function measure()")]
-        self.assertIn("alpha(getComputedStyle(el).backgroundColor) >= OWN_BG", card)
-        self.assertIn("? !backdrop(el) : onCard(el.parentElement, cards);", card)
+        self.assertIn("const color = getComputedStyle(el).backgroundColor;\n"
+                      "  const value = alpha(color) >= OWN_BG", card)
+        # a box painting the colour of the page layer it lies on is the
+        # page (Watson's white teasers in its white rows, once those rows
+        # are glass), that layer's colour read as it paints it now
+        self.assertIn("? !backdrop(el) && !onLayer(el, color) : onCard(el.parentElement, cards);", card)
+        self.assertIn("layerFills.set(e, unmarked(e, CANVAS));", card)
+        self.assertIn("return layerFills.get(e) === color;", card)
         self.assertIn("(el.hasAttribute(CANVAS) || large(el) || panel(el))\n"
                       "    && el.getBoundingClientRect().top + window.scrollY < window.innerHeight;", card)
         # a page panel not yet marked (ch.ch's white left half): wide, tall,
@@ -334,7 +340,35 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("mark(el, BAR)", bars)
         mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
         self.assertIn("if (alpha(color) >= SOLID && (large(el) || column(el, color))) {\n"
-                      "          layer(el, color);", mark)
+                      "          for (const row of pile(el).rows)\n"
+                      "            if (row === el || plain(row, color))\n"
+                      "              layer(row, color);", mark)
+        # a column built of rows (Watson's clusters): siblings in its
+        # colour, as wide, each starting where the one above ends, judged
+        # as one box
+        tall_ = js[js.index("function tall("):js.index("function wide(")]
+        self.assertIn("const run = pile(el);\n  return run.bottom - run.top >= COLUMN_TALL * window.innerHeight;", tall_)
+        for part in ("Math.abs(b.left - r.left) <= SECTION_EDGE && Math.abs(b.right - r.right) <= SECTION_EDGE",
+                     "Math.abs(b.bottom - run.top) > SECTION_EDGE", "Math.abs(b.top - run.bottom) > SECTION_EDGE",
+                     "queueMicrotask(() => piles.clear());", "!LAID_OVER.has(s.position)",
+                     "rowColor(e, s) === color", "const color = rowColor(el, style);"):
+            self.assertIn(part, tall_)
+        self.assertIn("tall(el) && pile(el).bottom >= (1 - COLUMN_GAP) * h",
+                      js[js.index("function column("):js.index("function stuckSide(")])
+        # a box of the page's colour of any size (Heise's empty ad slots),
+        # off the page's layer or on it: glass, unless it is outlined,
+        # holds text of its own or a picture, or covers something else
+        self.assertIn("} else if (pageBox(el, stack, n)) {\n          el.setAttribute(CANVAS, FILL);\n"
+                      "          sections(stack, n - 1, el);", mark)
+        box = js[js.index("function pageBox("):js.index("function spans(")]
+        for part in ("!pageColors.has(style.backgroundColor)", 'style.boxShadow !== "none"',
+                     'CORNERS.some((c) => parseFloat(style["border" + c + "Radius"]) > 0)',
+                     "node.nodeType === Node.TEXT_NODE && node.data.trim()", "el.querySelector(BOX_MEDIA)",
+                     "stack.slice(n + 1).every((under) => holds(under, el)) && overOwn(el, r)",
+                     "k.width * k.height >= FILL_COVER * r.width * r.height"):
+            self.assertIn(part, box)
+        self.assertIn("if (pageBox(el, stack, n)) {\n      el.setAttribute(CANVAS, FILL);\n      continue;",
+                      js[js.index("function sections("):js.index("function pageBox(")])
         self.assertIn("pageColors.add(color);\n    layerColors.set(el, color);\n    mark(el, CANVAS);", mark)
         # a row more along each edge of the window: a band in view only
         # below the grid's last row (impots.gouv.fr) is found unscrolled
@@ -351,7 +385,11 @@ class ExtensionSourcesTest(unittest.TestCase):
         column = js[js.index("function column("):js.index("function markCanvas()")]
         self.assertIn("COLUMN_CHROMA", column)
         self.assertIn('tone === "dark" ? y <= COLUMN_DARK : y >= COLUMN_LIGHT', column)
-        self.assertIn("if (!toned(color) || getComputedStyle(el).backgroundImage !== \"none\")", column)
+        self.assertIn("if (!toned(color, most) || getComputedStyle(el).backgroundImage !== \"none\")", column)
+        self.assertIn("function plain(el, color, most = COLUMN_CHROMA)", column)
+        # any colour space the page computes (color(srgb ...)), read in sRGB
+        self.assertIn("const c = channels(color), y = luminance(color);", column)
+        self.assertIn("(Math.max(...c) - Math.min(...c)) / 255 <= most", column)
         self.assertIn('getComputedStyle(el).backgroundImage !== "none"', column)
         self.assertIn("el.querySelectorAll(COLUMN_MEDIA)", column)
         self.assertIn('getComputedStyle(e).position === "fixed"', column)
@@ -503,10 +541,22 @@ class ExtensionSourcesTest(unittest.TestCase):
         # an empty element beside the way up painting the page's colour on
         # the glass, over nothing but its ancestors: the page's layer too
         strips = js[js.index("function fadePseudos("):js.index("function unfade()")]
-        for part in ("clearStrips(p);", "glass = onGlass(p);", "if (glass && overOwn(el, r))",
+        for part in ("clearStrips(p);", "glass = onGlass(p);", "if (glass && (icon || overOwn(el, r)))",
                      "el.setAttribute(CANVAS, FILL);",
                      "return stack.slice(n + 1).every((under) => ancestors.has(under));"):
             self.assertIn(part, strips)
+        # a flat icon button in the page's colour there too (Heise's ticker
+        # arrow), over content: a control, not a cover; no round or
+        # shadowed one (a carousel's arrow over photos)
+        self.assertIn('const ICON_BUTTONS = "button, [role=button]";', strips)
+        self.assertIn('style.boxShadow === "none"', strips[strips.index("function iconButton("):])
+        # in a bar and in a sticky row glass in the flow (risers), a fade
+        # into the bar's colour, a cleared arrow's included (NZZ's)
+        bars = strips[strips.index("function barPseudos("):strips.index("function clearPseudos(")]
+        for part in ('[...marked("[" + BAR + "]"), ...risers]', "colors.some((c) => near(c, color))",
+                     "el.getAttribute(CANVAS) === FILL", "clearPseudos(el, ours);"):
+            self.assertIn(part, bars)
+        self.assertIn("fades(style, ours)", strips[strips.index("function clearPseudos("):])
         unfade = js[js.index("function unfade()"):js.index("function markBars()")]
         self.assertIn('el.style.removeProperty(FADE_IMAGE + "-" + pseudo);', unfade)
         # a light page Dark Reader leaves alone: a row along the top edge
@@ -514,7 +564,7 @@ class ExtensionSourcesTest(unittest.TestCase):
                       js[js.index("function markCanvas()"):js.index("function sections(")])
         canvas = js[js.index("function markCanvas()"):js.index("function sections(")]
         self.assertEqual(canvas.count("found(stack, n, el);"), 3)
-        self.assertEqual(canvas.count("sections(stack, n - 1, el);"), 1)
+        self.assertEqual(canvas.count("sections(stack, n - 1, el);"), 2)
         self.assertEqual(canvas.count("unfade();"), 1)
         self.assertIn("unfade();", js[js.index("function darken()"):js.index("function frameSchemes()")])
         self.assertIn("const SECTION_WIDE = 0.9;", js)
@@ -548,6 +598,22 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("removeAttribute(UNDER)", js[js.index("function markCanvas()"):js.index("function markBars()")])
         self.assertIn("removeAttribute(UNDER)", js[js.index("function darken()"):js.index("function frameSchemes()")])
 
+    def test_content_marks_seams(self):
+        # a border painted in the colour of the see-through layer it frames
+        # (a column of rows framed in the page colour) turns see-through
+        # with it (SEAM), gone with the page's layers
+        js = strip_comments(read("content.js"))
+        self.assertIn('const SEAM = "%s";' % bg.ATTR_SEAM, js)
+        self.assertIn("[" + bg.ATTR_SEAM + "] {{ border-color: transparent !important; }}", bg._CONTENT_LAYERS)
+        seams = js[js.index("function seamed("):js.index("function markSeams()") + 1200]
+        self.assertIn('if (style["border" + side + "Color"] !== color)', seams)
+        self.assertIn("if (el.hasAttribute(SEAM))\n    return true;", seams)
+        self.assertIn("const color = layerColors.get(el);", seams)
+        for fn, end in (("function markCanvas()", "function seamed("), ("function markBands(", "function markInk(")):
+            self.assertIn("markSeams();", js[js.index(fn):js.index(end)])
+        self.assertIn("removeAttribute(SEAM)", js[js.index("function markCanvas()"):js.index("function seamed(")])
+        self.assertIn("removeAttribute(SEAM)", js[js.index("function darken()"):js.index("function frameSchemes()")])
+
     def test_content_marks_ink(self):
         # text left without contrast on the glass gets ATTR_INK, coloured by
         # _CONTENT_LAYERS with the glass colours, which the root hands over
@@ -562,7 +628,8 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("off !== false", mark)
         self.assertIn("removeAttribute(INK)", mark)
         self.assertIn("contrast(fg, bg) < INK_RATIO", mark)
-        self.assertIn("for (const el of shownText(near))", mark)
+        self.assertIn("const texts = shownText(near);", mark)
+        self.assertIn("for (const el of texts)", mark)
         # the text near the window: blank nodes, and text hidden or far
         # away, do not count against the elements read
         shown = js[js.index("function shownText("):js.index("function contrast(")]
@@ -575,22 +642,36 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertLess(mark.index('setProperty("transition"'), mark.index("el.removeAttribute(INK);"))
         self.assertIn("getComputedStyle(held[0][0]).color;", mark)
         self.assertIn('style === null ? el.removeAttribute("style") : el.setAttribute("style", style);', mark)
-        self.assertLess(mark.index("el.setAttribute(INK,"), mark.index("getComputedStyle(held[0][0])"))
+        # each text and icon-font glyph inked (inkText) before the flush
+        text = js[js.index("function inkText("):js.index("function fontGlyphs(")]
+        self.assertIn("el.setAttribute(INK,", text)
+        self.assertLess(mark.index("inkText(el, style);"), mark.index("getComputedStyle(held[0][0])"))
+        self.assertLess(mark.index("for (const el of fontGlyphs(near))\n    inkText(el, getComputedStyle(el));"),
+                        mark.index("getComputedStyle(held[0][0])"))
+        # an icon-font glyph: an empty <i> or <span> whose ::before or
+        # ::after draws a string in its colour
+        glyphs = js[js.index("function fontGlyphs("):js.index("function markIcons(")]
+        self.assertIn('const GLYPH_TAGS = "i, span";', js)
+        for part in ("found.length < INK_ELEMENTS", "el.firstElementChild || el.textContent.trim() || !near(el)",
+                     "DRAWN_STRING.test(s.content) && s.color === color"):
+            self.assertIn(part, glyphs)
         self.assertIn("const INK_RATIO = 2;", js)
         # a text drawn with a gradient clipped to it (its fill transparent):
         # every stop must contrast, and what is behind it is its parent's
-        self.assertIn("const low = (fg) => contrast(fg, bg) < INK_RATIO || contrast(fg, worst) < INK_RATIO", mark)
-        self.assertIn("fgs.every(low)", mark)
+        self.assertIn("const low = (fg) => contrast(fg, bg) < INK_RATIO || contrast(fg, worst) < INK_RATIO", text)
+        self.assertIn("fgs.every(low)", text)
         # straight on the glass, a floor for the wallpaper its tint lets
         # through (a site's pale grey on the light glass)
         self.assertIn("const GLASS_RATIO = 3;", js)
-        self.assertIn("|| (grey && contrast(fg, bg) < GLASS_RATIO && onGlass(el));", mark)
-        # grey text on the light glass only: a brand colour keeps its own
-        self.assertIn("const grey = bg > DARK_BG && inks(style).every((c) => chroma(c) < GLASS_CHROMA);", mark)
-        self.assertIn("const worst = bg !== null && inBar(el) ? behind(el, true, true) : bg;", mark)
+        self.assertIn("|| (grey && bg > DARK_BG && contrast(fg, bg) < GLASS_RATIO && onGlass(el));", text)
+        # grey text on the light glass only: a brand colour keeps its own;
+        # in a bar, only a grey label is read on the veil over white (an
+        # accent colour reading on the veil keeps its own)
+        self.assertIn("const grey = inks(style).every((c) => chroma(c) < GLASS_CHROMA);", text)
+        self.assertIn("const worst = bg !== null && grey && inBar(el) ? behind(el, true, true) : bg;", text)
         self.assertIn("const style = getComputedStyle(el);", mark)
-        self.assertIn("inks(style)", mark)
-        self.assertLess(mark.index("inkFrom.set(el, style.color);"), mark.index("el.setAttribute(INK,"))
+        self.assertIn("inks(style)", text)
+        self.assertLess(text.index("inkFrom.set(el, style.color);"), text.index("el.setAttribute(INK,"))
         # a label in the colour of the page layer under it goes with it
         self.assertIn("if (label(el, style))\n      el.setAttribute(CANVAS, FILL);", mark)
         self.assertIn("LAID_OVER.has(style.position)", js[js.index("function label("):js.index("function ownColor(")])
@@ -604,6 +685,8 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("const GRADIENT = /^(repeating-)?(linear|radial|conic)-gradient\\(/;", js)
         # the ink's colour is the fill too (a gradient is drawn under it)
         self.assertIn("-webkit-text-fill-color: currentcolor !important;", bg._CONTENT_LAYERS)
+        # without the site's text-shadow, drawn for the colour it had
+        self.assertIn("text-shadow: none !important;", bg._CONTENT_LAYERS)
 
     def test_content_marks_uninverted(self):
         # an inline SVG logo Dark Reader inverts though its shapes paint
@@ -724,7 +807,7 @@ class ExtensionSourcesTest(unittest.TestCase):
             self.assertIn(part, mark)
         # the clears are looked at in the pass of the text, before the blocks
         ink = js[js.index("function markInk("):js.index("function markIcons(")]
-        self.assertLess(ink.index("markClears(near);"), ink.index("markBlocks(near);"))
+        self.assertLess(ink.index("markClears(near);"), ink.index("markBlocks(near, texts);"))
         # the edges once the text walk met the shadow trees
         self.assertLess(ink.index("shownText(near)"), ink.index("markEdges(near);"))
         # a colour in another space (oklch()) is read in sRGB through a canvas
@@ -765,7 +848,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('const OPAQUE = "solid";', js)
         blocks = js[js.index("function markBlocks("):js.index("const FILL_NODES")]
         for part in ("if (!darkened)",
-                     "alpha(color) < SOLID || floats(el) || !plain(el, color)",
+                     "alpha(color) < SOLID || floats(el) || !plain(el, color, BLOCK_CHROMA)",
                      "if (!column(el, color))",
                      "mark(el, CANVAS);",
                      "const outermost = j === blocks.length - 1 && !b.matches(FIELDS);",
@@ -783,9 +866,10 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "chroma(style.backgroundColor) >= OVER_CHROMA"):
             self.assertIn(part, blocks)
         # the text of markInk, read as far into the page
-        self.assertIn("for (const el of shownText(near))", blocks)
+        self.assertIn("for (const el of texts)", blocks)
+        self.assertIn("const BLOCK_CHROMA = 0.12;", js)
         ink = js[js.index("function markInk()"):js.index("function markTiles(")]
-        self.assertLess(ink.index("markBlocks(near);"), ink.index("const held = [];"))
+        self.assertLess(ink.index("markBlocks(near, texts);"), ink.index("const held = [];"))
         self.assertIn("el.removeAttribute(BLOCK), el.removeAttribute(KEPT);", ink)
         self.assertIn("el.removeAttribute(BLOCK)", js[js.index("function darken()"):js.index("function frameSchemes()")])
         # column is a shape on plain()'s colour
@@ -816,12 +900,28 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "card = i < CARD_DEPTH ? up(card) : null;",
                      "faces.push(card), card = p;",
                      "face.setAttribute(BLOCK, SEE_THROUGH);",
-                     "Math.min(r.width, r.height) < CARD_LOW || Math.max(r.width, r.height) < CARD_SIDE"
-                     " || wide(el) || large(el)",
-                     "alpha(color) < SOLID || !plain(el, color) || afloat(el) || !cardLike(el, r) || framed(el, links[i])",
-                     "if (links > CARD_LINKS)",
+                     "(code || Math.min(r.width, r.height) >= CARD_LOW) && Math.max(r.width, r.height) >= CARD_SIDE",
+                     "&& !wide(el) && !large(el) && alpha(color) >= SOLID && plain(el, color, BLOCK_CHROMA) && !afloat(el)",
+                     "&& cardLike(el, r, link ? CARD_LINKS : Infinity) && (code || !framed(el, link)) && !overBand(el);",
+                     # a card in faces of one colour: the box round them
+                     "const [box, size, parts] = cardFaces(el, color);",
+                     "card = box, r = size, faces = [...faces, ...parts];",
+                     "if (fits(box, size, color, link))",
+                     "if (parts.length < 2 || covered < MERGE_SHARE * r.width * r.height)",
+                     "box.children.length > CARD_FACES",
+                     "return [box, {...u, width: u.right - u.left, height: u.bottom - u.top}, parts];",
+                     # a code block alone
+                     "code || rows.get(color) >= CARD_ROW || module(el.getBoundingClientRect())",
+                     "if (links > most)",
                      "shown >= CARD_PICTURE * area",
                      "shown >= CARD_MAT * area && m.left > r.left + EDGE && m.right < r.right - EDGE",
+                     "Math.abs(m.left - r.left - (r.right - m.right)) <= MAT_CENTRE * r.width",
+                     # text not in a link leads to the panel under it
+                     'if (!el.closest("a[href]"))',
+                     "judge(panelOf(el, outer), null, []);",
+                     "const across = MODULE_WIDE * document.documentElement.clientWidth;",
+                     "p.hasAttribute(BAR) || p.hasAttribute(BLOCK) || p.hasAttribute(KEPT) || cards.has(p)",
+                     "&& !wide(way[i]) && !large(way[i])",
                      "return el !== link && style.borderTopStyle !== \"none\" && parseFloat(style.borderTopWidth) > 0;",
                      "rows.get(color) >= CARD_ROW",
                      "card.setAttribute(BLOCK, VEILED);",
@@ -829,9 +929,15 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "el.setAttribute(BLOCK, SEE_THROUGH);"):
             self.assertIn(part, cards)
         self.assertIn("const CARD_ROW = 2;", js)
+        self.assertIn("const CARD_LOW = 64;", js)
+        self.assertIn("const CARD_FACES = 8;", js)
+        self.assertIn("const MODULE_WIDE = 0.7;", js)
         ink = js[js.index("function markInk()"):js.index("function markTiles(")]
-        self.assertLess(ink.index("markClears(near);"), ink.index("markCards(near);"))
-        self.assertLess(ink.index("markCards(near);"), ink.index("markBlocks(near);"))
+        self.assertLess(ink.index("markClears(near);"), ink.index("markCards(near, texts);"))
+        self.assertLess(ink.index("markCards(near, texts);"), ink.index("markBlocks(near, texts);"))
+        # the page's bands first: a card is on a layer, never one
+        self.assertLess(ink.index("markBands(texts);"), ink.index("markCards(near, texts);"))
+        self.assertIn("const module = (r) => r.width >= across && r.height < low;", cards)
         self.assertIn("cards = new Map();", ink)
 
     def test_content_keeps_own_surfaces(self):
@@ -854,7 +960,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("shadows.add(n.shadowRoot);", shown)
         self.assertIn("walkers.push(document.createTreeWalker(n.shadowRoot, show));", shown)
         self.assertIn("return el.assignedSlot || el.parentElement || (el.parentNode && el.parentNode.host) || null;", js)
-        self.assertIn('for (const el of marked("[" + CANVAS + "], [" + FILLED + "], [" + BLOCK + "], [" + UNDER + "]"))',
+        self.assertIn('for (const el of marked("[" + CANVAS + "], [" + FILLED + "], [" + BLOCK + "], [" + UNDER + "], [" + SEAM + "]"))',
                       js[js.index("function darken()"):js.index("function frameSchemes()")])
         # judged again once the tone changes (a page measured dark while it
         # loads) or the page is darkened
@@ -906,10 +1012,12 @@ class ExtensionSourcesTest(unittest.TestCase):
                       '"--browserglass-tile-" + side);', js)
         self.assertEqual(bg.TILE_SIDES, tuple("--browserglass-tile-" + side
                                                for side in ("top", "right", "bottom", "left")))
-        # no longer inverted whole; monochrome ink inverted to light ink
+        # no longer inverted whole; monochrome ink inverted to light ink,
+        # without a background of its own (the filter would light it up)
         self.assertNotIn("invert(1)", bg._CONTENT_LAYERS)
         self.assertIn('[%s="invert"]:not(#browserglass-a):not(#browserglass-b) '
-                      '{ filter: invert(%s) hue-rotate(180deg) !important; mix-blend-mode: normal !important; }'
+                      '{ filter: invert(%s) hue-rotate(180deg) !important; mix-blend-mode: normal !important;'
+                      ' background-color: transparent !important; }'
                       % (bg.ATTR_TILE, bg.TILE_INVERT),
                       bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1))
         self.assertGreater(bg.TILE_INVERT, 0.5)
@@ -918,14 +1026,30 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('[%s="plain"]:not(#browserglass-a):not(#browserglass-b) { filter: none !important; }'
                       % bg.ATTR_TILE, bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1))
         light = js[js.index("function inkedBar("):js.index("function round(")]
-        for part in ('return !!p.querySelector("[" + INK + "=\\"dark\\"]");',
+        # a header in the flow the glass cleared, once its labels are inked
+        self.assertIn('const HEADS = "header, [role=banner]";', js)
+        self.assertIn('const DARK_INK = "[" + INK + "=\\"dark\\"]";', js)
+        for part in ("if (p.hasAttribute(BAR) || p.matches(HEADS) && p.querySelector(DARK_INK))",
+                     "return !!p.querySelector(DARK_INK);",
                      "if (bg === null || bg <= DARK_BG)",
                      'if (el.getAttribute(TILE) === "plain")\n    return "plain";',
-                     "return s && s.clear >= TILE_CLEAR ? s.inks : null;",
+                     "return s && s.clear >= TILE_CLEAR ? {inks: s.inks, tints: s.tints} : null;",
                      '|| inColor(el))',
-                     'return "invert";',
+                     "const shown = shownInk(raw.inks, filter);",
+                     # a colour logo (PyPI's blue and yellow) is not inverted
+                     'return oneHue(raw.tints.filter((c, i) => contrast(raw.inks[i], bg) < INK_RATIO)) ? "invert" : null;',
+                     "return c.length <= 2 * MONO_EDGE || c[c.length - 1 - MONO_EDGE] - c[MONO_EDGE] < MONO_CHROMA;",
                      "const FILTER_STEPS = /(invert|brightness)\\(([\\d.]+)(%?)\\)/g;"):
             self.assertIn(part, light)
+        # its light fill attribute, darkened by Dark Reader, one tone
+        refill = js[js.index("function refilled("):js.index("function rawInk(")]
+        self.assertIn('const DR_FILL = "data-darkreader-inline-fill";', js)
+        for part in ("!shape.hasAttribute(DR_FILL)",
+                     "if (bg === null || bg > DARK_BG)",
+                     "y < bg || contrast(y, bg) < INK_RATIO",
+                     "|| contrast(shown, bg) >= INK_RATIO)",
+                     "return own.length > 0 && oneTone(own.sort((a, b) => a - b));"):
+            self.assertIn(part, refill)
         ink = js[js.index("function markInk()"):js.index("function markTiles(")]
         self.assertIn("removeAttribute(TILE)", ink)
         self.assertIn("markTiles(near);", ink)
@@ -935,6 +1059,8 @@ class ExtensionSourcesTest(unittest.TestCase):
                      # logos painted in the text colour)
                      "if (r.width >= TILE_WIDE * window.innerWidth || masked && PICTURES.has(el.localName))",
                      "if (inkedBar(el))\n    return lightInk(el);",
+                     # a light logo Dark Reader darkened on its dark page
+                     'if (darkened && refilled(el))\n    return "invert";',
                      "if (masked)\n    return null;",
                      # a small icon painted as a background picture or
                      # through a mask in an inked bar
@@ -948,7 +1074,7 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "if (dark.length < TILE_INK * s.inks.length)",
                      # dark ink of one tone inverted, else tiled but an
                      # icon's or one of another origin
-                     "if (oneTone(dark) && oneTone(s.inks.slice(dark.length)))",
+                     "if (oneTone(dark) && oneTone(rest) && rest.length <= dark.length)",
                      "contrast(ys[ys.length - 1 - MONO_EDGE], ys[MONO_EDGE]) < MONO_FLAT",
                      'return icon || s.far || laidOver(el, r) ? null : "ink";',
                      # laid over a larger picture: that picture is behind it
@@ -1231,7 +1357,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         # page's background, a fixed full-window container is
         self.assertIn("if (below.some((b) => !holds(b, el)) && pinned(el))\n          break;", mark)
         self.assertIn('for (let e = el; e && e !== root; e = up(e))\n      if (getComputedStyle(e).position === "fixed")', mark)
-        self.assertLess(mark.index("&& pinned(el))\n          break;"), mark.index("layer(el, color);\n          found("))
+        self.assertLess(mark.index("&& pinned(el))\n          break;"), mark.index("layer(row, color);\n          found("))
         # decided before the tone attribute is painted (no flash of tint)
         upd = js[js.index("function update()"):js.index("function paint()")]
         self.assertLess(upd.index("darken()"), upd.index("paint()"))

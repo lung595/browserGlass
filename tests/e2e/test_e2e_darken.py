@@ -137,7 +137,11 @@ the list). Checked:
     the add-on's sandbox, not in the page): a header whose open shadow tree
     was attached at load adopts its light sheet once Dark Reader is on,
     and a component in that tree adopts its own 300 ms later; both trees
-    end dark (light text, no light bar).
+    end dark (light text, no light bar);
+  - a light page's blue header in the flow (test_refilled_logo,
+    booking.com): Dark Reader darkens the fill="#fff" of its wide white
+    word mark on the dark page; the mark is inverted back to light ink,
+    while a small white icon Dark Reader keeps light is left alone.
 """
 
 import json
@@ -249,8 +253,12 @@ def svg(width, height, body):
 # accent, more or less of it (#line1 to #line3, as a bank's list of
 # services draws them: all inverted, none tiled), a shaded round avatar
 # 32 px wide (#avatar: left alone), a black icon blended with multiply
-# (#blendicon: inverted, never on a tile), and a multiplied photo of a fixed height whose source the test
-# sets late (#late: a lazy picture, no width before).
+# (#blendicon: inverted, never on a tile), a multiplied photo of a fixed height whose source the test
+# sets late (#late: a lazy picture, no width before), and black ink on a
+# white background of its own, which Dark Reader darkens (#signed: PyPI's
+# signature in a README, inverted without its background, or the filter
+# turns that into a light box round the light ink), laid on the right
+# below #screen (the page no taller).
 INK_RECT = '<rect x="10" y="10" width="100" height="20" fill="black"/>'
 INK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">' + INK_RECT + '</svg>'
 PHOTO = svg(120, 80, '<rect width="120" height="80" fill="white"/>'
@@ -302,6 +310,7 @@ PICTURES = (
     ("late", "", 'class="blend" style="height:80px"'),
     ("masked", svg(120, 40, INK_RECT), 'width="120" height="40" style="object-position:9999px 9999px;'
      ' background-color:currentColor; mask-image:url(%s)"' % svg(120, 40, INK_RECT)),
+    ("signed", svg(120, 40, INK_RECT), 'class="matted" width="120" height="40"'),
 )
 # A see-through shaded drawing (the ink of #puck) peeking over the edge of
 # a larger opaque picture (#screen, an editorial screenshot): what is
@@ -316,6 +325,7 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #shop {background:rgb(255,255,255); padding:20px 0}
 #shop img {display:block; margin:12px}
 .blend {mix-blend-mode:multiply}
+#shop .matted {position:absolute; top:420px; right:20px; margin:0; background-color:rgb(255,255,255)}
 .card {position:relative; width:140px; height:160px; background:rgb(255,255,255)}
 .card img {position:absolute; inset:10px; width:120px; height:140px; margin:0; object-fit:contain}
 #badge {position:absolute; left:14px; top:132px; font:bold 12px sans-serif; color:rgb(255,255,255);
@@ -387,6 +397,19 @@ main {padding-top:80px}
 </style></head><body><header>""" + LOGO % ("styled", "styled-logo") + LOGO % ("plain", "plain-logo") + \
     "</header><main>" + TEXT * 4 + "</main></body></html>"
 FILTER = "return getComputedStyle(document.getElementById(arguments[0])).filter;"
+# A light page's blue header in the flow (booking.com): a white word mark
+# whose paths, wider than a small icon, paint fill="#fff", which Dark
+# Reader reads as a background colour and darkens; left alone: a small
+# white icon painting fill="#fff" (Dark Reader keeps it light).
+REFILLED_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+header {background:rgb(0,53,128); color:rgb(255,255,255); height:64px; display:flex; align-items:center; gap:16px}
+header a {color:inherit}
+</style></head><body><header><a href="/"><svg id="mark" width="144" height="24" fill="none" viewBox="0 0 144 24">
+<path d="M0 4 H60 V20 H0 Z" fill="#fff"/><path d="M70 4 H144 V20 H70 Z" fill="#fff"/></svg></a>
+<a href="#">List your property</a><a href="#" aria-label="Help"><svg id="help" width="24" height="24"
+ viewBox="0 0 24 24"><path d="M4 4 H20 V20 H4 Z" fill="#fff"/></svg></a></header>
+<main>""" + TEXT * 4 + "</main></body></html>"
 
 
 # Glyphs drawn with a background in a header on a page Dark Reader
@@ -499,6 +522,36 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 <div id="menu">Menu entries over the page</div></div>
 <div id="dialog">This site uses cookies to improve its offer.</div></body></html>"""
 BLOCK = bg.ATTR_BLOCK
+
+# A light page's sidebar cards in a pale blue tint (PyPI's
+# div.sidebar-section__data-block, #f2f8fb), text alone in them, which
+# Dark Reader turns into an opaque dark petrol (rgb(12, 30, 39)), more
+# tinted than a page column: veiled as its white cards are. Below them a
+# white source line (#source, PyPI's details.sidebar-section__data-source)
+# whose negative margin pulls the tinted block after it (#data) 10 px up
+# under it, in a box painting nothing (#verified): one veil, the box's,
+# not two stacking into a darker strip where they overlap.
+TINTED_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#wrap {background:rgb(255,255,255); min-height:100vh; display:flex; gap:40px; padding:20px}
+#side {width:250px; flex:none}
+.tinted {padding:16px; margin-bottom:20px; background:#f2f8fb}
+.tinted h3, .tinted p {margin:0}
+#source {margin:15px 0 -10px; padding:4px 8px 12px; background:rgb(255,255,255); border:1px solid rgb(220,220,220)}
+#data {padding:16px 8px 8px; background:#f2f8fb}
+#data p {margin:0}
+</style></head><body><div id="wrap"><div id="side">""" + "".join(
+    '<div class="tinted" id="tinted%d"><h3>Verified details</h3><p>Released on a day of the year.</p>'
+    '<p>Python 3</p></div>' % i for i in range(2)) + """<div id="verified"><div id="source">Data verified
+by the index</div><div id="data"><p>Stars: 54715</p><p>Forks: 10875</p></div></div>
+</div><div>""" + TEXT + """</div></div></body></html>"""
+# The ids (or names) of the elements painting a background at the middle
+# of the overlap of #source and #data, topmost first.
+STACKED = """const a = document.getElementById('source').getBoundingClientRect();
+const b = document.getElementById('data').getBoundingClientRect();
+const painted = (el) => (getComputedStyle(el).backgroundColor.match(/[0-9.]+/g).concat(['1']))[3] > 0;
+return document.elementsFromPoint(b.left + b.width / 2, (b.top + a.bottom) / 2)
+  .filter(painted).map((el) => el.id || el.localName);"""
 
 # Buttons in a saturated brand colour, which Dark Reader dulls: a link
 # whose ::before paints the brand yellow from a variable under a petrol
@@ -903,6 +956,36 @@ class DarkenE2E(unittest.TestCase):
                 self.check_brands(binary)
                 self.check_panel(binary)
 
+    def test_tinted_panels(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_tinted_panels(binary)
+
+    def check_tinted_panels(self, binary):
+        routes = {"/t.html": ("text/html; charset=utf-8", TINTED_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/t.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
+            for name in ("tinted0", "tinted1"):
+                self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, name, BLOCK, "veil"),
+                                "%s left a full panel: %r" % (name, self.bg_of(b, name)))
+                paint = tone.rgba(self.bg_of(b, name))
+                self.assertEqual(paint[3], bg.BLOCK_VEIL_OPACITY, name)
+                self.assertLess(tone.luminance(paint), 0.05, paint)
+            # sibling blocks overlapping: their box veiled once, see-through
+            # in it, one veil where they overlap
+            self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, "verified", BLOCK, "veil"),
+                            "overlapping blocks not veiled once: %r"
+                            % [b.js(TILED, name, BLOCK) for name in ("verified", "source", "data")])
+            for name in ("source", "data"):
+                self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, name, BLOCK, "glass"), name)
+            stacked = [el for el in b.js(STACKED) if el in ("verified", "source", "data")]
+            self.assertEqual(stacked, ["verified"], b.js(STACKED))
+
     def test_edges(self):
         for name, binary in tone.browsers():
             with self.subTest(browser=name):
@@ -1208,7 +1291,7 @@ class DarkenE2E(unittest.TestCase):
             # see-through dark ink of one tone, of the page's origin or a
             # data: URL, black or navy, and icons, a red accent beside
             # their lines or not: inverted to light ink, no tile around it
-            for name in ("ink", "mark", "navy", "icon", "line1", "line2", "line3", "blendicon"):
+            for name in ("ink", "mark", "navy", "icon", "line1", "line2", "line3", "blendicon", "signed"):
                 self.assertTrue(b.wait_for(TILED + " === 'invert';", mn.WAIT_TIMEOUT, name, TILE),
                                 name + ": monochrome ink not inverted: %r" % b.js(TILED, name, TILE))
                 look = b.js("const s = getComputedStyle(document.getElementById(arguments[0]));"
@@ -1272,6 +1355,32 @@ class DarkenE2E(unittest.TestCase):
                                        " && !document.querySelector('[' + arguments[0] + ']');",
                                        mn.WAIT_TIMEOUT, UNINVERT), "still marked under a light theme")
             self.assertEqual(b.js(FILTER, "styled"), "none")
+
+    def test_refilled_logo(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_refilled_logo(binary)
+
+    def check_refilled_logo(self, binary):
+        routes = {"/r.html": ("text/html; charset=utf-8", REFILLED_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/r.html", "light.test"))
+            self.run_content(b)
+            self.assertTrue(b.wait_for(DARKENED), "not darkened")
+            self.assertTrue(b.wait_for("return document.querySelector('#mark path')"
+                                       ".hasAttribute('data-darkreader-inline-fill');", mn.WAIT_TIMEOUT),
+                            "Dark Reader did not take the word mark's fill")
+            fill = b.js("return getComputedStyle(document.querySelector('#mark path')).fill;")
+            self.assertLess(tone.luminance(tone.rgba(fill)), 0.05, "the word mark's white not darkened: " + fill)
+            # its light ink back: inverted
+            self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, "mark", TILE, "invert"),
+                            "white word mark Dark Reader darkened left dark: %r" % b.js(TILED, "mark", TILE))
+            self.assertEqual(b.js(FILTER, "mark"), "invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT)
+            # the small icon Dark Reader keeps light stays as it is
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertFalse(b.js(MARKED, "help", TILE), "a light icon inverted")
 
     def check_glyphs(self, binary):
         routes = {"/g.html": ("text/html; charset=utf-8", GLYPH_PAGE.encode("utf-8"))}

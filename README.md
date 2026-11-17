@@ -152,7 +152,7 @@ Open **Settings → Plugins → Browser Glass**. A search field sits on top, the
 
 ### Status
 
-<img src="screenshots/settings-status.png" alt="The Status page: glass is on, the DMS opacity, the tint, the niri rule, the browsers found and the Copy report and Re-sync buttons" width="480">
+<img src="screenshots/settings-status.png" alt="The Status page under the search field, beside the category rail: glass is on, the DMS opacity, the tint, the niri rule, the browsers found and the Copy report and Re-sync buttons" width="480">
 
 | Item | What it shows or does |
 | --- | --- |
@@ -168,7 +168,7 @@ Open **Settings → Plugins → Browser Glass**. A search field sits on top, the
 
 ### Opacity
 
-<img src="screenshots/settings-appearance.png" alt="The DMS window opacity, the Override switch, the Site theme choice and four switches" width="480">
+<img src="screenshots/settings-appearance.png" alt="The Opacity page: the DMS window opacity and the Override switch" width="480">
 
 | Setting | Default | What it does |
 | --- | --- | --- |
@@ -189,7 +189,7 @@ Open **Settings → Plugins → Browser Glass**. A search field sits on top, the
 
 ### Sites
 
-<img src="screenshots/settings-sites.png" alt="The generic style switch, the excluded sites list with Exclude copied URL, and the searchable list of dedicated site styles" width="480">
+<img src="screenshots/settings-sites.png" alt="The Sites page: the generic style switch, the excluded sites list with Exclude copied URL, and the searchable list of dedicated site styles" width="480">
 
 | Setting | Default | What it does |
 | --- | --- | --- |

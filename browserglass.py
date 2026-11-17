@@ -200,6 +200,10 @@ ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
 # text (skip links): hidden until the focus enters it, not cleared.
 ATTR_UNDER = "data-browserglass-under"
+# ... and SEAM on a layer, or a see-through parent of one, whose border
+# is drawn in the layer's colour (a feed's rows 16px apart in the page's
+# white): the border see-through, as the layer is.
+ATTR_SEAM = "data-browserglass-seam"
 # ... and TUCK on a bar tucked under a higher bar (a row of sections slid
 # up under its masthead): the part covered clipped away, by the px cut
 # from its top and its bottom in TUCK_SIDES, inline.
@@ -1856,7 +1860,9 @@ _CONTENT_DARKEN = (
 #   its box kept, so it no longer shows through the higher bar's veil;
 # - text without contrast on what is now behind it (ATTR_INK): the dark
 #   surface ("dark") or the light one ("light"), its fill too (a gradient
-#   clipped to the text is drawn under that fill). The add-on reads the
+#   clipped to the text is drawn under that fill), without its shadow (a
+#   dark one drawn for white text on a band the glass cleared smudges the
+#   dark ink: crates.io's hero title). The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
 # - a picture made for a white page on a background now dark (ATTR_TILE: a
@@ -1874,11 +1880,17 @@ _CONTENT_DARKEN = (
 #   word mark, a navy pictogram, an icon's lines; ATTR_TILE "invert") is
 #   inverted to light ink instead, TILE_INVERT of the way (a light grey
 #   like Dark Reader's text), its hues turned back (a red accent stays
-#   red), with no tile: the logo stays whole beside its coloured parts.
+#   red), with no tile: the logo stays whole beside its coloured parts,
+#   and with no background of its own (a site's white behind its
+#   pictures, which Dark Reader darkens: the filter would turn it into a
+#   light box round the light ink; the ink was read against its parent's).
 #   On a bar veiled light whose labels got dark ink (a site's dark header
-#   under a light theme), white ink of one tone (a logo painting #fff) is
-#   inverted the same way, to dark ink; an icon the site whitened with a
-#   filter of its own gets "plain": no filter, its own dark ink shows;
+#   under a light theme), or a header in the flow the glass cleared whose
+#   labels did, white ink of one tone (a logo painting #fff) is inverted
+#   the same way, to dark ink; an icon the site whitened with a filter of
+#   its own gets "plain": no filter, its own dark ink shows. A light logo
+#   of one tone whose fill Dark Reader darkened against its dark page is
+#   inverted back to light ink;
 # - an inline SVG logo Dark Reader inverts, its shapes painted light by a
 #   style sheet Dark Reader lightened (ATTR_UNINVERT): no filter, so the
 #   light ink is not turned dark again;
@@ -1892,7 +1904,8 @@ _CONTENT_DARKEN = (
 #   a white card, a panel, in a plain colour close to the page's): "veil",
 #   the dark surface at BLOCK_VEIL_OPACITY, lighter than a bar, its border
 #   kept, as dense content is slightly veiled on the glass; "glass", a
-#   block inside a veiled one, see-through (veils do not stack); "solid",
+#   block inside a veiled one, see-through (veils do not stack: sibling
+#   blocks overlapping give their veil to their parent); "solid",
 #   a block laid over a picture (a caption card over its photo): no rule,
 #   Dark Reader's opaque fill stays. "before" or "after" with it names an
 #   empty pseudo-element painting the block's colour (a band along a
@@ -1981,10 +1994,13 @@ _CONTENT_LAYERS = (
     "    :root {{ --browserglass-glass: rgb({light}); }}\n"
     "  }}\n"
     + _BRAND_RULE +
-    "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
-    "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important; }}\n"
+    "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important;"
+    " text-shadow: none !important; }}\n"
+    "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important;"
+    " text-shadow: none !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  [" + ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}\n"
+    "  [" + ATTR_SEAM + "] {{ border-color: transparent !important; }}\n"
     "  [" + ATTR_FADE + "] {{ background-image: var(" + FADE_IMAGE + ") !important; }}\n"
     + "".join("  [" + ATTR_FADE_PSEUDO + "~=\"" + p + "\"]::" + p + " {{ background-image: var(" + FADE_IMAGE + "-" + p
               + ") !important; }}\n" for p in ("before", "after")) +
@@ -1992,7 +2008,7 @@ _CONTENT_LAYERS = (
     " {{ background-color: transparent !important; box-shadow: none !important; }}\n"
     + _TILE_RULE
     + "  " + _INVERT_SELECTOR + " {{ filter: invert(" + str(TILE_INVERT) + ") hue-rotate(180deg) !important;"
-    " mix-blend-mode: normal !important; }}\n"
+    " mix-blend-mode: normal !important; background-color: transparent !important; }}\n"
     + "  " + _UNINVERT_SELECTOR + " {{ filter: none !important; }}\n"
     + "  " + _PLAIN_SELECTOR + " {{ filter: none !important; }}\n"
     + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"

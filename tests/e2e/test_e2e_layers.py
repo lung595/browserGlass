@@ -59,8 +59,8 @@ test_e2e_darken.py. Checked:
     element with one (Wikipedia's night logo), a shaded
     picture from another origin, a word mark from another origin whose
     server does not allow it, an illustrated badge (a flat dark sky,
-    the rest in many tones) and an opaque photo shot on white are left
-    alone;
+    the rest in many tones), a mascot whose readable part is larger than
+    its dark ink and an opaque photo shot on white are left alone;
   - white artwork in a site's dark header under a light theme
     (test_light_bar_icons): the header a bar with the light veil, its
     white link inked dark, a word mark painting #fff and a white icon are
@@ -157,7 +157,35 @@ test_e2e_darken.py. Checked:
     loses its solid top, the blue kept; a white island, a blue band and a
     grey card in a band stay; a sticky scrim in a sidebar fading the
     page's colour out paints nothing; the scrollbars of a dark page get a
-    light thumb over a see-through track.
+    light thumb over a see-through track;
+  - a page that shows an error notice on any error (test_resize_loop,
+    crates.io): its window.onerror sees no ResizeObserver loop error
+    while its body grows during the load, three loads in a row;
+  - a column built of rows in the page's colour, stacked edge to edge
+    (test_page_rows, Watson's clusters), black on a dark page, white on a
+    light one: every row is see-through, below the first screen too, a
+    card in a row and a blue row keep their colours; the 16px borders in
+    the rows' colour (down the rows' sides, along the column's top) are
+    see-through too; the white bylines on a photo in a row above the
+    window keep the light page light;
+  - the same rows, the headlines in teasers of the rows' colour, only
+    mid-grey section titles of the other side right on the rows
+    (test_page_teasers, Watson's pink titles): the page keeps its tone
+    at load, dark and light;
+  - boxes painting exactly the page's colour, narrower than the window
+    (test_page_boxes, Heise's empty ad slots), off a page layer or on one:
+    see-through, while a box with a border, one holding a picture, one
+    with text of its own and a box in another grey keep theirs;
+  - a light page's blue header in the flow and green hero a site style
+    clears (test_cleared_header: booking.com, PyPI, crates.io): the
+    header's white link and the hero's white title are inked dark, the
+    title without its dark text-shadow, an icon-font glyph (an empty <i>
+    drawing its ::before) is inked dark, the white word mark follows the
+    links (inverted), and one on its own blue button stays white, as
+    does a colour logo in white, yellow and blue (PyPI's);
+  - a dark page's fixed header (test_accent_link, watson.ch): its
+    mid-grey link is inked light for the veil over a light section,
+    while its pink active link, which reads on the veil, keeps its colour.
 """
 
 import os
@@ -383,7 +411,7 @@ LIGHT_COLUMN_PAGE = (COLUMN_PAGE.replace("color:rgb(235,235,235)", "color:rgb(20
                      .replace("rgb(40,40,52)", "rgb(235,235,240)"))
 # An app's surface (Grafana): a see-through fixed top bar and menu, the
 # surface right of the menu down to 4px above the bottom, with a border
-# and round corners; panels on it. The menu's first child is a drawer's
+# and round corners; a row of panels on it (veiled as cards are). The menu's first child is a drawer's
 # scrim faded out (YouTube's guide): opacity 0.
 SURFACE_PAGE = STYLE + """
 html, body {height:100%; overflow:hidden; background:transparent}
@@ -554,6 +582,38 @@ html, body {background:transparent}
 <div id="grid"><main id="main"><div id="long">""" + dk.TEXT * 30 + """</div></main>
 <aside id="drawer"><div id="list">Shopping list</div></aside></div></div></body></html>"""
 
+# A ::before whose fade is gone (see-through where it painted the bar's colour)
+NO_FADE = "return getComputedStyle(document.getElementById(arguments[0]), '::before').backgroundImage === 'none';"
+
+# A header in the page's colour (heise, NZZ): a low band across the window
+# whose row in its colour holds an icon, then a sticky row of sections in
+# a darker grey below an advert, in the flow until scrolled to, its slider
+# arrow a button as tall as it in its colour, fading the links out under
+# it (a ::before, a gradient into that colour), and one in a colour of its
+# own; below it, a row of headlines scrolling sideways under a square icon
+# button in the page's colour (heise's news ticker).
+RISER_PAGE = STYLE + """
+html, body {background:transparent}
+#band {margin-top:70px}
+#band, #row {height:40px; background:rgb(40,40,40)}
+#row img {width:12px; height:12px}
+#ad {height:200px}
+#nav {position:sticky; top:0; height:56px; margin:0 24px; z-index:5; background:rgb(8,8,8)}
+#next, #go {position:absolute; top:0; width:56px; height:55px; border:0}
+#next {right:0; background:rgb(8,8,8)} #go {right:80px; background:rgb(200,60,60)}
+#next::before {content:""; position:absolute; top:0; left:-40px; width:40px; height:52px;
+  background-image:linear-gradient(to right, transparent, rgb(8,8,8))}
+#ticker {position:relative; height:90px; overflow:hidden; white-space:nowrap}
+#more {position:absolute; top:0; right:0; width:40px; height:90px; border:0; padding:0; background:rgb(40,40,40)}
+</style></head><body><div id="band"><div><div id="row"><a href="#">News</a>
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M0 0h8v8z'/%3E%3C/svg%3E" alt="">
+</div></div></div><div id="ad">Advert</div>
+<div id="nav"><a href="#">Sections</a><button id="go">Go</button><button id="next">&gt;</button></div>
+<div id="ticker"><p>Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. Headline of the hour, a story told. </p><button id="more">
+<svg width="24" height="24" viewBox="0 0 24 24"><path d="M8 4l8 8-8 8" stroke="currentColor" fill="none"/></svg>
+</button></div>
+<div id="long">""" + dk.TEXT + """</div></body></html>"""
+
 # A dark page by design (1Password): the page's colour on a wrapper, and on
 # it a hero (a gradient from a colour near the page's into blue), bands in
 # that colour (one below the first screen, one holding another), a white
@@ -689,8 +749,9 @@ html, body {background:transparent}
 # same word mark on the site's own dark card, one with a filter of its own,
 # a shaded picture from another origin (a shop's photo), a word mark from
 # another origin whose server does not allow it, an illustrated badge
-# from another origin, its dark part flat, the rest in many tones, and an
-# opaque product photo shot on white (the site shows its photos as it means
+# from another origin, its dark part flat, the rest in many tones, a
+# mascot from another origin (a black head round a larger pink face), and
+# an opaque product photo shot on white (the site shows its photos as it means
 # to: only a page Dark Reader darkens gets them on a tile).
 def icon_svg(width, height, body):
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">%s</svg>'
@@ -711,6 +772,13 @@ BADGE = icon_svg(64, 64, '<defs><linearGradient id="o" x1="0" y1="0" x2="0" y2="
                          '</linearGradient></defs><rect x="4" y="2" width="56" height="34" fill="rgb(34,11,81)"/>'
                          '<rect x="22" y="10" width="20" height="10" fill="white"/>'
                          '<rect x="4" y="36" width="56" height="26" fill="url(#o)"/>')
+# A mascot: a black head round a large pink face, purple eyes (GitHub's
+# Mona on its home page): mostly readable, a picture, not dark ink with
+# an accent.
+MASCOT = icon_svg(120, 120, '<circle cx="60" cy="60" r="56" fill="black"/>'
+                            '<circle cx="60" cy="64" r="44" fill="rgb(240,140,150)"/>'
+                            '<circle cx="44" cy="58" r="8" fill="rgb(70,40,120)"/>'
+                            '<circle cx="76" cy="58" r="8" fill="rgb(70,40,120)"/>')
 CORS = {"Access-Control-Allow-Origin": "*"}
 CHEVRON = ('<svg id="%s" width="12" height="12" viewBox="0 0 12 12"><path d="M2 4 L6 8 L10 4" fill="none"'
            ' stroke="currentColor" stroke-width="1.5"/></svg>')
@@ -747,6 +815,42 @@ img {display:block}
 <a href="#"><img id="logo" width="48" height="24" src="/color.svg"></a>
 <a id="red" href="#"><img id="onred" width="24" height="24" src="/white.svg"></a>
 </header><div id="long">""" + dk.TEXT * 20 + """</div></body></html>"""
+# A light page whose blue header in the flow and green hero a site style
+# clears (booking.com, PyPI, crates.io; HEAD_CSS): the header's white
+# links, a white word mark painting fill="#fff", an icon-font glyph drawn
+# by an empty <i>'s ::before in the link's white (Font Awesome's
+# fa-language); the hero's white title with a dark green text-shadow
+# drawn for the hero. Left alone: a white word mark on its own blue
+# button, and a colour logo in white, yellow and blue (#pylogo, PyPI's:
+# its light ink of one tone, white and yellow, but not of one colour).
+PY_LOGO = icon_svg(72, 48, '<rect y="4" width="24" height="40" fill="#3775a9"/>'
+                   '<rect x="24" y="4" width="24" height="40" fill="#ffffff"/>'
+                   '<rect x="48" y="4" width="16" height="40" fill="#ffd242"/>')
+HEAD_CSS = "#head, #hero {background:none !important}"
+WORD_MARK = ('<svg id="%s" width="144" height="24" fill="none" viewBox="0 0 144 24"><path d="M0 4 H60 V20 H0 Z"'
+             ' fill="#fff"/><path d="M70 4 H144 V20 H70 Z" fill="#fff"/></svg>')
+HEAD_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#head {background:rgb(0,53,128); color:rgb(255,255,255); display:flex; align-items:center; gap:16px; height:64px}
+#head a {color:inherit}
+#own {background:rgb(0,53,128); padding:4px}
+.glyph::before {content:"\\2726"}
+#hero {background:rgb(20,90,40); padding:40px}
+#title {color:rgb(255,255,255); text-shadow:rgb(40,70,37) 1px 3px 2px}
+</style></head><body><header id="head"><a href="/">""" + WORD_MARK % "wordmark" + """</a>
+<a id="headlink" href="#">List your property</a><a href="#" aria-label="Language"><i id="glyph" class="glyph"></i></a>
+<a id="own" href="#">""" + WORD_MARK % "ownmark" + """</a>
+<a href="/"><img id="pylogo" width="72" height="48" alt="" src="/pylogo.svg"></a></header>
+<section id="hero"><h1 id="title">The community's registry</h1></section>
+<div id="long">""" + dk.TEXT * 20 + """</div></body></html>"""
+# A dark page's fixed header (watson.ch), a bar with the dark veil: its
+# active language link in the site's pink, which reads on the veil, and a
+# mid-grey link drawn for a white header.
+ACCENT_PAGE = STYLE + """
+header {position:fixed; top:0; left:0; right:0; height:50px; background:rgb(30,30,30); z-index:2}
+#fr {color:rgb(244,15,151)} #de {color:rgb(116,113,122)}
+</style></head><body><header id="bar"><a id="fr" href="#">FR</a> <a id="de" href="#">DE</a></header>
+<div id="long">""" + dk.TEXT + """</div></body></html>"""
 ICON_PAGE = STYLE + """
 html, body {background:transparent}
 header {position:fixed; top:0; left:0; right:0; height:50px; background:rgb(255,255,255); z-index:2;
@@ -768,6 +872,7 @@ header img {margin:0 8px}
 <img id="photo" width="120" height="80" src="%(far)s/shaded.svg">
 <img id="closed" width="140" height="28" src="%(far)s/closed.svg">
 <img id="badge" width="64" height="64" src="%(far)s/badge.svg">
+<img id="mascot" width="120" height="120" src="%(far)s/mascot.svg">
 <img id="shot" width="120" height="100" src="/shot.svg">
 <div id="long">""" + dk.TEXT + """</div></body></html>"""
 
@@ -956,6 +1061,116 @@ customElements.define("x-link", class extends HTMLElement {
   }
 });
 </script></body></html>"""
+# A page with its own dark theme, following the system's scheme (Heise,
+# crates.io), its root and body see-through: a module in its card colour
+# across 80% of the window, alone in that colour (#module, Heise's
+# promotion and its "Meistgelesen" list): a heading, a photo set on its
+# left beside its text, a list of more links than CARD_LINKS with plain
+# text between them; a row of link cards 72 px high (#crate0..2,
+# crates.io's crate list); a row of two teaser text boxes pulled up over
+# their photos (#teaser0, #teaser1, Heise's hero teasers), cards in a row
+# too. Left as painted: a lone notice (#notice), a band in a saturated
+# brand colour as wide as the module (#brand). Under a light theme the
+# same in white on a light grey page.
+MODULES_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:rgb(235,235,235)}
+#page {background:rgb(32,32,32); min-height:200vh; padding:20px}
+#module {width:80vw; box-sizing:border-box; padding:20px; background:rgb(50,50,50)}
+#module h2 {margin:0 0 12px}
+#promo {display:flex; gap:20px; margin-bottom:12px}
+#promo img {display:block; width:300px; height:170px}
+#module ol a {color:inherit}
+.row {display:flex; gap:20px; margin-top:20px}
+.crate {display:block; width:284px; height:72px; padding:8px; box-sizing:border-box;
+  background:rgb(20,20,19); border-radius:5px; color:inherit; text-decoration:none}
+.crate h3, .crate p {margin:0}
+.hero {width:484px}
+.hero img {display:block; width:484px; height:240px}
+.teaser {position:relative; margin:-80px 20px 0; padding:16px; background:rgb(60,60,60)}
+#notice {width:500px; margin-top:20px; padding:20px; background:rgb(40,40,40)}
+#brand {width:80vw; box-sizing:border-box; margin-top:20px; padding:20px; background:rgb(200,30,30)}
+@media (prefers-color-scheme: light) {
+  html, body {color:rgb(20,20,20)}
+  #page {background:rgb(232,237,240)}
+  #module, .crate {background:rgb(255,255,255)}
+  .teaser {background:rgb(252,252,252)}
+  #notice {background:rgb(246,246,246)}
+}
+</style></head><body><div id="page">
+<div id="module"><h2>Meistgelesen</h2>
+<div id="promo"><img src="%s" alt=""><div><h3>Promotion</h3><p>A report beside its photo.</p></div></div>
+<ol>""" % dk.PHOTO + "".join('<li><a href="#">Article %d</a> <span>%d00 Abrufe</span></li>' % (i, i) for i in range(6)) + """</ol>
+</div>
+<div class="row">""" + "".join(
+    '<a class="crate" id="crate%d" href="#"><h3>crate%d</h3><p>A crate of the registry.</p></a>' % (i, i)
+    for i in range(3)) + """</div>
+<div class="row">""" + "".join(
+    '<div class="hero"><img src="%s" alt=""><div class="teaser" id="teaser%d"><h3>Teaser %d</h3>'
+    '<p>Its text pulled up over the photo.</p></div></div>' % (dk.PHOTO, i, i) for i in range(2)) + """</div>
+<div id="notice"><h3>A notice</h3><p>Alone on the page in its colour.</p></div>
+<div id="brand"><h3>Subscribe</h3><p>A band in the brand's colour.</p></div>
+""" + dk.TEXT + """</div></body></html>"""
+# A light page under its light theme (PyPI's project page): a grey band
+# across the window holding the page's tab menu (#tabs,
+# div.horizontal-section--grey), and sidebar cards painted in a colour the
+# page mixes in CSS, computed as color(srgb ...) (#side0, #side1, its
+# tinted data blocks), text alone in them. Both are panels of the page.
+# The band lies between the rows markCanvas samples (0.1 and 0.3 of the
+# window), so the text on it leads to it (markBands). Its other sidebar
+# cards are drawn in two faces in a box painting nothing (#src0, #src1
+# tinted, #ver0, #ver1 grey): a source line (a <details>, 23 px, its pill
+# label pulled 10 px up over it) over a data block it overlaps by 10 px,
+# #ver0's block 49 px high with one link (63 px together), #ver1's with
+# five, #src1's holding an avatar; and its grey code blocks are outlined, one alone in view, one a
+# single line (#code0, #code1).
+GREY_BAND_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#top {height:16vh; padding:0 20px; box-sizing:border-box}
+#tabs {background:rgb(236,236,236); border-top:1px solid rgb(220,220,220); height:58px; padding:0 20px}
+#tabs nav {display:flex; gap:20px; line-height:58px}
+#tabs a {color:inherit}
+#main {display:flex; gap:40px; padding:20px}
+#side {width:250px; flex:none}
+.side {padding:16px; margin-bottom:20px; background:color(srgb 0.95 0.971373 0.983922)}
+.side h3, .side p {margin:0}
+.src {margin-bottom:30px}
+.strip {margin:15px 0 -10px; border:1px solid rgb(204,226,239); border-bottom:0;
+  background:color(srgb 0.95 0.971373 0.983922)}
+.strip summary {display:inline-block; position:relative; transform:translateY(-10px); margin-left:5px;
+  padding:1px 8px; border:1px solid rgb(204,226,239); border-radius:1rem; font-size:13px; line-height:18px;
+  list-style:none; background:color(srgb 0.95 0.971373 0.983922)}
+.block {border:1px solid rgb(204,226,239); border-top:0; padding:10px; line-height:22px;
+  background:color(srgb 0.95 0.971373 0.983922)}
+.block p {margin:0}
+.ver .strip, .ver .strip summary, .ver .block {background:color(srgb 0.962745 0.962745 0.962745);
+  border-color:rgb(221,221,221)}
+.ver .block {padding:0}
+.ver ul {margin:0; padding:8px 0; list-style:none}
+.ver li a {display:block; padding:5px 10px; line-height:22px}
+pre {background:rgb(249,249,249); border:1px solid rgb(210,210,210); margin:30px 0 0; padding:15px;
+  line-height:20px}
+#main {min-height:200vh}
+</style></head><body><main>
+<div id="top"><h1>project 1.0</h1></div>
+<div id="project"><div id="tabs"><div><nav><a href="#">Description</a><a href="#">History</a><a href="#">Files</a></nav></div></div>
+<div id="main"><div id="side">""" + "".join(
+    '<div class="side" id="side%d"><h3>Key dates</h3><p>Released on a day of the year.</p><p>Python 3</p></div>' % i
+    for i in range(2)) + "".join(
+    '<div class="src" id="src%d"><details class="strip" id="strip%d"><summary>PyPI data</summary></details>'
+    '<div class="block" id="block%d"><p>Released: May 14</p><p>%s</p></div></div>'
+    % (i, i, i, ('<img src="%s" width="34" height="34" alt=""> maintainer' % dk.PHOTO) if i else "Latest release")
+    for i in range(2)) + "".join(
+    '<div class="src ver" id="ver%d"><details class="strip" id="vstrip%d"><summary>Data verified</summary>'
+    '</details><div class="block" id="vblock%d"><ul>%s</ul></div></div>'
+    % (i, i, i, "".join('<li><a href="#">Link %d</a></li>' % j for j in range(n)))
+    for i, n in enumerate((1, 5))) + """</div><div>
+<pre id="code0">&gt;&gt;&gt; import project
+&gt;&gt;&gt; r = project.get('https://example.org')
+&gt;&gt;&gt; r.status
+200</pre>
+<pre id="code1">$ python -m pip install project</pre>
+""" + dk.TEXT + """</div></div></div>
+</main></body></html>"""
 # A light page with a row of white product tiles (ldlc.com's Univers
 # populaires): each holds a caption link and a product picture with a
 # see-through background, lazy, its size unset until it loads, served
@@ -984,6 +1199,129 @@ html, body {margin:0; background:transparent; color:rgb(20,20,20)}
     '<a class="note" id="note%d" href="#"><h3>Guide %d</h3><p>How to choose a laptop.</p></a>' % (i, i)
     for i in range(2)) + """</div>
 """ + dk.TEXT + """</div></body></html>"""
+# A page that falls back to an error notice on any error (crates.io): its
+# window.onerror, set first in its head, records each one; a short text
+# (the tone not settled, the body watched) whose body grows during the
+# load, a line every 40 ms. Work done right inside a ResizeObserver's
+# callback (marks, observing the layers) makes Firefox report its loop
+# error to the page.
+RESIZE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><script>
+window.onerror = window.onunhandledrejection = (e) => {
+  const errors = JSON.parse(document.documentElement.getAttribute("data-errors") || "[]");
+  errors.push(String(e && e.message || e && e.reason || e));
+  document.documentElement.setAttribute("data-errors", JSON.stringify(errors));
+};
+</script><style>
+html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
+#hero {height:40vh; background:rgb(230,230,240)}
+</style></head><body><div id="hero">Rust</div><p>Short.</p></body></html>"""
+GROW = ("let n = 0; const t = setInterval(() => {"
+        " const d = document.createElement('div'); d.style.height = (20 + n * 7) + 'px'; d.textContent = 'Row ' + n;"
+        " document.body.append(d); document.getElementById('hero').style.height = (40 + n) + 'vh';"
+        " if (++n >= 25) { clearInterval(t); document.documentElement.setAttribute('data-grown', ''); } }, 40);")
+# A feed column built of rows (Watson): the root, the body and the column
+# (74vw, centred) see-through, the column a stack of sibling rows each in
+# the page's colour (the site's own dark theme), none tall enough alone,
+# one only 3vh high between the points of markCanvas; a card of another
+# colour in the first, a blue row further down. The rows are framed by
+# 16px borders in their colour (#col along its top, each row down its
+# sides). A photo in a row of the first screen carries white bylines
+# laid over it (#byline), which vote on the picture, not the page, once
+# that row is above the window; the page's own heading above (#head)
+# carries the vote. With `page`, `card` and `text` the
+# colours of the rows, the card and the text.
+PHOTO = ("data:image/svg+xml,%%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='60'%%3E"
+         "%%3Crect width='80' height='60' fill='rgb(90,60,40)'/%%3E%%3C/svg%%3E")
+
+
+def rows_page(page, card, text):
+    return """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:%(text)s}
+#col {width:74vw; margin:0 auto; border-top:16px solid %(page)s}
+.row {background:%(page)s; border:solid %(page)s; border-width:0 16px 16px}
+.row p {margin:0; padding:1em 0}
+#r1 {height:32vh} #r2 {height:22vh} #r3 {height:3vh} #r4 {height:24vh} #r5, #r6 {height:60vh} #r7 {height:70vh}
+#blue {height:40vh; background:rgb(20,95,228); color:rgb(255,255,255)}
+#rowcard {width:40%%; height:12vh; background:%(card)s}
+#teaser {position:relative; width:50%%} #teaser img {display:block; width:100%%; height:40vh}
+#byline {position:absolute; left:8px; right:8px; bottom:8px; color:rgb(255,255,255)} #byline p {margin:0}
+#head {margin:0; padding:8px 13vw; font-size:16px}
+</style></head><body><h1 id="head">The news of the day from Switzerland and the world, in brief</h1>
+<div id="col"><div class="row" id="r1"><div id="rowcard">A card</div></div>
+<div class="row" id="r2"><p>Top stories</p></div><div class="row" id="r3"></div>
+<div class="row" id="r4"><p>Switzerland</p></div><div class="row" id="r5"><p>Sport</p>
+<div id="teaser"><img alt="" src="%(photo)s"><div id="byline"><p>by Anna Example, Zurich correspondent</p>
+<p>by Bernard Example, Geneva desk editor</p><p>by Carla Example, sports reporter</p>
+<p>by Daniel Example, culture writer</p></div></div></div>
+<div id="blue">Promotion</div><div class="row" id="r6"><p>Culture</p></div>
+<div class="row" id="r7"><p>Life</p></div></div></body></html>""" % {"page": page, "card": card, "text": text,
+                                                                  "photo": PHOTO}
+
+
+DARK_ROWS_PAGE = rows_page("rgb(0,0,0)", "rgb(40,40,48)", "rgb(235,235,235)")
+LIGHT_ROWS_PAGE = rows_page("rgb(255,255,255)", "rgb(225,225,232)", "rgb(20,20,20)")
+# The same feed column with no text of the page's own above it: each row
+# below the first screen carries a kicker in a mid-grey colour of the
+# other side (Watson's pink section titles, right on the rows), every row
+# teasers, links holding a photo
+# and a headline in the rows' colour, which hold the page's text. The
+# rows turned glass at load, the kickers are the only text on no box:
+# the teasers, in the rows' colour, are the page, not cards, and the page
+# keeps its tone. With `page`, `kicker` and `text` the colours of the
+# rows (and teasers), the kickers and the headlines.
+
+
+def teaser_rows_page(page, kicker, text):
+    teaser = ('<a class="teaser" href="#"><img alt="" src="%s"><p>A long headline of the day about'
+              ' the news from Switzerland and the world</p></a>' % PHOTO)
+    rows = "".join('<div class="row" id="t%d">%s%s</div>' % (i, "<h2>Section %d</h2>" % i if i >= 3 else "",
+                                                           teaser * 3)
+                   for i in range(8))
+    return """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:%(text)s}
+#col {width:74vw; margin:0 auto}
+.row {background:%(page)s; padding:16px; display:flex; flex-wrap:wrap; gap:8px}
+.row h2 {width:100%%; margin:0; color:%(kicker)s; font-size:18px}
+.teaser {display:block; width:30%%; background:%(page)s; color:%(text)s; text-decoration:none}
+.teaser img {display:block; width:100%%; height:30vh} .teaser p {margin:4px}
+</style></head><body><div id="col">%(rows)s</div></body></html>""" % {
+        "page": page, "kicker": kicker, "text": text, "rows": rows}
+
+
+DARK_TEASER_PAGE = teaser_rows_page("rgb(0,0,0)", "rgb(50,105,235)", "rgb(235,235,235)")
+LIGHT_TEASER_PAGE = teaser_rows_page("rgb(255,255,255)", "rgb(244,15,151)", "rgb(20,20,20)")
+# Boxes in the page's colour (Heise): a band across the window gives the
+# page's colour (`page`), cards of their own (`card`) hold the text; an
+# empty ad slot in the page's colour beside them, holding a label hidden
+# until an ad loads and an empty frame (#slot), and one in a section of
+# the page's colour across the window (#inslot) are glass. Kept: a box in
+# that colour outlined by a border (#framed), one holding a picture
+# (#pic), one with text of its own (#note), a grey ad box (#micro).
+def boxes_page(page, card, text):
+    return """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:transparent; color:%(text)s}
+#band {height:15vh; background:%(page)s} #band p {margin:0}
+#grid, #grid2 {display:flex; gap:2vw; margin:2vh 10vw; align-items:flex-start}
+#grid > *, #grid2 > *, #sect > * {flex:none}
+.card {width:18vw; height:40vh; background:%(card)s} #story2 {width:14vw}
+#slot, #inslot, #framed, #pic, #note {position:relative; width:22vw; height:45vh; background:%(page)s}
+#slot {width:24vw} #framed {width:18vw; border:1px solid rgb(120,120,120)} #note {height:20vh}
+.label {display:none; position:absolute; left:0; right:0; top:8px}
+#micro {width:22vw; height:30vh; background:rgb(70,70,70)}
+#sect {margin-top:60vh; padding:5vh 10vw; height:120vh; display:flex; gap:2vw; background:%(page)s}
+#sect .card {width:22vw}
+</style></head><body><div id="band"><p>News</p></div>
+<div id="grid"><div class="card"><p>A story</p></div><div id="slot"><div class="label">Ad</div><div class="frame"></div></div>
+<div id="framed"><p>Framed</p></div><div class="card" id="story2"><p>Another story</p></div></div>
+<div id="grid2"><div id="pic"><img width="80" height="80"
+src="data:image/svg+xml,%%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%%3E%%3Crect width='80'
+height='80' fill='red'/%%3E%%3C/svg%%3E"></div><div id="note">Ad note</div><div id="micro"><p>Microsites</p></div></div>
+<div id="sect"><div class="card"><p>In the section</p></div><div id="inslot"><div class="label">Ad</div></div></div>
+</body></html>""" % {"page": page, "card": card, "text": text}
+
+
+DARK_BOXES_PAGE = boxes_page("rgb(32,32,32)", "rgb(50,50,50)", "rgb(224,224,224)")
+LIGHT_BOXES_PAGE = boxes_page("rgb(232,237,240)", "rgb(255,255,255)", "rgb(20,20,20)")
 BLOCK = bg.ATTR_BLOCK
 # the page's tone measured again after a switch of the colour scheme
 # (the veil's colour follows it; the marks may be judged before it)
@@ -1022,6 +1360,10 @@ class LayersE2E(unittest.TestCase):
     def bg_of(self, b, element_id):
         return b.js("return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;", element_id)
 
+    def fade_of(self, b, element_id):
+        return b.js("return getComputedStyle(document.getElementById(arguments[0]), '::before').backgroundImage;",
+                    element_id)
+
     def test_icons(self):
         for name, binary in tone.browsers():
             with self.subTest(browser=name):
@@ -1031,7 +1373,8 @@ class LayersE2E(unittest.TestCase):
         svg = "image/svg+xml"
         routes = {"/wordmark.svg": (svg, WORDMARK, CORS), "/picto.svg": (svg, PICTO, CORS),
                   "/shaded.svg": (svg, SHADED, CORS), "/shot.svg": (svg, dk.SHOT_SVG), "/closed.svg": (svg, WORDMARK),
-                  "/accent.svg": (svg, ACCENT), "/badge.svg": (svg, BADGE, CORS)}
+                  "/accent.svg": (svg, ACCENT), "/badge.svg": (svg, BADGE, CORS),
+                  "/mascot.svg": (svg, MASCOT, CORS)}
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
             srv.routes["/i.html"] = ("text/html; charset=utf-8",
@@ -1061,9 +1404,9 @@ class LayersE2E(unittest.TestCase):
             # left alone: on the site's own dark card, with a filter of its
             # own or under one (Wikipedia's inverted logo), a shaded picture of another origin, one not allowed, an
             # illustrated badge (its dark sky flat, the rest in many tones),
-            # an opaque photo shot on white
+            # an opaque photo shot on white, a mascot mostly readable
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
-            for name in ("cardmark", "own", "under", "photo", "closed", "badge", "shot"):
+            for name in ("cardmark", "own", "under", "photo", "closed", "badge", "mascot", "shot"):
                 self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
 
     def test_light_bar_icons(self):
@@ -1102,6 +1445,64 @@ class LayersE2E(unittest.TestCase):
             for name in ("logo", "onred"):
                 self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('whitened')).filter;"), "none")
+
+    def test_cleared_header(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_cleared_header(binary)
+
+    def check_cleared_header(self, binary):
+        sites = bg.Sites({"light.test.css": {"glass": HEAD_CSS}}, {})
+        routes = {"/h.html": ("text/html; charset=utf-8", HEAD_PAGE.encode("utf-8")),
+                  "/pylogo.svg": ("image/svg+xml", PY_LOGO)}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False, sites), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/h.html", "light.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertEqual(self.bg_of(b, "head"), "rgba(0, 0, 0, 0)", "the site style did not clear the header")
+            for name in ("headlink", "title"):
+                self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, name, INK),
+                                name + ": white text not inked dark on the light glass")
+            # the hero's shadow, drawn for white text, goes with the ink
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('title')).textShadow;"), "none")
+            # an icon-font glyph is inked as its link's text is
+            self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, "glyph", INK),
+                            "an icon-font glyph not inked: %r" % b.js(dk.TILED, "glyph", INK))
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('glyph'), '::before').color;"),
+                             "rgb(%d, %d, %d)" % bg.surface_rgb(None, "dark"))
+            # the white word mark follows the header's links
+            self.assertTrue(b.wait_for(dk.TILED + " === 'invert';", mn.WAIT_TIMEOUT, "wordmark", TILE),
+                            "white word mark on the cleared header not inverted: %r"
+                            % b.js(dk.TILED, "wordmark", TILE))
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('wordmark')).filter;"),
+                             "invert(%s) hue-rotate(180deg)" % bg.TILE_INVERT)
+            # one on its own blue button stays white
+            b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+            self.assertFalse(self.marked(b, "ownmark", TILE), "a white mark on its own button inverted")
+            self.assertFalse(self.marked(b, "pylogo", TILE), "a colour logo on the cleared header inverted: %r"
+                             % b.js(dk.TILED, "pylogo", TILE))
+
+    def test_accent_link(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_accent_link(binary)
+
+    def check_accent_link(self, binary):
+        routes = {"/a.html": ("text/html; charset=utf-8", ACCENT_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/a.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "bar", BAR), "header not marked")
+            # the grey link, lost over a light section, is inked light
+            self.assertTrue(b.wait_for(dk.TILED + " === 'light';", mn.WAIT_TIMEOUT, "de", INK),
+                            "the grey link on the dark veil not inked light")
+            # the pink one reads on the veil: its colour stays
+            self.assertFalse(self.marked(b, "fr", INK), "the pink accent link re-inked")
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('fr')).color;"),
+                             "rgb(244, 15, 151)")
 
     def test_sections(self):
         for name, binary in tone.browsers():
@@ -1580,6 +1981,69 @@ class LayersE2E(unittest.TestCase):
                     self.assertIsNone(b.js(dk.TILED, name, BLOCK), "%s veiled (dark %s)" % (name, dark))
                     self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
 
+    def test_modules(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_modules(binary)
+
+    def check_modules(self, binary):
+        routes = {"/modules.html": ("text/html; charset=utf-8", MODULES_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(True), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/modules.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "page", CANVAS), "the page's layer not marked")
+            for dark in (True, False):
+                if not dark:
+                    tone.set_scheme(b, False)
+                    self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"), "tone not light")
+                # the module alone in its colour and the low link cards: a
+                # light veil of the tone's surface
+                for name in ("module", "crate0", "crate1", "crate2", "teaser0", "teaser1"):
+                    self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, name, BLOCK, "veil"),
+                                    "%s left a full panel (dark %s): %r" % (name, dark, self.bg_of(b, name)))
+                    paint = tone.rgba(self.bg_of(b, name))
+                    self.assertEqual(paint[3], bg.BLOCK_VEIL_OPACITY, name)
+                    self.assertEqual(tone.luminance(paint) > 0.5, not dark, (name, paint))
+                # left alone: the lone notice, the brand's band
+                for name in ("notice", "brand"):
+                    self.assertIsNone(b.js(dk.TILED, name, BLOCK), "%s veiled (dark %s)" % (name, dark))
+                    self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
+
+    def test_grey_band(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_grey_band(binary)
+
+    def check_grey_band(self, binary):
+        routes = {"/sections.html": ("text/html; charset=utf-8", GREY_BAND_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, False)
+            b.navigate(srv.url("/sections.html", "light.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(TONE_IS, mn.WAIT_TIMEOUT, tone.TONE, "light"), "tone not light")
+            # the grey band of the tab menu: a layer of the page, glass
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "tabs", CANVAS),
+                            "grey band left opaque: %r" % self.bg_of(b, "tabs"))
+            self.assertLess(tone.rgba(self.bg_of(b, "tabs"))[3], 1.0)
+            # the cards in a color(srgb ...) fill: a light veil
+            for name in ("side0", "side1"):
+                self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, name, BLOCK, "veil"),
+                                "%s left a full panel: %r" % (name, self.bg_of(b, name)))
+                self.assertEqual(tone.rgba(self.bg_of(b, name))[3], bg.BLOCK_VEIL_OPACITY, name)
+            # a card in two faces: one veil on the box round them, the
+            # source line glass with its data block (no two-tone strip),
+            # the low grey card too; the outlined code blocks veiled
+            for name in ("src0", "src1", "ver0", "ver1", "code0", "code1"):
+                self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, name, BLOCK, "veil"),
+                                "%s left as painted: %r" % (name, self.bg_of(b, name)))
+                self.assertEqual(tone.rgba(self.bg_of(b, name))[3], bg.BLOCK_VEIL_OPACITY, name)
+            for name in ("strip0", "block0", "strip1", "block1", "vstrip0", "vblock0", "vstrip1", "vblock1"):
+                self.assertEqual(b.js(dk.TILED, name, BLOCK), "glass", name)
+                self.assertEqual(self.bg_of(b, name), "rgba(0, 0, 0, 0)", name)
+
     def test_card_parts(self):
         for name, binary in tone.browsers():
             with self.subTest(browser=name):
@@ -1674,6 +2138,180 @@ class LayersE2E(unittest.TestCase):
                 self.assertFalse(self.marked(b, name, CANVAS), name + ": a field in the bar's row filled")
                 self.assertEqual(self.bg_of(b, name), "rgb(27, 30, 33)", name)
 
+    def test_risen_header(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_risen_header(binary)
+
+    def check_risen_header(self, binary):
+        routes = {"/riser.html": ("text/html; charset=utf-8", RISER_PAGE.encode("utf-8"))}
+        filled = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === 'fill';"
+        clear = "rgba(0, 0, 0, 0)"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/riser.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "band", CANVAS), "the header band not marked")
+            # the band's row holding an icon: one glass with the band
+            self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "row", CANVAS),
+                            "a row of the header band in its colour left opaque: %r" % self.bg_of(b, "row"))
+            self.assertEqual(self.bg_of(b, "row"), clear)
+            # the sticky row in the flow: the page's header, glass, its
+            # arrow too; the button in a colour of its own keeps it
+            self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "nav", CANVAS),
+                            "a sticky row not stuck yet left opaque: %r" % self.bg_of(b, "nav"))
+            self.assertEqual(self.bg_of(b, "nav"), clear)
+            self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "next", CANVAS),
+                            "the row's arrow left an opaque square: %r" % self.bg_of(b, "next"))
+            self.assertEqual(self.bg_of(b, "go"), "rgb(200, 60, 60)", "a button of its own colour cleared")
+            # the arrow's fade into the row's colour: see-through with it
+            self.assertTrue(b.wait_for(NO_FADE, mn.WAIT_TIMEOUT, "next"),
+                            "the arrow's fade a dark band on the glass: %r" % self.fade_of(b, "next"))
+            # the ticker's icon button in the page's colour: see-through
+            self.assertTrue(b.wait_for(filled, mn.WAIT_TIMEOUT, "more", CANVAS),
+                            "an icon button in the page's colour left an opaque square: %r" % self.bg_of(b, "more"))
+            self.assertEqual(self.bg_of(b, "more"), clear)
+            # stuck: a bar, one veil, the arrow see-through on it
+            b.js("window.scrollTo(0, document.getElementById('nav').offsetTop + 300);")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "nav", BAR), "the row stuck at the top not a bar")
+            self.assertEqual(self.bg_of(b, "nav"), DARK_SURFACE)
+            self.assertEqual(self.bg_of(b, "next"), clear, "the arrow opaque on the bar's veil")
+            self.assertTrue(b.wait_for(NO_FADE, mn.WAIT_TIMEOUT, "next"),
+                            "the arrow's fade a dark band on the bar's veil: %r" % self.fade_of(b, "next"))
+            # back in the flow: glass again, no bar
+            b.js("window.scrollTo(0, 0);")
+            self.assertTrue(b.wait_for("return !document.getElementById(arguments[0]).hasAttribute(arguments[1]);",
+                                       mn.WAIT_TIMEOUT, "nav", BAR), "the row back in the flow still a bar")
+            self.assertEqual(self.bg_of(b, "nav"), clear)
+
+    def test_resize_loop(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_resize_loop(binary)
+
+    def check_resize_loop(self, binary):
+        routes = {"/grow.html": ("text/html; charset=utf-8", RESIZE_PAGE.encode("utf-8"))}
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            for _ in range(3):
+                b.navigate(srv.url("/grow.html", "light.test"))
+                b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                b.js(GROW)
+                self.assertTrue(b.wait_for("return document.documentElement.hasAttribute('data-grown');",
+                                           mn.WAIT_TIMEOUT), "the page did not grow")
+                b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
+                self.assertTrue(b.js("return document.documentElement.hasAttribute(arguments[0]);", tone.LIVE))
+                self.assertIsNone(b.js("return document.documentElement.getAttribute('data-errors');"),
+                                  "the page saw an error while it grew")
+
+    def test_page_rows(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_page_rows(binary)
+
+    def check_page_rows(self, binary):
+        routes = {"/d.html": ("text/html; charset=utf-8", DARK_ROWS_PAGE.encode("utf-8")),
+                  "/l.html": ("text/html; charset=utf-8", LIGHT_ROWS_PAGE.encode("utf-8"))}
+        clear = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor === 'rgba(0, 0, 0, 0)';"
+        seamless = ("const s = getComputedStyle(document.getElementById(arguments[0]));"
+                    "return ['Top', 'Right', 'Bottom', 'Left'].every((k) => !parseFloat(s['border' + k + 'Width'])"
+                    " || s['border' + k + 'Color'] === 'rgba(0, 0, 0, 0)');")
+        to = "window.scrollTo(0, document.getElementById(arguments[0]).offsetTop);"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            for page, dark, card in (("/d.html", True, "rgb(40, 40, 48)"), ("/l.html", False, "rgb(225, 225, 232)")):
+                with self.subTest(page=page):
+                    tone.set_scheme(b, dark)
+                    b.navigate(srv.url(page, "dark.test" if dark else "light.test"))
+                    b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                    # every row of the column in view, the thin one too
+                    for name in ("r1", "r2", "r3", "r4", "r5"):
+                        self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, name),
+                                        "%s: a row of the page's colour left opaque (%s): %r"
+                                        % (name, page, self.bg_of(b, name)))
+                    self.assertEqual(self.bg_of(b, "rowcard"), card, "a card on a row made see-through")
+                    # the borders in the rows' colour see-through too
+                    for name in ("col", "r1", "r5"):
+                        self.assertTrue(b.wait_for(seamless, mn.WAIT_TIMEOUT, name),
+                                        "%s: a border in the rows' colour left opaque (%s): %r"
+                                        % (name, page, self.border_of(b, name)))
+                    b.js(to, "r6")
+                    self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, "r6"), "a row below a blue one left opaque")
+                    self.assertTrue(b.wait_for(seamless, mn.WAIT_TIMEOUT, "r6"), "a row's border below left opaque")
+                    b.js("return new Promise((resolve) => setTimeout(resolve, 300));")
+                    self.assertEqual(self.bg_of(b, "blue"), "rgb(20, 95, 228)", "a blue row made see-through")
+                    # the white bylines on the photo above the window vote
+                    # on the picture: the light page stays light
+                    b.js("window.dispatchEvent(new Event('resize'));"
+                         "return new Promise((resolve) => setTimeout(resolve, 500));")
+                    self.assertEqual(b.js("return document.documentElement.getAttribute(arguments[0]);",
+                                          bg.ATTR_TONE), "dark" if dark else "light",
+                                     "the bylines on a photo above the window counted as the page's text")
+
+    def test_page_teasers(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_page_teasers(binary)
+
+    def check_page_teasers(self, binary):
+        routes = {"/d.html": ("text/html; charset=utf-8", DARK_TEASER_PAGE.encode("utf-8")),
+                  "/l.html": ("text/html; charset=utf-8", LIGHT_TEASER_PAGE.encode("utf-8"))}
+        clear = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor === 'rgba(0, 0, 0, 0)';"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            for page, dark in (("/d.html", True), ("/l.html", False)):
+                with self.subTest(page=page):
+                    tone.set_scheme(b, dark)
+                    b.navigate(srv.url(page, "dark.test" if dark else "light.test"))
+                    b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                    for name in ("t0", "t1", "t7"):
+                        self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, name),
+                                        "%s: a row of the page's colour left opaque (%s)" % (name, page))
+                    # measured again with the rows glass (the passes after
+                    # a load or a navigation, twice): the teasers'
+                    # headlines carry the vote
+                    for _ in range(2):
+                        b.js("window.dispatchEvent(new Event('popstate'));"
+                             "return new Promise((resolve) => setTimeout(resolve, 800));")
+                        self.assertEqual(b.js("return document.documentElement.getAttribute(arguments[0]);",
+                                              bg.ATTR_TONE), "dark" if dark else "light",
+                                         "the kickers on the glass rows outvoted the teasers in the page's colour")
+
+    def border_of(self, b, element_id):
+        return b.js("const s = getComputedStyle(document.getElementById(arguments[0]));"
+                    "return [s.borderTopColor, s.borderLeftColor];", element_id)
+
+    def test_page_boxes(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_page_boxes(binary)
+
+    def check_page_boxes(self, binary):
+        routes = {"/d.html": ("text/html; charset=utf-8", DARK_BOXES_PAGE.encode("utf-8")),
+                  "/l.html": ("text/html; charset=utf-8", LIGHT_BOXES_PAGE.encode("utf-8"))}
+        clear = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor === 'rgba(0, 0, 0, 0)';"
+        to = "window.scrollTo(0, document.getElementById(arguments[0]).offsetTop);"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            for page, dark, color in (("/d.html", True, "rgb(32, 32, 32)"), ("/l.html", False, "rgb(232, 237, 240)")):
+                with self.subTest(page=page):
+                    tone.set_scheme(b, dark)
+                    b.navigate(srv.url(page, "dark.test" if dark else "light.test"))
+                    b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+                    self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "band", CANVAS), "the band not marked")
+                    self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, "slot"),
+                                    "an empty slot in the page's colour left opaque (%s): %r"
+                                    % (page, self.bg_of(b, "slot")))
+                    b.js("return new Promise((resolve) => setTimeout(resolve, 300));")
+                    for name in ("framed", "pic", "note"):
+                        self.assertEqual(self.bg_of(b, name), color, name + ": a kept box made see-through")
+                    self.assertEqual(self.bg_of(b, "micro"), "rgb(70, 70, 70)", "a grey box made see-through")
+                    b.js(to, "sect")
+                    self.assertTrue(b.wait_for(clear, mn.WAIT_TIMEOUT, "inslot"),
+                                    "a slot in a section of the page's colour left opaque (%s)" % page)
+
     def test_late_banner(self):
         for name, binary in tone.browsers():
             with self.subTest(browser=name):
@@ -1745,7 +2383,10 @@ class LayersE2E(unittest.TestCase):
                                 "an app's surface not marked (dark theme: %s)" % dark)
                 self.assertEqual(self.bg_of(b, "surface"), "rgba(0, 0, 0, 0)")
                 self.assertFalse(self.marked(b, "panel", CANVAS), "a panel on the surface marked")
-                self.assertEqual(self.bg_of(b, "panel"), "rgb(24, 27, 31)")
+                # the row of panels on it: a light veil, as cards get
+                self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "panel", BLOCK, "veil"),
+                                "a panel on the surface left a full panel: %r" % self.bg_of(b, "panel"))
+                self.assertEqual(tone.rgba(self.bg_of(b, "panel"))[3], bg.BLOCK_VEIL_OPACITY)
                 # the menu over nothing, its scrim at opacity 0: no bar
                 self.assertFalse(b.wait_for(dk.MARKED, 2.0, "menu", BAR), "a menu backed by a faded scrim marked")
             tone.set_scheme(b, True)
