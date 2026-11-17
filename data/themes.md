@@ -86,7 +86,10 @@ added by the helper: a page where a write failed is tried again only once
    A site that stores its own default on a first visit (the French
    state's DSFR stores `scheme` = `light`) needs both `null` and that
    value in `from`; a value that already follows the system (`system`)
-   stays out of it. A site that stores the scheme it resolved from the
+   stays out of it, and so does an `auto` the site writes itself when the
+   key is absent (docs.python.org's `currentTheme`: `light`, `dark` or
+   `auto`): only `light` is in `from`. A site that stores the scheme
+   it resolved from the
    system (DSFR on impots.gouv.fr: `light` or `dark`, never `system`)
    stays dark under a light theme after a visit under a dark one; a
    recipe makes the key the add-on's, so the value it had is put back.

@@ -328,7 +328,7 @@ class ExtensionSourcesTest(unittest.TestCase):
             self.assertNotIn(gone, bars[:bars.index("\nfunction ", 1)])
         # headers and bottom bars, sidebars, on all four edges
         self.assertIn("r.top <= EDGE || r.bottom >= h - EDGE", bars)
-        self.assertIn("r.left <= EDGE || r.right >= w - EDGE", bars)
+        self.assertIn("r.left <= EDGE || r.right >= w - EDGE", js[js.index("function sideBar("):])
         self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]", bars)
         self.assertIn("removeAttribute(BAR)", bars)
         self.assertIn("mark(el, BAR)", bars)
@@ -500,6 +500,13 @@ class ExtensionSourcesTest(unittest.TestCase):
             self.assertIn('[%s~="%s"]::%s {{ background-image: var(%s-%s) !important; }}'
                           % (bg.ATTR_FADE_PSEUDO, p, p, bg.FADE_IMAGE, p), bg._CONTENT_LAYERS)
         self.assertIn("fadePseudos(el, fadesSeen);", js[js.index("function markInk()"):js.index("function markIcons(")])
+        # an empty element beside the way up painting the page's colour on
+        # the glass, over nothing but its ancestors: the page's layer too
+        strips = js[js.index("function fadePseudos("):js.index("function unfade()")]
+        for part in ("clearStrips(p);", "glass = onGlass(p);", "if (glass && overOwn(el, r))",
+                     "el.setAttribute(CANVAS, FILL);",
+                     "return stack.slice(n + 1).every((under) => ancestors.has(under));"):
+            self.assertIn(part, strips)
         unfade = js[js.index("function unfade()"):js.index("function markBars()")]
         self.assertIn('el.style.removeProperty(FADE_IMAGE + "-" + pseudo);', unfade)
         # a light page Dark Reader leaves alone: a row along the top edge
@@ -763,11 +770,17 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "mark(el, CANVAS);",
                      "const outermost = j === blocks.length - 1 && !b.matches(FIELDS);",
                      "outermost ? (overs.get(b) ? OPAQUE : VEILED) : b.matches(FIELDS) ? VEILED : SEE_THROUGH",
-                     "overs.set(b, overPicture(b, stop, media));",
+                     "overs.set(b, overPicture(b, stop, media) || overBand(b));",
                      "[role, ...bands(b)].join(\" \")",
                      "!holds(block, m) && overlap(r, shownBox(m)) >= OVER_SHARE * r.width * r.height",
                      'const x = style.overflowX !== "visible", y = style.overflowY !== "visible";',
-                     "near(style.backgroundColor, color)"):
+                     "near(style.backgroundColor, color)",
+                     # over a saturated band: the first element painting
+                     # behind it, opaque, saturated, under part of it
+                     "const OVER_CHROMA = 0.4;",
+                     "at.elementsFromPoint(r.left + r.width / 2, r.top + y * r.height)",
+                     "stack.slice(i + 1).find(",
+                     "chroma(style.backgroundColor) >= OVER_CHROMA"):
             self.assertIn(part, blocks)
         # the text of markInk, read as far into the page
         self.assertIn("for (const el of shownText(near))", blocks)
@@ -776,7 +789,12 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn("el.removeAttribute(BLOCK), el.removeAttribute(KEPT);", ink)
         self.assertIn("el.removeAttribute(BLOCK)", js[js.index("function darken()"):js.index("function frameSchemes()")])
         # column is a shape on plain()'s colour
-        self.assertIn("&& plain(el, color);", js[js.index("function column("):js.index("function plain(")])
+        self.assertIn("&& plain(el, color) && !stuckSide(el);", js[js.index("function column("):js.index("function plain(")])
+        # a sticky side column (or one in it) is the window's bar, never a
+        # page layer, whichever pass meets it first
+        stuck = js[js.index("function stuckSide("):js.index("function plain(")]
+        self.assertIn('getComputedStyle(e).position === "sticky" && sideBar(e.getBoundingClientRect(), w, h)', stuck)
+        self.assertIn("|| sideBar(r, w, h));", js[js.index("function markBars()"):js.index("let layerFrame")])
 
     def test_content_marks_cards(self):
         # a row of link cards a site paints itself, opaque in the tone's
@@ -784,14 +802,27 @@ class ExtensionSourcesTest(unittest.TestCase):
         # theme) gets the block veil; its boxes in the same colour are
         # see-through, a box holding a picture is left; a lone one or a
         # floating one stays; not on a darkened page (markBlocks); the
-        # marks are judged again on a change of tone
+        # marks are judged again on a change of tone. The card is the link
+        # or the box painted round it, out to the same box painted round
+        # that (its faces see-through); a box of a list of links, a photo's
+        # card, a product tile (a photo set in it, not side to side) and a
+        # box outlined round a link stay
         js = strip_comments(read("content.js"))
         cards = js[js.index("function markCards("):js.index("function afloat(")]
         for part in ("const on = !darkened && glassPage && tone !== null;",
                      "if (!on || tone !== cardTone)",
                      'everywhere("a[href]")',
-                     "r.width < CARD_SIDE || r.height < CARD_SIDE || wide(el) || large(el)",
-                     "alpha(color) < SOLID || !plain(el, color) || afloat(el)",
+                     "const [el, faces] = cardOf(links[i]);",
+                     "card = i < CARD_DEPTH ? up(card) : null;",
+                     "faces.push(card), card = p;",
+                     "face.setAttribute(BLOCK, SEE_THROUGH);",
+                     "Math.min(r.width, r.height) < CARD_LOW || Math.max(r.width, r.height) < CARD_SIDE"
+                     " || wide(el) || large(el)",
+                     "alpha(color) < SOLID || !plain(el, color) || afloat(el) || !cardLike(el, r) || framed(el, links[i])",
+                     "if (links > CARD_LINKS)",
+                     "shown >= CARD_PICTURE * area",
+                     "shown >= CARD_MAT * area && m.left > r.left + EDGE && m.right < r.right - EDGE",
+                     "return el !== link && style.borderTopStyle !== \"none\" && parseFloat(style.borderTopWidth) > 0;",
                      "rows.get(color) >= CARD_ROW",
                      "card.setAttribute(BLOCK, VEILED);",
                      "el.querySelector(CARD_MEDIA)",

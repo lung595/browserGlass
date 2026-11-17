@@ -200,6 +200,11 @@ ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
 # text (skip links): hidden until the focus enters it, not cleared.
 ATTR_UNDER = "data-browserglass-under"
+# ... and TUCK on a bar tucked under a higher bar (a row of sections slid
+# up under its masthead): the part covered clipped away, by the px cut
+# from its top and its bottom in TUCK_SIDES, inline.
+ATTR_TUCK = "data-browserglass-tuck"
+TUCK_SIDES = ("--browserglass-tuck-top", "--browserglass-tuck-bottom")
 # ... and OWN on a surface the generic style cleared though its text was
 # drawn for it (a dark section holding light text on a light page): the
 # generic style skips it (_Nest keep), the site's own colour stays.
@@ -1844,7 +1849,11 @@ _CONTENT_DARKEN = (
 #   on a light page, by the theme otherwise. The blur ends with the
 #   add-on's filter (#browserglass-veil, see extension/content.js), which
 #   lays the blurred backdrop on the glass's colour so the sharp text
-#   under it no longer shows through: text is blurred like pictures;
+#   under it no longer shows through: text is blurred like pictures. A
+#   bar tucked under a higher one (ATTR_TUCK: a row of sections slid up
+#   under its masthead, hidden there by the masthead's opaque fill) is
+#   clipped to its part outside that bar (TUCK_SIDES), what hangs out of
+#   its box kept, so it no longer shows through the higher bar's veil;
 # - text without contrast on what is now behind it (ATTR_INK): the dark
 #   surface ("dark") or the light one ("light"), its fill too (a gradient
 #   clipped to the text is drawn under that fill). The add-on reads the
@@ -1923,6 +1932,7 @@ BLOCK_VEIL_OPACITY = 0.35
 RULE_OPACITY = 0.25
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
+_TUCK_SELECTOR = "[" + ATTR_TUCK + "]:not(#browserglass-a):not(#browserglass-b)"
 # The bar's colour for the page's tone, set on the root: a custom property
 # reaches the bars of shadow trees, where html:root[tone] cannot match.
 NAV_BAR_VAR = "--browserglass-nav"
@@ -1995,6 +2005,8 @@ _CONTENT_LAYERS = (
     "    background: var(" + NAV_BAR_VAR + ") !important;\n"
     "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
     "  }}\n"
+    + "  " + _TUCK_SELECTOR + " {{ clip-path: inset(var(" + TUCK_SIDES[0] + ", -100vmax) -100vmax var("
+    + TUCK_SIDES[1] + ", -100vmax) -100vmax) !important; }}\n"
     "  :root {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    :root {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"

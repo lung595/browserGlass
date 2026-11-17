@@ -53,6 +53,13 @@ class BundledTest(unittest.TestCase):
                 # nothing dropped
                 self.assertEqual(len(clean["sites"][host]), len(recipes))
 
+    def test_python_docs(self):
+        # docs.python.org reads currentTheme (light, dark, auto): a stored
+        # light turns dark; auto and absent follow the system already
+        sent = bg.themes_load(DATA)["sites"]["docs.python.org"]
+        self.assertEqual(sent, [{"store": "local", "key": "currentTheme", "op": "set",
+                                 "from": ["light"], "to": "dark"}])
+
     def test_rev_is_stable(self):
         a = bg.themes_clean(self.doc)
         b = bg.themes_clean(json.loads(json.dumps(self.doc)))

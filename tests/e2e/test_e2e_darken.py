@@ -449,7 +449,9 @@ TILED_IS = "return document.getElementById(arguments[0]).getAttribute(arguments[
 # same teaser) and a card on a hero's background picture (#herocard).
 # Veiled: a card (#below, ldlc.com's div.bloc-universe) just under a cover
 # image cut down to its frame (overflow hidden), whose own box runs over
-# the card.
+# the card. Kept opaque too: a white form card pulled up half over a red
+# band before it (#overband on #redband, SBB's journey form on its hero
+# band), which a veil would turn dark red.
 # the hero's photo (/hero.svg), dark: Dark Reader hides a large light
 # background picture
 HERO_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80">'
@@ -479,7 +481,10 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20)}
 #cover img {display:block; width:400px; height:400px}
 #below {background:rgb(255,255,255); border:1px solid rgb(220,220,220); width:380px; padding:10px; margin:0 20px}
 #herocard {background:rgb(255,255,255); padding:16px; width:300px}
+#redband {background:rgb(235,0,0); height:80px}
+#overband {background:rgb(255,255,255); margin:-50px 20px 0; width:400px; padding:16px; color:rgb(110,110,110)}
 </style></head><body><div id="wrap">""" + MEGA_MENU + """<div id="meta"><a href="#">Private</a><a href="#">Business</a></div>
+<div id="redband"></div><div id="overband"><p>From</p><p>To</p></div>
 <div class="cards"><div class="card" id="news"><div class="card__content" id="body"><h3 id="title">Council news</h3>
 <p>""" + "A short report on the latest decision of the council. " * 3 + """</p>
 <button id="more" type="button">More</button> <button id="buy" type="button">Open an account</button></div></div>
@@ -1336,8 +1341,9 @@ class DarkenE2E(unittest.TestCase):
             # cleared with the veil, not an opaque dark band on it
             self.assertEqual(b.js(TILED, "banded", BLOCK), "veil before")
             self.assertEqual(b.js(PART_BG, "banded", "::before"), "rgba(0, 0, 0, 0)")
-            # a card over a picture keeps Dark Reader's opaque fill
-            for name in ("caption", "herocard"):
+            # a card over a picture or a saturated band keeps Dark Reader's
+            # opaque fill
+            for name in ("caption", "herocard", "overband"):
                 self.assertEqual(b.js(TILED, name, BLOCK), "solid", name)
                 self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
             # not a card under a picture whose overflow its frame cuts off

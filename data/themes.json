@@ -17,6 +17,9 @@
     "demo.home-assistant.io": [
       {"store": "local", "key": "demo_theme", "op": "set", "from": [null, "{\"theme\":\"default\",\"dark\":false}"], "to": "{\"theme\":\"default\"}", "verified": "2026-11-16", "note": "the demo's mock backend reads demo_theme as JSON, {\"theme\":\"default\",\"dark\":false} (light) when absent, even on a dark system; without a dark key the theme is Auto: dark under a dark system, following it live; the theme menu writes it, no reload"}
     ],
+    "docs.python.org": [
+      {"store": "local", "key": "currentTheme", "op": "set", "from": ["light"], "to": "dark", "verified": "2026-11-16", "note": "_static/themetoggle.js reads currentTheme (light, dark, auto) and switches the dark style sheet's media: all, not all, or prefers-color-scheme; absent, it writes auto (follows the system), so only light is turned; the theme menu writes it, no reload"}
+    ],
     "docs.rs": [
       {"store": "local", "key": "rustdoc-theme", "op": "set", "from": [null, "light"], "to": "dark", "verified": "2026-11-15", "note": "an inline head script reads rustdoc-theme (light, dark, ayu), light when absent; rustdoc pages of the same origin write it too when they follow the system"}
     ],
