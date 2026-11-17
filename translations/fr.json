@@ -53,6 +53,9 @@
   "%1%, from DMS": {
     "%1%, from DMS": "%1 %, selon DMS"
   },
+  "%1, no match": {
+    "%1, no match": "%1, aucune correspondance"
+  },
   "1 browser profile": {
     "1 browser profile": "1 profil de navigateur"
   },
@@ -92,14 +95,8 @@
   "Address not supported": {
     "Address not supported": "Adresse non prise en charge"
   },
-  "Advanced & help": {
-    "Advanced & help": "Avancé et aide"
-  },
   "Always dark": {
     "Always dark": "Toujours sombre"
-  },
-  "Appearance": {
-    "Appearance": "Apparence"
   },
   "Applying the change…": {
     "Applying the change…": "Application du changement…"
@@ -143,6 +140,9 @@
   "Browsers": {
     "Browsers": "Navigateurs"
   },
+  "Changes at once, without a restart": {
+    "Changes at once, without a restart": "Les changements tout de suite, sans redémarrage"
+  },
   "Command copied to the clipboard": {
     "Command copied to the clipboard": "Commande copiée dans le presse-papiers"
   },
@@ -155,6 +155,9 @@
   "Could not build the report": {
     "Could not build the report": "Impossible de générer le rapport"
   },
+  "Ctrl+F or /": {
+    "Ctrl+F or /": "Ctrl+F ou /"
+  },
   "Current site not found": {
     "Current site not found": "Site courant introuvable"
   },
@@ -163,6 +166,9 @@
   },
   "DMS blur is off": {
     "DMS blur is off": "Le flou de DMS est désactivé"
+  },
+  "DMS window opacity": {
+    "DMS window opacity": "Opacité des fenêtres DMS"
   },
   "DMS window opacity: %1% (the first global window rule)": {
     "DMS window opacity: %1% (the first global window rule)": "Opacité des fenêtres DMS : %1 % (la première règle de fenêtre globale)"
@@ -175,6 +181,9 @@
   },
   "DMS window opacity: replaced, the glass uses %1%": {
     "DMS window opacity: replaced, the glass uses %1%": "Opacité des fenêtres DMS : remplacée, le verre utilise %1 %"
+  },
+  "Dark pages": {
+    "Dark pages": "Pages sombres"
   },
   "Dedicated site styles": {
     "Dedicated site styles": "Styles dédiés aux sites"
@@ -191,6 +200,9 @@
   "Enter: remove from the list": {
     "Enter: remove from the list": "Entrée : retirer de la liste"
   },
+  "Esc clears": {
+    "Esc clears": "Échap efface"
+  },
   "Exclude copied URL": {
     "Exclude copied URL": "Exclure l'URL copiée"
   },
@@ -205,6 +217,12 @@
   },
   "Excluded: 1 site": {
     "Excluded: 1 site": "Exclu : 1 site"
+  },
+  "Exclusions and the styles of known sites": {
+    "Exclusions and the styles of known sites": "Exclusions et styles des sites connus"
+  },
+  "Files & uninstall": {
+    "Files & uninstall": "Fichiers et désinstallation"
   },
   "Files written": {
     "Files written": "Fichiers écrits"
@@ -257,6 +275,12 @@
   "Guide": {
     "Guide": "Guide"
   },
+  "Help": {
+    "Help": "Aide"
+  },
+  "How see-through the browsers are": {
+    "How see-through the browsers are": "La transparence des navigateurs"
+  },
   "In each browser profile: chrome/dms-glass-*.css, one @import line in userChrome.css and userContent.css, a marked block in user.js, and the cleanup of prefs.js.": {
     "In each browser profile: chrome/dms-glass-*.css, one @import line in userChrome.css and userContent.css, a marked block in user.js, and the cleanup of prefs.js.": "Dans chaque profil de navigateur : chrome/dms-glass-*.css, une ligne @import dans userChrome.css et userContent.css, un bloc balisé dans user.js, et le nettoyage de prefs.js."
   },
@@ -281,17 +305,17 @@
   "Live control: not available for these browsers; changes apply at the next restart": {
     "Live control: not available for these browsers; changes apply at the next restart": "Contrôle en direct : indisponible pour ces navigateurs ; les changements s'appliquent au prochain redémarrage"
   },
-  "Live control: the add-on was removed in the browser; turn Live control off and on to add it back": {
-    "Live control: the add-on was removed in the browser; turn Live control off and on to add it back": "Contrôle en direct : le module a été retiré dans le navigateur ; désactivez puis réactivez le contrôle en direct pour le remettre"
-  },
-  "Live control: the add-on is disabled in the browser; enable it in about:addons": {
-    "Live control: the add-on is disabled in the browser; enable it in about:addons": "Contrôle en direct : le module est désactivé dans le navigateur ; réactivez-le dans about:addons"
-  },
   "Live control: off": {
     "Live control: off": "Contrôle en direct : désactivé"
   },
   "Live control: restart the browser once more": {
     "Live control: restart the browser once more": "Contrôle en direct : redémarrez le navigateur encore une fois"
+  },
+  "Live control: the add-on is disabled in the browser; enable it in about:addons": {
+    "Live control: the add-on is disabled in the browser; enable it in about:addons": "Contrôle en direct : le module est désactivé dans le navigateur ; réactivez-le dans about:addons"
+  },
+  "Live control: the add-on was removed in the browser; turn Live control off and on to add it back": {
+    "Live control: the add-on was removed in the browser; turn Live control off and on to add it back": "Contrôle en direct : le module a été retiré dans le navigateur ; désactivez puis réactivez le contrôle en direct pour le remettre"
   },
   "Live control: waiting for a browser restart": {
     "Live control: waiting for a browser restart": "Contrôle en direct : en attente d'un redémarrage du navigateur"
@@ -323,6 +347,12 @@
   "Not a web page": {
     "Not a web page": "Pas une page web"
   },
+  "Notes, the guide and bug reports": {
+    "Notes, the guide and bug reports": "Remarques, guide et signalement de bugs"
+  },
+  "Nothing matches “%1”": {
+    "Nothing matches “%1”": "Rien ne correspond à « %1 »"
+  },
   "Off: only the browser's own interface (tabs, address bar) is glass.": {
     "Off: only the browser's own interface (tabs, address bar) is glass.": "Désactivé : seule l'interface du navigateur (onglets, barre d'adresse) est en verre."
   },
@@ -352,6 +382,9 @@
   },
   "Override": {
     "Override": "Personnaliser"
+  },
+  "Pages": {
+    "Pages": "Pages"
   },
   "Private window: site not detected": {
     "Private window: site not detected": "Fenêtre privée : site non détecté"
@@ -383,6 +416,9 @@
   "Restart your browser to apply Browser Glass": {
     "Restart your browser to apply Browser Glass": "Redémarrez votre navigateur pour appliquer Browser Glass"
   },
+  "Search settings": {
+    "Search settings": "Rechercher dans les réglages"
+  },
   "Search sites": {
     "Search sites": "Rechercher des sites"
   },
@@ -400,12 +436,6 @@
   },
   "Sites without a dedicated style get a see-through background too.": {
     "Sites without a dedicated style get a see-through background too.": "Les sites sans style dédié reçoivent eux aussi un fond transparent."
-  },
-  "Dark pages": {
-    "Dark pages": "Pages sombres"
-  },
-  "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": {
-    "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": "Sous un thème sombre, le module compagnon assombrit les pages claires avec le moteur Dark Reader intégré, et leur fond devient du verre. Nécessite le contrôle en direct."
   },
   "Status": {
     "Status": "État"
@@ -434,9 +464,6 @@
   "The niri rule is out of date": {
     "The niri rule is out of date": "La règle niri n'est plus à jour"
   },
-  "The signed companion add-on could not be used: the unsigned one is used instead": {
-    "The signed companion add-on could not be used: the unsigned one is used instead": "Le module compagnon signé n'a pas pu être utilisé : le module non signé est utilisé à la place"
-  },
   "The niri rule stays until the running browsers restart": {
     "The niri rule stays until the running browsers restart": "La règle niri reste jusqu'au redémarrage des navigateurs ouverts"
   },
@@ -451,6 +478,9 @@
   },
   "The script needs no other file: from a copy of browserglass.py alone (the plugin folder already gone), run:": {
     "The script needs no other file: from a copy of browserglass.py alone (the plugin folder already gone), run:": "Le script n'a besoin d'aucun autre fichier : depuis une simple copie de browserglass.py (le dossier du plugin déjà supprimé), lancez :"
+  },
+  "The signed companion add-on could not be used: the unsigned one is used instead": {
+    "The signed companion add-on could not be used: the unsigned one is used instead": "Le module compagnon signé n'a pas pu être utilisé : le module non signé est utilisé à la place"
   },
   "The site styles could not be read": {
     "The site styles could not be read": "Les styles de sites n'ont pas pu être lus"
@@ -467,14 +497,29 @@
   "To switch the browser between light and dark along with DMS, without a restart, turn on Settings → Theme → Portal & terminals → Sync with portal.": {
     "To switch the browser between light and dark along with DMS, without a restart, turn on Settings → Theme → Portal & terminals → Sync with portal.": "Pour que le navigateur passe du clair au sombre en même temps que DMS, sans redémarrer, activez Réglages → Thème → Portail et terminaux → Sync with portal."
   },
+  "Try one word: opacity, dark, exclude, uninstall": {
+    "Try one word: opacity, dark, exclude, uninstall": "Essayez un seul mot : opacité, sombre, exclure, désinstaller"
+  },
   "Turn glass on": {
     "Turn glass on": "Activer le verre"
+  },
+  "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": {
+    "Under a dark theme, the companion add-on turns light pages dark with the bundled Dark Reader engine, and their background becomes glass. Needs Live control.": "Sous un thème sombre, le module compagnon assombrit les pages claires avec le moteur Dark Reader intégré, et leur fond devient du verre. Nécessite le contrôle en direct."
   },
   "Uninstall": {
     "Uninstall": "Désinstallation"
   },
   "Use an opacity of your own for the browsers instead of the DMS one.": {
     "Use an opacity of your own for the browsers instead of the DMS one.": "Utiliser votre propre opacité pour les navigateurs au lieu de celle de DMS."
+  },
+  "What Browser Glass writes, and how to remove it": {
+    "What Browser Glass writes, and how to remove it": "Ce qu'écrit Browser Glass, et comment le retirer"
+  },
+  "Whether the glass is on, and why": {
+    "Whether the glass is on, and why": "Si le verre est actif, et pourquoi"
+  },
+  "Which pages are glass, light or dark": {
+    "Which pages are glass, light or dark": "Quelles pages sont en verre, claires ou sombres"
   },
   "Window opacity is 100%": {
     "Window opacity is 100%": "L'opacité des fenêtres est à 100 %"

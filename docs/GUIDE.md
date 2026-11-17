@@ -192,7 +192,7 @@ You no longer need a site fix just because a site is light only.
 
 ## Live control
 
-The browser reads its style files only when it starts, so an exclusion would normally wait for a restart. **Live control** (**Settings → Plugins → Browser Glass → Advanced & help**, on by default) removes that wait for exclusions, with a small companion add-on in each profile.
+The browser reads its style files only when it starts, so an exclusion would normally wait for a restart. **Live control** (**Settings → Plugins → Browser Glass → Live control**, on by default) removes that wait for exclusions, with a small companion add-on in each profile.
 
 **How it works.**
 

@@ -20,6 +20,9 @@ Column {
     // Names of the switched-off styles
     property var disabled: []
     property alias query: search.text
+    // The title and the line under it (the settings page reads them from its index)
+    property string label: I18n.trFor("browserGlass", "Dedicated site styles")
+    property string description: I18n.trFor("browserGlass", "Styles from my-internet that make known sites glass-friendly. Switch one off and that site keeps only the plain see-through page background: the generic style does not take its place.")
 
     readonly property var filtered: filterSites(sites, query)
     readonly property int total: Array.isArray(sites) ? sites.length : 0
@@ -103,7 +106,7 @@ Column {
 
     StyledText {
         width: parent.width
-        text: I18n.trFor("browserGlass", "Dedicated site styles")
+        text: list.label
         font.pixelSize: Theme.fontSizeLarge
         font.weight: Theme.fontWeightMedium
         color: Theme.surfaceText
@@ -111,7 +114,7 @@ Column {
 
     StyledText {
         width: parent.width
-        text: I18n.trFor("browserGlass", "Styles from my-internet that make known sites glass-friendly. Switch one off and that site keeps only the plain see-through page background: the generic style does not take its place.")
+        text: list.description
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
         wrapMode: Text.WordWrap

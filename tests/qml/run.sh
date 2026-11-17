@@ -43,7 +43,8 @@ fi
 # qs.Widgets Dank* shims log a deprecation error naming the plugin) and none
 # of the stubs' test-only members (the _test prefix)
 if grep -nE '\bDank(Button|Toggle|Icon|TextField|Slider)\b|\b_test[A-Za-z]' \
-    "$root"/*.qml "$root"/components/*.qml "$root"/components/*.js; then
+    "$root"/*.qml "$root"/components/*.qml "$root"/components/*.js \
+    "$root"/components/settings/*.qml "$root"/components/settings/*.js; then
     echo "run.sh: the plugin QML above uses a deprecated Dank* widget or a test-only _test member" >&2
     exit 1
 fi

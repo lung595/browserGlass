@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- **Settings**: a search field on top, a category rail on the left (Status, Opacity, Pages, Sites, Live control, Files & uninstall, Help) and one page at a time; typing shows only the matching settings, editable in place, Esc gives the page back, Ctrl+F or / focuses the field; a narrow window shows the rail as icons.
 - **Each site's own dark mode** (with *Live control* and *Dark pages*): many sites with their own theme menu keep the choice in the page's storage or a cookie and show their light theme to a visitor. Under a dark theme the add-on now writes that value before the page's scripts run, so the site starts in its own dark theme instead of being darkened by Dark Reader. A generic rule covers common storage keys (`theme`, `color-mode`, `colorScheme`, `appearance`…) already set to a light value; recipes for given sites live in `data/themes.json` (see `data/themes.md`). The prior value is recorded and put back under a light theme, once the site is excluded, or with *Dark pages* off; a value you change in the site's menu wins and is never written again; a site that stays light after the write gets its value back and Dark Reader as before.
 - **Wikipedia** (English, French and German) starts in its own dark theme, signed out: a recipe writes the wiki's theme cookie (`skin-theme-clientpref-night`), keeping the other display preferences stored in that cookie.
 - **npm** starts in its own dark theme: a recipe writes its `npm-color-mode` setting.
