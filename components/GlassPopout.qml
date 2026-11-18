@@ -21,6 +21,7 @@ PopoutComponent {
     readonly property var browsers: popout.status && Array.isArray(popout.status.browsers) ? popout.status.browsers : []
     // Warnings worth telling (the niri rule codes are the daemon's business)
     readonly property var warnings: Logic.statusWarnings(popout.status, true)
+    readonly property bool liveOff: popout.status !== null && popout.status.companion !== null && typeof popout.status.companion === "object" && popout.status.companion.state === "off"
 
     readonly property string reasonText: {
         if (popout.glass)
@@ -145,6 +146,18 @@ PopoutComponent {
             text: popout.widget ? popout.widget.lastError : ""
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.error
+        }
+
+        // Live control off (the default): the pages get the basic glass
+        // only; it is opt-in, so the popout says what it would add
+        StyledText {
+            objectName: "liveInvite"
+            width: parent.width
+            visible: popout.liveOff
+            text: I18n.trFor("browserGlass", "Live control is off: the pages get the basic glass. Turn it on in the settings for site dark themes, veiled bars and sharp text.")
+            wrapMode: Text.WordWrap
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.surfaceVariantText
         }
 
         StyledText {

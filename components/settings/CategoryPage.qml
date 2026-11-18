@@ -132,7 +132,7 @@ Item {
         visible: opacity > 0
         radius: Theme.cornerRadius / 2
         color: Theme.withAlpha(Theme.primary, 0.08)
-        border.width: 1
+        border.width: Theme.outlineWidth
         border.color: Theme.primary
 
         Connections {
@@ -171,12 +171,12 @@ Item {
         Row {
             width: parent.width
             spacing: Theme.spacingS
-            height: 28
+            height: Theme.buttonHeightXXS
             DIcon {
                 id: titleIcon
                 anchors.verticalCenter: parent.verticalCenter
                 name: page.info.icon || ""
-                size: 20
+                size: Theme.iconSizeMedium
                 color: Theme.primary
             }
             StyledText {

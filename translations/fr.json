@@ -556,5 +556,11 @@
   },
   "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values.": {
     "~/.local/state/dms/browserGlass/: state, one backup of the files it edits, the original preference values.": "~/.local/state/dms/browserGlass/ : l'état, une sauvegarde des fichiers modifiés, les valeurs d'origine des préférences."
+  },
+  "Live control: off. Pages get the basic glass only; turn it on for site dark themes, veiled bars and sharp text": {
+    "Live control: off. Pages get the basic glass only; turn it on for site dark themes, veiled bars and sharp text": "Contrôle en direct : désactivé. Les pages n'ont que le verre de base ; activez-le pour les thèmes sombres des sites, les barres voilées et le texte net"
+  },
+  "Live control is off: the pages get the basic glass. Turn it on in the settings for site dark themes, veiled bars and sharp text.": {
+    "Live control is off: the pages get the basic glass. Turn it on in the settings for site dark themes, veiled bars and sharp text.": "Le contrôle en direct est désactivé : les pages n'ont que le verre de base. Activez-le dans les réglages pour les thèmes sombres des sites, les barres voilées et le texte net."
   }
 }

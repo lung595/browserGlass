@@ -43,7 +43,9 @@ def prefs_text(prefs):
 
 
 def settings_json(**over):
-    doc = dict(test_contract.load_json("settings-default.json"))
+    # The contract's defaults with Live control on (off by default): these
+    # tests are about the companion add-on
+    doc = dict(test_contract.load_json("settings-default.json"), liveControl=True)
     doc.update(over)
     return json.dumps(doc)
 
@@ -551,6 +553,12 @@ class StatusTest(CompanionCase):
 
     def test_nothing_deposited(self):
         self.profile(LIBREWOLF)
+        # No sync yet: liveControl reads its default, off
+        status, per = self.status()
+        self.assertEqual(list(per.values()), [bg.COMPANION_OFF])
+        self.assertEqual(status["companion"]["state"], "off")
+        # On, synced without the plugin folder: nothing deposited
+        self.sync(plugin_dir=None)
         status, per = self.status()
         self.assertEqual(list(per.values()), [bg.COMPANION_NO_PLUGIN])
         self.assertEqual(status["companion"]["state"], "unavailable")

@@ -19,7 +19,7 @@ CategoryPage {
         settingKey: "liveControl"
         label: page.label("liveControl")
         description: page.help("liveControl")
-        defaultValue: true
+        defaultValue: false
     }
 
     // Where it stands, as the status block says it (read only)

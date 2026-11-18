@@ -35,7 +35,8 @@ DATA = str(REPO / "data")
 
 
 def settings(**over):
-    doc = dict(test_contract.load_json("settings-default.json"))
+    # The contract's defaults with Live control on (off by default)
+    doc = dict(test_contract.load_json("settings-default.json"), liveControl=True)
     doc.update(over)
     return doc
 

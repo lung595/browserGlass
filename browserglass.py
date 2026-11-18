@@ -465,7 +465,7 @@ SETTINGS_DEFAULTS = collections.OrderedDict([
     ("newTabGlass", True),
     ("readerOpaque", True),
     ("privateGlass", True),
-    ("liveControl", True),
+    ("liveControl", False),
     ("darkPages", True),
 ])
 # The largest `sync --settings-file` the script reads (bytes)

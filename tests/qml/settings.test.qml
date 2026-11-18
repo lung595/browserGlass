@@ -192,16 +192,16 @@ Item {
                 t.check("site theme default", control("siteTheme").value, "follow");
                 t.ok("slider hidden while the override is off", !control("opacity").visible);
                 t.check("DMS opacity read-only line", control("dmsOpacity").text, "DMS window opacity: 85% (the first global window rule)");
-                t.check("the live control toggle, on by default", [control("liveControl").label, control("liveControl").value], ["Live control", true]);
+                t.check("the live control toggle, off by default", [control("liveControl").label, control("liveControl").value], ["Live control", false]);
                 t.ok("it says what it changes", control("liveControl").description.indexOf("xpinstall.signatures.required") >= 0);
                 t.check("the dark pages toggle, on by default", [control("darkPages").label, control("darkPages").value], ["Dark pages", true]);
                 t.ok("it names the engine it bundles", control("darkPages").description.indexOf("Dark Reader") >= 0);
                 t.ok("files written lists the native manifest", control("filesWrittenList").text.indexOf("native-messaging-hosts/browserglass.json") >= 0);
                 t.check("a live control line only with a status that has it", control("statusLive").visible, json("contract/status.json").companion !== undefined);
                 PluginService.saves = [];
-                control("liveControl").value = false;
-                t.check("the toggle saves liveControl", lastSave(), [root.pid, "liveControl", false]);
-                t.check("which reaches the sync settings", synced().liveControl, false);
+                control("liveControl").value = true;
+                t.check("the toggle saves liveControl", lastSave(), [root.pid, "liveControl", true]);
+                t.check("which reaches the sync settings", synced().liveControl, true);
                 const status = json("contract/status.json");
                 status.companion = {
                     "enabled": true,
@@ -498,7 +498,7 @@ Item {
             "run": () => {
                 const view = root.page.view;
                 openCategory("status");
-                t.check("the field, idle", [control("searchPlaceholder").visible, control("searchHint").text], [true, "Ctrl+F or /"]);
+                t.check("the field, idle", [control("searchInput").placeholderText, control("searchHint").text], ["Search settings", "Ctrl+F or /"]);
                 control("searchInput").text = "dark";
                 t.check("typing sets the query", view.query, "dark");
                 t.ok("and filters", view.filtering);
@@ -570,16 +570,16 @@ Item {
                 };
                 shell.handleKey(slash);
                 t.ok("/ is taken by the page", slash.accepted);
-                t.ok("and focuses the field", control("searchInput").activeFocus);
+                t.ok("and focuses the field", control("searchField").fieldFocus);
                 slash.accepted = false;
                 slash.modifiers = Qt.ControlModifier;
                 shell.handleKey(slash);
                 t.ok("Ctrl+/ is left alone", !slash.accepted);
                 shell.takeKeys();
-                t.ok("the page has the keys back", !control("searchInput").activeFocus);
+                t.ok("the page has the keys back", !control("searchField").fieldFocus);
                 t.check("Ctrl+F", shell.shortcut.sequence, "Ctrl+F");
                 shell.shortcut.activated();
-                t.ok("focuses the field", control("searchInput").activeFocus);
+                t.ok("focuses the field", control("searchField").fieldFocus);
                 // Enter opens the best match, on its page, out of the search
                 control("searchInput").text = "uninstall";
                 control("searchInput").accepted();
@@ -618,7 +618,7 @@ Item {
                 t.check("French no results", control("noResultsText").text, "Rien ne correspond à « zzzz »");
                 t.check("French hint", control("searchHint").text, "Échap efface");
                 control("searchInput").text = "";
-                t.check("French placeholder", control("searchPlaceholder").text, "Rechercher dans les réglages");
+                t.check("French placeholder", control("searchInput").placeholderText, "Rechercher dans les réglages");
                 I18n.unregisterPluginTranslations(root.pid);
             }
         },

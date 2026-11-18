@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- **Live control is off by default**: it installs a companion add-on and turns off the add-on signature check in each browser profile, so it is now opt-in. Off, the pages get the basic glass only; the widget's popout and the Status page say what turning it on adds. Upgrading: if you never changed the setting, Live control turns off with this version; turn it back on in **Settings → Live control**.
+- **Settings**: the search field is DMS's own text field, and the settings pages take their sizes, corner radii and monospace font from the DMS theme.
+
 ### Fixed
 
 - **A sticky row tucked under a header** (a see-through row of categories stuck under a shop's tall header, as on Ricardo) no longer shows its links through the header's veil over the search field: the part the header covers is clipped away, as for a bar tucked under a higher one.

@@ -127,7 +127,7 @@
       "newTabGlass": {"type": "boolean", "required": false, "default": true},
       "readerOpaque": {"type": "boolean", "required": false, "default": true},
       "privateGlass": {"type": "boolean", "required": false, "default": true},
-      "liveControl": {"type": "boolean", "required": false, "default": true, "doc": "companion add-on and native host (live exclusions)"},
+      "liveControl": {"type": "boolean", "required": false, "default": false, "doc": "companion add-on and native host (live exclusions)"},
       "darkPages": {"type": "boolean", "required": false, "default": true, "doc": "under a dark theme, the companion add-on darkens light pages (Dark Reader) and their background canvas becomes glass"}
     }
   },

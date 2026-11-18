@@ -63,7 +63,8 @@ Item {
 
     // A clean shell, then a daemon. manual: nothing launches until
     // Proc.flush() (otherwise Proc's debounce timers run, as in DMS)
-    function fresh(manual) {
+    // `extra`: more saved settings of the plugin (liveControl, off by default)
+    function fresh(manual, extra) {
         Proc.reset();
         Proc.autoRun = !manual;
         ProcessLog.reset();
@@ -80,9 +81,9 @@ Item {
         SettingsData.reset();
         SessionData.isLightMode = false;
         SettingsData.pluginSettings = {
-            "browserGlass": {
+            "browserGlass": Object.assign({
                 "enabled": true
-            }
+            }, extra || {})
         };
         FileViewLog.reset();
         FileViewLog.put(root.manifest, "{\"id\": \"browserGlass\"}\n");
@@ -714,14 +715,14 @@ Item {
                     // Live control off then on, quicker than the debounce: two
                     // syncs, the first with it off
                     root.mark = root.syncCalls().length;
-                    root.save("liveControl", false);
                     root.save("liveControl", true);
+                    root.save("liveControl", false);
                     t.check("liveControl changes sync without the debounce", root.syncCalls().slice(root.mark).map(c => c.debounceMs), [0]);
                     root.mark = root.syncs().length;
                     Proc.flush();
                     Proc.flush();
                     Proc.flush();
-                    t.check("one sync with it off, then one with it on", root.syncs().slice(root.mark).map(c => root.settingsOf(c).liveControl), [false, true]);
+                    t.check("one sync with it on, then one with it off", root.syncs().slice(root.mark).map(c => root.settingsOf(c).liveControl), [true, false]);
                     // Another setting keeps the debounce
                     root.mark = root.syncCalls().length;
                     root.save("opacity", 60);
@@ -748,7 +749,9 @@ Item {
             // --- Launcher: actions, sync at once, toast after it ----------------------
             {
                 "run": () => {
-                    root.fresh(true);
+                    root.fresh(true, {
+                        "liveControl": true
+                    });
                     Proc.flush();
                     Proc.flush();
                     ToastService.reset();

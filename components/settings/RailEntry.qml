@@ -58,8 +58,8 @@ Item {
     Rectangle {
         id: pane
         anchors.fill: parent
-        anchors.topMargin: 2
-        anchors.bottomMargin: 2
+        anchors.topMargin: Theme.spacingXXS
+        anchors.bottomMargin: Theme.spacingXXS
         radius: Theme.cornerRadius
         color: entry.on ? Theme.withAlpha(Theme.primary, 0.14) : tap.pressed ? Theme.withAlpha(Theme.surfaceText, 0.10) : hover.hovered ? Theme.withAlpha(Theme.surfaceText, 0.05) : "transparent"
         border.width: entry.on || entry.activeFocus ? (entry.activeFocus ? 2 : 1) : 0
@@ -78,10 +78,10 @@ Item {
 
     DIcon {
         id: icon
-        x: entry.view.compact ? (entry.width - size) / 2 : 14
+        x: entry.view.compact ? (entry.width - size) / 2 : Theme.spacingM
         anchors.verticalCenter: parent.verticalCenter
         name: entry.modelData.icon
-        size: 20
+        size: Theme.iconSizeMedium
         color: entry.on ? Theme.primary : Theme.surfaceText
     }
 
@@ -107,13 +107,13 @@ Item {
         id: count
         objectName: "railCount"
         visible: entry.view.filtering && entry.badge > 0
-        x: entry.view.compact ? icon.x + icon.width - 8 : entry.width - width - Theme.spacingS
-        y: entry.view.compact ? 4 : (entry.height - height) / 2
-        width: Math.max(18, countText.implicitWidth + 8)
-        height: 18
-        radius: 9
+        x: entry.view.compact ? icon.x + icon.width - Theme.spacingS : entry.width - width - Theme.spacingS
+        y: entry.view.compact ? Theme.spacingXS : (entry.height - height) / 2
+        width: Math.max(height, countText.implicitWidth + Theme.spacingS)
+        height: Theme.iconSizeSmall + Theme.spacingXXS
+        radius: Theme.cornerRadiusFull
         color: Theme.primary
-        border.width: entry.view.compact ? 2 : 0
+        border.width: entry.view.compact ? Theme.spacingXXS : 0
         border.color: Theme.surface
         StyledText {
             id: countText
@@ -136,10 +136,10 @@ Item {
         x: entry.width + Theme.spacingXS
         anchors.verticalCenter: parent.verticalCenter
         width: tipText.implicitWidth + Theme.spacingS * 2
-        height: 28
-        radius: 8
+        height: Theme.buttonHeightXXS
+        radius: Theme.cornerRadiusS
         color: Theme.surfaceContainerHigh
-        border.width: 1
+        border.width: Theme.outlineWidth
         border.color: Theme.outline
         StyledText {
             id: tipText

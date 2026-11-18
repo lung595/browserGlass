@@ -80,7 +80,7 @@ CategoryPage {
                     anchors.fill: parent
                     anchors.margins: Theme.spacingS
                     text: page.settings.uninstallCommand
-                    font.family: "monospace"
+                    font.family: Theme.monoFontFamily
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
                     wrapMode: Text.WrapAnywhere
@@ -128,7 +128,7 @@ CategoryPage {
                     anchors.fill: parent
                     anchors.margins: Theme.spacingS
                     text: page.settings.stdinUninstallCommand
-                    font.family: "monospace"
+                    font.family: Theme.monoFontFamily
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
                     wrapMode: Text.WrapAnywhere

@@ -51,7 +51,7 @@ With **Glass web pages** off, the content file is neutral too: only the interfac
 
 ### The preferences
 
-Browser Glass keeps a marked block in each profile's `user.js`. With the default settings (**Follow DMS**, **Live control** on) and a profile that still has the browser's default add-on preferences, it reads:
+Browser Glass keeps a marked block in each profile's `user.js`. With **Follow DMS**, **Live control** turned on (it is off by default) and a profile that still has the browser's default add-on preferences, it reads:
 
 ```js
 // >>> browserGlass v1 managed block (generated, do not edit)
@@ -192,7 +192,7 @@ You no longer need a site fix just because a site is light only.
 
 ## Live control
 
-The browser reads its style files only when it starts, so an exclusion would normally wait for a restart. **Live control** (**Settings → Plugins → Browser Glass → Live control**, on by default) removes that wait for exclusions, with a small companion add-on in each profile.
+The browser reads its style files only when it starts, so an exclusion would normally wait for a restart. **Live control** (**Settings → Plugins → Browser Glass → Live control**, off by default) removes that wait for exclusions, with a small companion add-on in each profile. The same add-on does the work on the pages described above (the sites' own dark themes, Dark pages, page layers, the bars' veil, readable text): with Live control off, the pages get only the glass of the style file. It is opt-in because it changes the browsers' add-on settings (see [The preferences](#the-preferences)); while it is off, the widget's popout and the Status page say what it would add.
 
 **How it works.**
 

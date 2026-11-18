@@ -17,7 +17,7 @@ Column {
     DIcon {
         anchors.horizontalCenter: parent.horizontalCenter
         name: "search_off"
-        size: 32
+        size: Theme.iconSizeLarge
         color: Theme.surfaceVariantText
     }
     StyledText {

@@ -194,6 +194,17 @@ Item {
                     t.check("the restart notice", root.find(root.pop, "restartNotice").visible, true);
                     t.check("names the browser to restart", root.popText("restartText"), "Restart Firefox to see the change");
                     t.check("the Zen warning is counted", [root.find(root.pop, "warningsText").visible, root.popText("warningsText")], [true, "1 warning, details in the settings"]);
+                    t.check("Live control connected: no invite", root.find(root.pop, "liveInvite").visible, false);
+                    const off = JSON.parse(root.fx.status);
+                    off.companion = {
+                        "enabled": false,
+                        "state": "off",
+                        "hosts": 0,
+                        "manifest": false
+                    };
+                    root.set("status", off);
+                    t.check("Live control off: the popout says what it adds", [root.find(root.pop, "liveInvite").visible, root.popText("liveInvite").indexOf("Turn it on in the settings") >= 0], [true, true]);
+                    root.set("status", JSON.parse(root.fx.status));
 
                     const s = root.statusWith({
                         "glass": {

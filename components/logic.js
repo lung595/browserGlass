@@ -44,7 +44,7 @@
 //   excludedSites    [{domain}] (v0 key, ListSettingWithInput) -> excluded[]
 //   disabledStyles   [name] (or [{name}]) -> disabledStyles[]
 //   newTabGlass, readerOpaque, privateGlass   bool, defaults true
-//   liveControl      bool, default true (companion add-on, live exclusions)
+//   liveControl      bool, default false (companion add-on, live exclusions)
 //   darkPages        bool, default true (companion add-on darkens light pages)
 //   blur <- SettingsData.blurEnabled, isLight <- SessionData.isLightMode
 
@@ -88,7 +88,7 @@ var DEFAULTS = {
     "newTabGlass": true,
     "readerOpaque": true,
     "privateGlass": true,
-    "liveControl": true,
+    "liveControl": false,
     "darkPages": true
 };
 var SITE_THEMES = ["follow", "dark", "none"];
@@ -708,6 +708,8 @@ function isRestartToast(toast) {
 // The status line of live control (status.companion.state)
 function liveStatusText(state) {
     switch (state) {
+    case "off":
+        return "Live control: off. Pages get the basic glass only; turn it on for site dark themes, veiled bars and sharp text";
     case "connected":
         return "Live control: connected";
     case "waiting_restart":

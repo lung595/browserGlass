@@ -1616,9 +1616,10 @@ class ConstsTest(unittest.TestCase):
         self.assertEqual(bg.PREF_STARTUP_SCAN, "extensions.startupScanScopes")
 
     def test_live_control_setting(self):
-        self.assertIs(bg.SETTINGS_DEFAULTS["liveControl"], True)
+        self.assertIs(bg.SETTINGS_DEFAULTS["liveControl"], False)
         self.assertIs(bg.settings_from_json('{"liveControl": false}')["liveControl"], False)
-        self.assertIs(bg.settings_from_json('{"liveControl": "garbage"}')["liveControl"], True)
+        self.assertIs(bg.settings_from_json('{"liveControl": "garbage"}')["liveControl"], False)
+        self.assertIs(bg.settings_from_json('{"liveControl": true}')["liveControl"], True)
 
 
 if __name__ == "__main__":

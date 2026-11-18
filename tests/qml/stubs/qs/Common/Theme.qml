@@ -30,13 +30,20 @@ QtObject {
     property real fontSizeXLarge: 20
     property int fontWeightMedium: Font.Medium
     property int fontWeightBold: Font.Bold
+    property real spacingXXS: 2
     property real spacingXS: 4
     property real spacingS: 8
     property real spacingM: 12
     property real spacingL: 16
     property real spacingXL: 24
     property real cornerRadius: 12
+    property real cornerRadiusS: 8
+    property real cornerRadiusFull: 9999
+    property real buttonHeightXXS: 28
+    property real outlineWidth: 1
+    property string monoFontFamily: "monospace"
     property real iconSizeSmall: 16
+    property real iconSizeMedium: 20
     property real iconSize: 24
     property real iconSizeLarge: 32
     function withAlpha(c, a) {
