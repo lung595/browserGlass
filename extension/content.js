@@ -1900,10 +1900,10 @@ function clearPseudos(p, ours = pageColor) {
 // FILL_NODES children of `p`, painting an opaque colour near the page's
 // (pageColor) with nothing else, straight on the glass (onGlass: no
 // background of the site's own under `p`) and over nothing but its own
-// ancestors at its middle (overOwn: not a cover hiding the site's content)
-// is a strip of the page's background left over the glass (the band a
-// section draws over its top in the page's colour: Tages-Anzeiger's
-// whitecover above each story). It gets CANVAS (FILL), see-through as a
+// ancestors and the page's layers at its middle (overOwn: not a cover
+// hiding the site's content) is a strip of the page's background left
+// over the glass (the band a section draws over its top in the page's
+// colour: Tages-Anzeiger's whitecover above each story). It gets CANVAS (FILL), see-through as a
 // label on the page's layer is (label), and loses it with the page's
 // layers. So does a flat icon button there (iconButton: the arrow of
 // Heise's news ticker, over the headlines scrolling under it, an opaque
@@ -1942,8 +1942,10 @@ function iconButton(el, style) {
     && CORNERS.every((c) => !(parseFloat(style["border" + c + "Radius"]) > 0));
 }
 
-// Whether `el` lies over nothing but its own ancestors at the middle of
-// its box `r`; false when that is out of the window (read once there).
+// Whether `el` lies over nothing but its own ancestors and layers of the
+// page's background (CANVAS: a backdrop sibling in the page's colour,
+// Spiegel's band under its headlines) at the middle of its box `r`; false
+// when that is out of the window (read once there).
 function overOwn(el, r) {
   const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
   if (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight)
@@ -1954,7 +1956,7 @@ function overOwn(el, r) {
   const ancestors = new Set();
   for (let a = up(el); a; a = up(a))
     ancestors.add(a);
-  return stack.slice(n + 1).every((under) => ancestors.has(under));
+  return stack.slice(n + 1).every((under) => ancestors.has(under) || under.hasAttribute(CANVAS));
 }
 
 function unfade() {
@@ -2156,7 +2158,8 @@ function markBars() {
   for (const el of bars)
     if (el.getRootNode() !== document && el.hasAttribute(BAR))
       veil(el.getRootNode());
-  tuckBars(bars.filter((el) => el.hasAttribute(BAR)), w, h);
+  const shown = bars.filter((el) => el.hasAttribute(BAR));
+  tuckBars(shown, tuckedRows(shown, pinned), w, h);
   if (glassPage)
     for (const el of bars)
       if (el.hasAttribute(BAR))
@@ -2211,9 +2214,9 @@ function sideBar(r, w, h) {
 // MDN's) do not overlap: they stay whole.
 const TUCK_SIDES = ["--browserglass-tuck-top", "--browserglass-tuck-bottom"];
 
-function tuckBars(bars, w, h) {
+function tuckBars(bars, rows, w, h) {
   const cuts = new Map();
-  for (const low of bars) {
+  for (const low of bars.concat(rows)) {
     const r = low.getBoundingClientRect();
     const top = Math.max(r.top, 0), bottom = Math.min(r.bottom, h);
     const cut = [0, 0];
@@ -2239,6 +2242,49 @@ function tuckBars(bars, w, h) {
     cutSides(el, cut);
     el.setAttribute(TUCK, "");
   }
+}
+
+// The sticky rows that are no bar tucked under one (Ricardo's category
+// row, stuck at 74px under a 131px header, see-through): the site hid
+// them behind that bar's opaque fill, and their text now prints over the
+// bar's search field through the veil. Under OVER_LINES lines across each
+// bar, the first element held there (sticky or fixed) under the bar, not
+// its own nor one of its ancestors, is cut as a tucked bar is (tuckBars);
+// one cut already is kept while held, as clipped it is hit no more.
+function tuckedRows(bars, pinned) {
+  const rows = new Set(marked("[" + TUCK + "]").filter((el) => !el.hasAttribute(BAR) && pinned(el)));
+  for (const bar of bars) {
+    const r = bar.getBoundingClientRect();
+    for (let j = 0; j < OVER_LINES; j++)
+      for (let i = 0; i < GRID; i++) {
+        const y = Math.max(r.top + (j + 0.5) * r.height / OVER_LINES, 0);
+        let under = false;
+        for (const el of stackAt(r.left + (i + 0.5) * r.width / GRID, y)) {
+          if (el === document.documentElement || el === document.body || (under && holds(el, bar)))
+            break;
+          if (holds(bar, el)) {
+            under = true;
+            continue;
+          }
+          if (!under)
+            continue;
+          const row = heldRow(el, bar, pinned);
+          if (row && row.getBoundingClientRect().top >= r.top - EDGE)
+            rows.add(row);
+          break;
+        }
+      }
+  }
+  return [...rows];
+}
+
+// The element held (sticky or fixed) that `el` is in, short of the
+// ancestors of `bar`; none for a bar.
+function heldRow(el, bar, pinned) {
+  for (let e = el; e && e !== document.body && !holds(e, bar); e = up(e))
+    if (pinned(e))
+      return e.hasAttribute(BAR) ? null : e;
+  return null;
 }
 
 // Whether bar `a` (box `ra`) is drawn over bar `b` (box `rb`) where they
@@ -3623,6 +3669,7 @@ function markInk() {
   if (off !== false) {
     for (const el of marked("[" + INK + "], [" + TILE + "], [" + UNINVERT + "]")) {
       el.removeAttribute(INK), el.removeAttribute(TILE), el.removeAttribute(UNINVERT);
+      el.style.removeProperty(SOFT_INK);
       setSides(el);
     }
     for (const el of marked("[" + GLYPH + "], [" + RULE + "]"))
@@ -3651,8 +3698,10 @@ function markInk() {
   // off in turn): it is taken off with transitions held, its style
   // attribute put back once the marks are set
   const held = [];
+  softs = new Map();
   for (const el of marked("[" + INK + "]"))
     if (near(el)) {
+      el.style.removeProperty(SOFT_INK);
       held.push([el, el.getAttribute("style")]);
       el.style.setProperty("transition", "none", "important");
       el.removeAttribute(INK);
@@ -3675,6 +3724,8 @@ function markInk() {
     getComputedStyle(held[0][0]).color;
   for (const [el, style] of held)
     style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
+  for (const [el, color] of softs)
+    el.style.setProperty(SOFT_INK, color);
   markTiles(near);
   markUninverted(near);
   markGlyphs(near);
@@ -3698,7 +3749,37 @@ function inkText(el, style) {
   if (bg !== null && fgs.every(low) && !kept(el, fgs)) {
     inkFrom.set(el, style.color);
     el.setAttribute(INK, bg > 0.179 ? "dark" : "light");
+  } else if (bg !== null && grey && fgs.every((fg) => muddy(fg, bg)) && onGlass(el)) {
+    inkFrom.set(el, style.color);
+    softs.set(el, softInk(bg));
+    el.setAttribute(INK, "soft");
   }
+}
+
+// Secondary text in a grey (GLASS_CHROMA at most: a shop's #7a7a7a meta
+// line, a dark theme's slate caption) readable on the glass, on the tone's
+// side of it, but under SOFT_RATIO (WCAG's 4.5:1) against it gets INK
+// "soft": the grey just dark (or light) enough to reach SOFT_RATIO, in
+// SOFT_INK inline, still greyer than the text inked to the tone. A
+// colour of its own (a link, a price, a red timer) keeps its colour.
+const SOFT_RATIO = 4.5;
+const SOFT_MARGIN = 0.1;
+const SOFT_INK = "--browserglass-soft-ink";
+let softs = new Map();
+
+function muddy(fg, bg) {
+  return (bg > 0.179 ? fg < bg : fg > bg) && contrast(fg, bg) < SOFT_RATIO;
+}
+
+// The grey reading SOFT_RATIO (and SOFT_MARGIN) against `bg`, rounded away
+// from it.
+function softInk(bg) {
+  const ratio = SOFT_RATIO + SOFT_MARGIN;
+  const dark = bg > 0.179;
+  const y = dark ? (bg + 0.05) / ratio - 0.05 : ratio * (bg + 0.05) - 0.05;
+  const v = encoded(Math.min(1, Math.max(0, y))) * 255;
+  const c = dark ? Math.floor(v) : Math.ceil(v);
+  return "rgb(" + c + ", " + c + ", " + c + ")";
 }
 
 // Icon-font glyphs: an empty <i> or <span> near the window whose ::before
@@ -4028,14 +4109,16 @@ function lightInk(el) {
       || !oneTone(shown.filter((y) => contrast(y, bg) >= INK_RATIO)))
     return null;
   if (filter === "none")
-    return oneHue(raw.tints.filter((c, i) => contrast(raw.inks[i], bg) < INK_RATIO)) ? "invert" : null;
+    return oneHue(raw.tints) ? "invert" : null;
   return raw.inks.filter((y) => contrast(y, bg) < INK_RATIO).length < TILE_INK * raw.inks.length ? "plain" : null;
 }
 
-// Whether the light ink of a picture is of one colour as well as of one
-// tone: the chromas of its pixels, MONO_EDGE steps in from each end,
-// under MONO_CHROMA apart. PyPI's logo, white and yellow on its blue,
-// is a colour logo, left alone; a white word mark is inverted.
+// Whether a picture is of one colour as well as its light ink of one
+// tone: the chromas of all its pixels (its readable ink too), MONO_EDGE
+// steps in from each end, under MONO_CHROMA apart. PyPI's logo, white and
+// yellow on its blue, and The Verge's privacy toggle, a white knob on a
+// saturated blue pill, are colour logos, left alone; a white word mark is
+// inverted.
 function oneHue(tints) {
   const c = [...tints].sort((a, b) => a - b);
   return c.length <= 2 * MONO_EDGE || c[c.length - 1 - MONO_EDGE] - c[MONO_EDGE] < MONO_CHROMA;

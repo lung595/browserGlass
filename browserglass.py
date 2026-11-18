@@ -224,6 +224,8 @@ FADE_IMAGE = "--browserglass-fade"
 ATTR_FADE_PSEUDO = "data-browserglass-fade-pseudo"
 BRAND_FILL = "--browserglass-brand-fill"
 BRAND_INK = "--browserglass-brand-ink"
+# A grey text lifted to 4.5:1 on the glass (ATTR_INK "soft") in this colour, inline.
+SOFT_INK = "--browserglass-soft-ink"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1862,7 +1864,9 @@ _CONTENT_DARKEN = (
 #   surface ("dark") or the light one ("light"), its fill too (a gradient
 #   clipped to the text is drawn under that fill), without its shadow (a
 #   dark one drawn for white text on a band the glass cleared smudges the
-#   dark ink: crates.io's hero title). The add-on reads the
+#   dark ink: crates.io's hero title), or, for a grey secondary text
+#   readable but under 4.5:1 on the glass, "soft": the grey reaching 4.5:1
+#   the add-on sets in SOFT_INK. The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
 # - a picture made for a white page on a background now dark (ATTR_TILE: a
@@ -1997,6 +2001,8 @@ _CONTENT_LAYERS = (
     "  " + _INK_SELECTOR % "dark" + " {{ color: rgb({dark}) !important; -webkit-text-fill-color: currentcolor !important;"
     " text-shadow: none !important; }}\n"
     "  " + _INK_SELECTOR % "light" + " {{ color: rgb({light}) !important; -webkit-text-fill-color: currentcolor !important;"
+    " text-shadow: none !important; }}\n"
+    "  " + _INK_SELECTOR % "soft" + " {{ color: var(" + SOFT_INK + ") !important; -webkit-text-fill-color: currentcolor !important;"
     " text-shadow: none !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  [" + ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}\n"

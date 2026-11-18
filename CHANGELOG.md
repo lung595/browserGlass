@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- **A sticky row tucked under a header** (a see-through row of categories stuck under a shop's tall header, as on Ricardo) no longer shows its links through the header's veil over the search field: the part the header covers is clipped away, as for a bar tucked under a higher one.
+- **A site whose own dark theme needs one reload** (a recipe with `reload`, as on Galaxus) no longer comes up now and then as raw, unstyled HTML: the reload could cancel the first load's stylesheet requests still under way, and the browser then failed the same stylesheets of the reloaded page. On that reloaded load only, a stylesheet that fails is fetched once more.
+- **A colour icon in a bar veiled light** (under a light theme, a site's dark bar given the light veil: the blue *Your Privacy Choices* toggle in The Verge's privacy bar) is no longer inverted to a dark navy shape with a dark knob: white artwork follows the bar's dark labels only when the whole drawing is of one hue, so a white knob or tick on a saturated colour keeps its look.
+- **Grey secondary text on the glass** (a meta line in #7a7a7a, near 3.3:1 on the light glass; a slate caption on the dark glass) now reads at 4.5:1: it is lifted to the grey that just reaches it, still greyer than the main text; coloured links and prices keep their colour.
+- **A strip in the page's colour over a backdrop of that colour** (an empty band a section lays over its own full backdrop, both in the page's colour) no longer stays as an opaque black or cream band once the card over it turns see-through: a strip lying over the page's layers (not only its own ancestors) is cleared like the others.
+
 ## [1.4.0] - 2026-11-17
 
 ### Added

@@ -1790,6 +1790,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -1912,6 +1913,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2015,6 +2017,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2148,6 +2151,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2262,6 +2266,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2395,6 +2400,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2514,6 +2520,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2631,6 +2638,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2729,6 +2737,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2857,6 +2866,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -2966,6 +2976,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3094,6 +3105,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3223,6 +3235,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3346,6 +3359,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3450,6 +3464,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3584,6 +3599,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3699,6 +3715,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3833,6 +3850,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -3953,6 +3971,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -4071,6 +4090,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -4170,6 +4190,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -4299,6 +4320,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -4409,6 +4431,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }
@@ -4538,6 +4561,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-brand~="clear"]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-canvas]:where(&,& *) { background-color: transparent !important; }
   [data-browserglass-under]:not(:focus-within):where(&,& *) { opacity: 0 !important; }
   [data-browserglass-seam]:where(&,& *) { border-color: transparent !important; }

@@ -70,6 +70,10 @@ localStorage). Checked:
     system), light when absent. A first visit is created "1" (dark, no
     Dark Reader) and removed under a light theme; a stored "2" is written
     "1" and put back; "0" (dark under a dark system) is left alone.
+  - a recipe reload while the first load's stylesheet (preloaded, on
+    another host, cacheable) is still in flight (its request held 1.5 s):
+    the reloaded page ends up styled (the failed sheet fetched once more)
+    and the one-shot reload flag is gone.
 """
 
 import json
@@ -78,6 +82,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -246,6 +251,33 @@ CREATE_RECIPE = {"store": "local", "key": "theme", "op": "set", "from": [None, "
                  "verified": "2026-11-15", "note": "test fixture"}
 
 
+# The reload of a cookie recipe cancels the first load's stylesheet request
+# still in flight; Gecko can hand that cancel to the same sheet of the new
+# page (preloaded, on another host, cacheable), which fails empty. Chrome
+# side, the first request for s.css is suspended 1.5 s, so the cancel lands
+# late, as on Galaxus while the connection to its static host opens.
+HEAL_PAGE = ("<!doctype html><html><head><meta charset='utf-8'>"
+             "<link rel='preload' href='CSSURL' as='style'><link rel='stylesheet' href='CSSURL'>"
+             "</head><body><p id='x'>" + "Some readable text. " * 40 + "</p></body></html>")
+HEAL_CSS = b"#x { color: rgb(201, 202, 203); } body { background: rgb(4, 5, 6); }"
+HEAL_SUSPEND = r"""
+if (window.__bgSuspObs) Services.obs.removeObserver(window.__bgSuspObs, 'http-on-modify-request');
+let armed = true;
+window.__bgSuspObs = {observe(subject) {
+  const ch = subject.QueryInterface(Ci.nsIHttpChannel);
+  if (!armed || !/\/s\.css$/.test(ch.URI.spec)) return;
+  armed = false;
+  ch.suspend();
+  setTimeout(() => { try { ch.resume(); } catch (e) {} }, 1500);
+}};
+Services.obs.addObserver(window.__bgSuspObs, 'http-on-modify-request');
+return true;"""
+HEAL_UNSUSPEND = r"""
+if (window.__bgSuspObs) Services.obs.removeObserver(window.__bgSuspObs, 'http-on-modify-request');
+window.__bgSuspObs = null;
+return true;"""
+
+
 class Server:
     """Pages of the cases; /c.html and /g.html render their theme from the
     "mode" and ".shade" cookies (counted per load); /hide.html sets
@@ -333,6 +365,57 @@ class ThemeE2E(unittest.TestCase):
         for name, binary in tone.browsers():
             with self.subTest(browser=name):
                 self.check(binary)
+
+    def test_reload_heals_sheets(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_heal(binary)
+
+    def check_heal(self, binary):
+        """A recipe reload while the first load's stylesheet (preloaded,
+        another host, cacheable) is still in flight: the reloaded page ends
+        up styled, the sheet fetched once more if it failed."""
+        css = []
+
+        def delay(path, headers):
+            if path == "/s.css":
+                css.append(headers.get("Cookie"))
+            return 0
+
+        root = tempfile.mkdtemp(prefix="bg-e2e-heal-")
+        self.addCleanup(shutil.rmtree, root, True)
+        ext = test_extension(root)
+        hosts = ["heal%d.test" % i for i in range(3)]
+        prefs = tone.browser_prefs()
+        prefs.update(mn.test_host_prefs(hosts + ["feed.test", "cdn.test"]))
+        self.n = 0
+        with mn.TestServer({"/s.css": ("text/css", HEAL_CSS), "/feed.html": ("text/html", b"<p>feed</p>")},
+                           cacheable=True, delay=delay) as srv, \
+                mn.Browser(prefs=prefs, firefox=binary) as b:
+            srv.routes["/p.html"] = ("text/html; charset=utf-8", HEAL_PAGE.replace(
+                "CSSURL", "http://cdn.test:%d/s.css" % srv.port).encode("utf-8"))
+            b.send("Addon:Install", {"path": ext, "temporary": True})
+            tone.set_scheme(b, True)
+            self.load(b, srv.url("/feed.html", "feed.test"))
+            self.feed(b, sites={h: [SHADE_RECIPE] for h in hosts})
+            # a fresh host (no cookie, no reload flag) and a fresh sheet URL
+            # host per run: the flake is not every time without the retry
+            for i, host in enumerate(hosts):
+                b.navigate("about:blank")
+                del css[:]
+                b.chrome_js(HEAL_SUSPEND)
+                b.navigate(srv.url("/p.html", host))
+                time.sleep(3)
+                r = b.js("return {color: getComputedStyle(document.getElementById('x')).color,"
+                         " cookie: document.cookie, ready: document.readyState,"
+                         " flag: sessionStorage.getItem('browserGlass.reloading'),"
+                         " rec: localStorage.getItem('browserGlass.theme'), nav: performance.getEntriesByType('navigation')[0].type,"
+                         " mark: document.documentElement.getAttribute('data-browserglass-theme')};")
+                r["css"] = len(css)
+                self.assertEqual(r["color"], "rgb(201, 202, 203)", r)
+                self.assertIn(".shade=dark", r["cookie"], r)
+                self.assertIsNone(r["flag"], r)
+                b.chrome_js(HEAL_UNSUSPEND)
 
     # ---- helpers ------------------------------------------------------------
 

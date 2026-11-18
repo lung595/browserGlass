@@ -43,7 +43,7 @@ host with recipes skips the generic rule). Each recipe:
 | `from` | The values meaning light. `null` stands for "absent" (`set` only): the key is then created. Never `to` itself. `swap` takes exactly one non-empty string. |
 | `to` | The dark value (at most 64 characters, no control character; a cookie value also no `;` or `,`). A `localStorage` value may be JSON: `"{\"theme\":\"default\"}"`. |
 | `path`, `domain` | Cookies only. `path` starts with `/` (default `/`); `domain`, when given, is the host or a parent of it (no `domain`: a host-only cookie). |
-| `reload` | Cookies only, `true` when the server draws the theme from the cookie: the page is reloaded once, at `document_start`, after the first write. |
+| `reload` | Cookies only, `true` when the server draws the theme from the cookie: the page is reloaded once, at `document_start`, after the first write (on the reloaded load, a stylesheet that fails is fetched once more). |
 | `skipIfCookie` | A cookie whose presence means a signed-in account (whose theme comes from the server): no write. |
 | `verified` | The date (`YYYY-MM-DD`) the recipe was last checked on the real site. |
 | `note` | What the site does, in a few words. |

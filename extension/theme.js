@@ -31,12 +31,19 @@
 // already dark without a record is the user's own choice: left alone.
 // This file runs synchronously and does nothing else: no timer, no
 // observer, no message; everything is guarded (localStorage can throw).
+// One exception, on the reloaded load only: a capture listener for the
+// "error" of a stylesheet <link>, fetched once more (the reload cancels
+// the first load's requests still in flight, and Gecko can hand that
+// cancel to the same sheet of the new page, which then stays empty).
 // Function and var declarations only, so that it can be loaded twice.
 "use strict";
 
 var THEME_RECORD = "browserGlass.theme";
 var THEME_MARK = "data-browserglass-theme";
 var THEME_RELOADED = "browserGlass.reloaded";
+// One-shot: set just before the reload, removed by the reloaded load.
+var THEME_RELOADING = "browserGlass.reloading";
+var THEME_RETRIED = "data-browserglass-retried";
 var THEME_COOKIE_AGE = 31536000;
 // This load: whether an early run wrote or kept a value (only then is a
 // light page a failed write), and the rev of the recipes it used.
@@ -205,9 +212,35 @@ function themeMark(value) {
     root.removeAttribute(THEME_MARK);
 }
 
+// The load after our reload: a stylesheet that fails is fetched again,
+// once (a fresh <link>, the failed one removed).
+function themeHealSheets() {
+  try {
+    if (sessionStorage.getItem(THEME_RELOADING) !== "1")
+      return;
+    sessionStorage.removeItem(THEME_RELOADING);
+    document.addEventListener("error", themeRetrySheet, true);
+  } catch (e) {}
+}
+
+function themeRetrySheet(e) {
+  try {
+    var link = e.target;
+    if (!link || link.localName !== "link" || link.hasAttribute(THEME_RETRIED)
+        || !/(^|\s)stylesheet(\s|$)/i.test(link.rel || ""))
+      return;
+    var copy = link.cloneNode(false);
+    copy.setAttribute(THEME_RETRIED, "1");
+    link.after(copy);
+    link.remove();
+  } catch (err) {}
+}
+
 // One run: writes (dark) or restores (anything else). `early`: called at
 // document_start, before the page's scripts.
 function themeRun(cfg, early) {
+  if (early)
+    themeHealSheets();
   try {
     var themes = (cfg && cfg.themes) || {};
     var rev = typeof themes.rev === "string" && themes.rev ? themes.rev : "-";
@@ -302,8 +335,12 @@ function themeRun(cfg, early) {
       } catch (e) {
         again = true;
       }
-      if (!again)
+      if (!again) {
+        try {
+          sessionStorage.setItem(THEME_RELOADING, "1");
+        } catch (e) {}
         location.replace(location.href);
+      }
     }
   } catch (e) {}
 }

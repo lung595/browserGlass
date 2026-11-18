@@ -110,6 +110,10 @@ test_e2e_darken.py. Checked:
     masthead at load, slid up under it once scrolled (BBC's sections),
     shows nothing of its covered part through the masthead's veil, its
     part below the masthead shown, and is whole again back in its place;
+  - a tucked row (test_tucked_row): a see-through sticky row that is no
+    bar, stuck under a tall header's lower part once scrolled (Ricardo's
+    categories), shows nothing through the header's veil, whole again
+    back in the flow below it;
   - a light page for a white one (test_light_glass): a strip along its
     top in a grey near the page's white is glass, a list's fade into the
     white (an empty ::after) paints nothing, under a dark theme too on a
@@ -513,6 +517,20 @@ html, body {background:transparent}
 </style></head><body><header id="mast"></header>
 <nav id="row"><a class="chip" id="hid" href="#"></a><a class="chip" id="shown" href="#"></a></nav>
 <div id="long">""" + dk.TEXT * 30 + """</div></body></html>"""
+# A sticky row that is no bar tucked under a sticky header (Ricardo's
+# category row, top 74px under a 131px header, see-through): in the flow
+# below the header at load, it sticks under the header's lower half once
+# scrolled, as the site hides it behind the header's opaque fill. A red
+# chip in it must not show through the header's veil.
+TUCK_ROW_PAGE = STYLE + """
+html, body {background:transparent}
+#head {position:sticky; top:0; z-index:3; height:131px; background:rgb(34,33,29)}
+#cats {position:sticky; top:74px; z-index:2; height:40px}
+#cat {position:absolute; left:20px; top:10px; width:200px; height:20px; background:rgb(255,0,0)}
+#long {height:auto}
+</style></head><body><header id="head"><a href="#">Shop</a></header>
+<div id="cats"><a id="cat" href="#"></a></div>
+<div id="long">""" + dk.TEXT * 30 + """</div></body></html>"""
 # The reddest pixel (red over green) of a rect
 # of the page as shown (drawn in the chrome).
 REDDEST = """
@@ -646,7 +664,8 @@ html, body {background:transparent}
 # list fading out at its foot into the page's white by an empty ::after,
 # another into blue; a breadcrumb in Tailwind's gray-400 straight on the
 # page, and one in a slate grey tinted blue (Docker's docs), the same grey
-# on a white card of its own.
+# on a white card of its own; a shop's meta line in #7a7a7a (ricardo.ch:
+# 4.3:1 on white, near 3.3:1 on the light glass).
 LIGHT_GLASS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {margin:0; background:transparent; color:rgb(20,20,20)}
 #page {background:rgb(255,255,255); min-height:300vh}
@@ -657,11 +676,12 @@ html, body {margin:0; background:transparent; color:rgb(20,20,20)}
 #blue::after {background-image:linear-gradient(rgba(20,95,228,0), rgb(20,95,228))}
 #crumb, #cardgrey {color:rgb(156,163,175)}
 #orange {color:rgb(255,102,0)}
+#meta {color:rgb(122,122,122)}
 #slate {color:rgb(139,153,178)}
 #card {width:30vw; height:100px; background:rgb(255,255,255); border:1px solid rgb(220,220,220)}
 </style></head><body><div id="page"><div id="strip"><a href="#">Help</a> Free delivery</div>
 <p><a href="#">Home</a> / <span id="crumb">Get started</span> <span id="orange">Home page</span>
-<span id="slate">Docker Desktop</span></p>
+<span id="slate">Docker Desktop</span> <span id="meta">3 bids, ends in 2 days</span></p>
 <div id="list">""" + "<p>16:05 A news item in the flash list</p>" * 6 + """</div>
 <div id="blue">""" + "<p>A teaser fading into blue</p>" * 6 + """</div>
 <div id="card"><p><span id="cardgrey">On its own card</span></p></div></div></body></html>"""
@@ -683,7 +703,10 @@ DARK_FADE_PAGE = (LIGHT_GLASS_PAGE.replace("color:rgb(20,20,20)", "color:rgb(235
 # an empty div across its top in that colour (#strip, its whitecover), and
 # a red card with a strip in the page's colour down its left edge, which
 # stays, as do an empty div in that colour on the card (#cardstrip) and
-# one laid over a red box to hide it (#cover). In the page's colours
+# one laid over a red box to hide it (#cover). Above the lead, a band
+# of headlines on its own backdrop in the page's colour (a sibling) with
+# an empty strip in that colour across its top (#deckstrip, DER
+# SPIEGEL's band under its navigation), see-through. In the page's colours
 # `page` (r, g, b) and its text `text`.
 def page_pseudos_page(page, text):
     rgb = "rgb(%d,%d,%d)" % page
@@ -707,9 +730,14 @@ html, body {margin:0; background:transparent; color:%(text)s}
 #peek p {margin:0; height:40px}
 #under {height:60px; background:rgb(200,30,30); color:rgb(255,255,255)}
 #cover {position:absolute; left:0; right:0; bottom:0; height:60px; background:%(rgb)s}
+#deck {position:relative; margin-top:100px; padding-top:20px}
+#deckfull {position:absolute; inset:0; background:%(rgb)s}
+#deckstrip {position:absolute; top:0; left:0; right:0; height:10px; background:%(rgb)s}
+#deck p {position:relative; margin:0}
 </style></head><body><div id="page"><header id="top"><div id="links"><a href="#">Zurich</a>
 <a href="#">Sport</a> <a href="#">Das Magazin</a></div><div id="right"><button aria-label="More"></button></div>
-</header><section id="lead"><div id="strip"></div><h1>The lead story</h1>
+</header><div id="deck"><div id="deckfull"></div><div id="deckstrip"></div><p>The headlines</p></div>
+<section id="lead"><div id="strip"></div><h1>The lead story</h1>
 <div id="peek"><p>A caption over the box</p><div id="under">Hidden by the site</div><div id="cover"></div></div>""" % {"rgb": rgb, "rgba": "%d,%d,%d" % page, "text": text} + \
         "<p>A paragraph of the lead story.</p>" * 8 + """</section>
 <div id="card"><div id="cardstrip"></div><p>On a red card</p></div></div></body></html>"""
@@ -789,7 +817,12 @@ CARET = ('<svg id="caret" width="12" height="12" viewBox="0 0 12 12"><path d="M2
 # light veil and its links get dark ink. In it, following them: a word
 # mark painting fill="#fff" (not its text colour), a white icon, a black
 # icon the site whitens with a filter of its own; left alone: a colour
-# logo, a white icon on its own red button.
+# logo, a white icon on its own red button, and an inline toggle icon,
+# a saturated blue pill with a white knob and tick (The Verge's privacy
+# choices icon: its light ink of one hue, the drawing not).
+TOGGLE = ('<svg id="toggle" width="30" height="14" viewBox="0 0 30 14"><rect width="30" height="14" rx="7"'
+          ' fill="#0A57FA"/><rect x="17" y="2" width="11" height="10" rx="5" fill="#fff"/>'
+          '<path d="M5 7 L7 9 L11 5 L12 6 L7 11 L4 8 Z" fill="#fff"/></svg>')
 WHITE_ICON = icon_svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="white"/>')
 BLACK_ICON = icon_svg(24, 24, '<path d="M3 21 L12 3 L21 21 Z" fill="black"/>')
 COLOR_LOGO = icon_svg(48, 24, '<rect x="2" y="4" width="20" height="16" fill="rgb(220,30,30)"/>'
@@ -814,6 +847,7 @@ img {display:block}
 <a href="#" aria-label="User"><img id="whitened" width="24" height="24" src="/black.svg"></a>
 <a href="#"><img id="logo" width="48" height="24" src="/color.svg"></a>
 <a id="red" href="#"><img id="onred" width="24" height="24" src="/white.svg"></a>
+<a href="#">Your Privacy Choices """ + TOGGLE + """</a>
 </header><div id="long">""" + dk.TEXT * 20 + """</div></body></html>"""
 # A light page whose blue header in the flow and green hero a site style
 # clears (booking.com, PyPI, crates.io; HEAD_CSS): the header's white
@@ -1440,9 +1474,10 @@ class LayersE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(dk.TILED + " === 'plain';", mn.WAIT_TIMEOUT, "whitened", TILE),
                             "an icon whitened by the site's filter kept white: %r" % b.js(dk.TILED, "whitened", TILE))
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('whitened')).filter;"), "none")
-            # a colour logo and a white icon on its own red button stay
+            # a colour logo, a white icon on its own red button and a
+            # colour toggle icon stay
             b.js("return new Promise((resolve) => setTimeout(resolve, 500));")
-            for name in ("logo", "onred"):
+            for name in ("logo", "onred", "toggle"):
                 self.assertFalse(self.marked(b, name, TILE), "%s tiled: %r" % (name, b.js(dk.TILED, name, TILE)))
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('whitened')).filter;"), "none")
 
@@ -1619,6 +1654,9 @@ class LayersE2E(unittest.TestCase):
             self.assertFalse(self.marked(b, "cardgrey", INK), "a pale grey on its own white card inked")
             # an orange link (2.9:1 on the light glass) keeps its colour
             self.assertFalse(self.marked(b, "orange", INK), "an orange on the light glass inked")
+            # the shop's grey meta line, readable but under 4.5:1, lifted
+            # to 4.5:1, still greyer than the text inked dark
+            self.check_soft(b, "meta", "crumb")
 
             # the same fade on a dark page into its own colour
             tone.set_scheme(b, True)
@@ -1632,7 +1670,22 @@ class LayersE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "sect", CANVAS), "the section not glass")
             b.js("return new Promise((resolve) => setTimeout(resolve, 1000));")
             self.assertFalse(self.marked(b, "sect", bg.ATTR_OWN), "the section kept opaque for its caption")
-            self.assertFalse(self.marked(b, "credit", INK), "a slate caption on the dark glass inked")
+            # lifted to 4.5:1 instead, a grey lighter than the light ink
+            self.assertNotEqual(b.js(dk.TILED, "credit", INK), "light", "a slate caption on the dark glass inked light")
+            self.check_soft(b, "credit", None)
+
+    def check_soft(self, b, element_id, inked):
+        """`element_id`'s grey text reads 4.5:1 at least on the glass, and
+        less than `inked`'s (text inked to the tone), if given."""
+        self.assertTrue(b.wait_for(dk.TILED + " === 'soft';", mn.WAIT_TIMEOUT, element_id, INK),
+                        "a grey under 4.5:1 on the glass not lifted: %r" % b.js(dk.TILED, element_id, INK))
+        glass = b.js("return getComputedStyle(document.documentElement).getPropertyValue('--browserglass-glass').trim();")
+        color = "return getComputedStyle(document.getElementById(arguments[0])).color;"
+        ratio = tone.contrast(b.js(color, element_id), glass)
+        self.assertGreaterEqual(ratio, 4.5, "%s reads %.2f:1 on the glass" % (element_id, ratio))
+        self.assertLess(ratio, 7, "%s lifted past a secondary grey: %.2f:1" % (element_id, ratio))
+        if inked:
+            self.assertLess(ratio, tone.contrast(b.js(color, inked), glass), "the soft grey as dark as the inked text")
 
     def test_page_pseudos(self):
         for name, binary in tone.browsers():
@@ -1683,6 +1736,10 @@ class LayersE2E(unittest.TestCase):
         self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "strip", CANVAS),
                         "the lead's strip in the page's colour left opaque: %r" % self.bg_of(b, "strip"))
         self.assertEqual(self.bg_of(b, "strip"), "rgba(0, 0, 0, 0)")
+        # a strip in the page's colour over a backdrop in that colour (a
+        # sibling, a layer of the page's background): see-through too
+        self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "deckstrip", CANVAS),
+                        "the strip over the page's backdrop left opaque: %r" % self.bg_of(b, "deckstrip"))
         for name in ("cardstrip", "cover"):
             self.assertFalse(self.marked(b, name, CANVAS), name + " made see-through")
             self.assertEqual(tone.rgba(self.bg_of(b, name))[3], 1.0, name)
@@ -1940,6 +1997,35 @@ class LayersE2E(unittest.TestCase):
             b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
             self.assertGreater(b.chrome_js(REDDEST, *b.js(rect, 20, 64 + 34, 200, 20)), 150,
                                "the row stays cut once out from under the masthead")
+
+    def test_tucked_row(self):
+        for name, binary in tone.browsers():
+            with self.subTest(browser=name):
+                self.check_tucked_row(binary)
+
+    def check_tucked_row(self, binary):
+        routes = {"/row.html": ("text/html; charset=utf-8", TUCK_ROW_PAGE.encode("utf-8"))}
+        rect = "return [scrollX + arguments[0], scrollY + arguments[1], arguments[2], arguments[3]];"
+        with mn.TestServer(routes) as srv, \
+                mn.Browser(content_css=dk.stylesheet(False), prefs=tone.browser_prefs(), firefox=binary) as b:
+            tone.set_scheme(b, True)
+            b.navigate(srv.url("/row.html", "dark.test"))
+            b.js(dk.RUN, self.content_js, self.darkreader_js, [])
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "head", BAR), "the header not marked")
+            # in the flow below the header at load: whole
+            self.assertGreater(b.chrome_js(REDDEST, *b.js(rect, 20, 141, 200, 20)), 150, "the row below the header cut")
+            # stuck under the header: hidden, not printed through its veil
+            b.js("window.scrollTo(0, 600);")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
+            self.assertEqual(b.js("return document.getElementById('cats').getBoundingClientRect().top;"), 74)
+            self.assertLess(b.chrome_js(REDDEST, *b.js(rect, 20, 74, 200, 40)), 20,
+                            "the row tucked under the header shows through its veil")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "cats", bg.ATTR_TUCK), "the tucked row not cut")
+            # back at the top, below the header again: whole
+            b.js("window.scrollTo(0, 0);")
+            b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
+            self.assertGreater(b.chrome_js(REDDEST, *b.js(rect, 20, 141, 200, 20)), 150,
+                               "the row stays cut once out from under the header")
 
     def test_cards(self):
         for name, binary in tone.browsers():

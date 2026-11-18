@@ -543,7 +543,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         strips = js[js.index("function fadePseudos("):js.index("function unfade()")]
         for part in ("clearStrips(p);", "glass = onGlass(p);", "if (glass && (icon || overOwn(el, r)))",
                      "el.setAttribute(CANVAS, FILL);",
-                     "return stack.slice(n + 1).every((under) => ancestors.has(under));"):
+                     "return stack.slice(n + 1).every((under) => ancestors.has(under) || under.hasAttribute(CANVAS));"):
             self.assertIn(part, strips)
         # a flat icon button in the page's colour there too (Heise's ticker
         # arrow), over content: a control, not a cover; no round or
@@ -1036,8 +1036,9 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "return s && s.clear >= TILE_CLEAR ? {inks: s.inks, tints: s.tints} : null;",
                      '|| inColor(el))',
                      "const shown = shownInk(raw.inks, filter);",
-                     # a colour logo (PyPI's blue and yellow) is not inverted
-                     'return oneHue(raw.tints.filter((c, i) => contrast(raw.inks[i], bg) < INK_RATIO)) ? "invert" : null;',
+                     # a colour logo (PyPI's blue and yellow, a white knob on a blue
+                     # toggle: the whole drawing read) is not inverted
+                     'return oneHue(raw.tints) ? "invert" : null;',
                      "return c.length <= 2 * MONO_EDGE || c[c.length - 1 - MONO_EDGE] - c[MONO_EDGE] < MONO_CHROMA;",
                      "const FILTER_STEPS = /(invert|brightness)\\(([\\d.]+)(%?)\\)/g;"):
             self.assertIn(part, light)
