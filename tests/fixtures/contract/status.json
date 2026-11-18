@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.4.1",
   "glass": {"active": true, "reason": "active", "opacity": 0.85, "opacity_source": "dms", "surface": "#101418", "mode": "dark", "dms_opacity": 0.85},
   "niri": {"config": true, "include": true, "rule": true},
   "companion": {"enabled": true, "state": "connected", "hosts": 1, "manifest": true},

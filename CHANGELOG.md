@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-18
+
 ### Changed
 
 - **Live control is off by default**: it installs a companion add-on and turns off the add-on signature check in each browser profile, so it is now opt-in. Off, the pages get the basic glass only; the widget's popout and the Status page say what turning it on adds. Upgrading: if you never changed the setting, Live control turns off with this version; turn it back on in **Settings → Live control**.
@@ -297,7 +299,8 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/lung595/browserGlass/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/lung595/browserGlass/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/lung595/browserGlass/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/lung595/browserGlass/compare/v1.3.1...v1.3.2

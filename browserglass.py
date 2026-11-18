@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
