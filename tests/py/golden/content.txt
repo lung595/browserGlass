@@ -68,7 +68,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -93,7 +93,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -186,7 +186,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -206,7 +206,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -306,7 +306,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -332,7 +332,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -428,7 +428,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -449,7 +449,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     html, body { background: transparent !important; }
   }
@@ -1878,7 +1878,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -1976,7 +1976,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2071,7 +2071,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2091,7 +2091,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2116,7 +2116,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -2205,7 +2205,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2225,7 +2225,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2320,7 +2320,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2340,7 +2340,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2365,7 +2365,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -2454,7 +2454,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2465,7 +2465,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* a.test.css */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root[data-browserglass-live]:not([data-browserglass-off])){body:where(&,& *) { background: none !important; }}
 }
@@ -2603,7 +2603,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -2701,7 +2701,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2791,7 +2791,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2811,7 +2811,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2831,7 +2831,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -2920,7 +2920,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -2940,7 +2940,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3030,7 +3030,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3050,7 +3050,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3070,7 +3070,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -3159,7 +3159,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3170,7 +3170,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
 }
 
 /* a.test.css */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root[data-browserglass-live]:not([data-browserglass-off])){body:where(&,& *) { background: none !important; }}
 }
@@ -3324,7 +3324,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -3418,7 +3418,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3518,7 +3518,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3534,7 +3534,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3564,7 +3564,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -3653,7 +3653,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3669,7 +3669,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3769,7 +3769,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3785,7 +3785,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3815,7 +3815,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -3904,7 +3904,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -3915,7 +3915,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* a.test.css */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root[data-browserglass-live]:not([data-browserglass-off])){body:where(&,& *) { background: none !important; }}
 }
@@ -4055,7 +4055,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -4149,7 +4149,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4244,7 +4244,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4260,7 +4260,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4285,7 +4285,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -4374,7 +4374,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:example\\.org|my-site\\.net)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4390,7 +4390,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4485,7 +4485,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4501,7 +4501,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* browserGlass v1: generated file, do not edit */
 /* page backgrounds are transparent (the DMS tint is behind them); images, videos and text stay opaque */
 
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4526,7 +4526,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){body:where(&,& *) { background: none !important; }}
 }
@@ -4615,7 +4615,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* Live: the domains excluded at sync, back while the companion add-on says they are not */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$)).*") {
   @media not (prefers-color-scheme: dark) {
     :where(:root[data-browserglass-live]:not([data-browserglass-off])){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) { background: transparent !important; }}
   }
@@ -4626,7 +4626,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
 }
 
 /* a.test.css */
-@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?=(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root[data-browserglass-live]:not([data-browserglass-off])){body:where(&,& *) { background: none !important; }}
 }

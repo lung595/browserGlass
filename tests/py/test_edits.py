@@ -14,6 +14,12 @@ IMPORT = bg.V1_IMPORT_CHROME
 V0_BLOCK = bg.V0_USERJS_BLOCK_TEMPLATE.format(transparent="true", scheme="0")
 
 
+def has_import(text, import_line):
+    """True when a whole line of `text` imports what `import_line` imports."""
+    matcher = bg._import_matcher(import_line)
+    return any(matcher.fullmatch(bg._line_body(line)) for line in bg._lines(bg._split_bom(text)[1]))
+
+
 def v1_block(**over):
     settings = bg.settings_from_json("{}")
     settings.update(over)
@@ -42,7 +48,7 @@ class ImportTest(unittest.TestCase):
             for text in (line + "\na {}\n", "/* x\n y */\n" + line + "\na {}\n",
                          '@charset "x";\n@import "o.css";\n' + line + "\n"):
                 self.assertEqual(bg.ensure_import(text, IMPORT), text, line)
-                self.assertTrue(bg.has_import(text, IMPORT), line)
+                self.assertTrue(has_import(text, IMPORT), line)
         # Not ours: another file, or our name inside a comment.
         for line in ('@import "other.css";', '/* @import "dms-glass-chrome.css"; */',
                      '@import "dms-glass-chrome.css.bak";'):
@@ -69,11 +75,11 @@ class ImportTest(unittest.TestCase):
             out = bg.ensure_import(src, IMPORT)
             self.assertTrue(out.startswith("\ufeff"), repr(src))
             self.assertEqual(out.count("\ufeff"), 1, repr(src))
-            self.assertTrue(bg.has_import(out, IMPORT), repr(src))
+            self.assertTrue(has_import(out, IMPORT), repr(src))
             self.assertEqual(bg.ensure_import(out, IMPORT), out, repr(src))
             self.assertEqual(bg.strip_import(out, IMPORT), src, repr(src))
         # A BOM before our own line: recognised, stripped, BOM kept.
-        self.assertTrue(bg.has_import("\ufeff%s\nbody {}" % IMPORT, IMPORT))
+        self.assertTrue(has_import("\ufeff%s\nbody {}" % IMPORT, IMPORT))
         self.assertEqual(bg.ensure_import("\ufeff%s\nbody {}" % IMPORT, IMPORT),
                          "\ufeff%s\nbody {}" % IMPORT)
         self.assertEqual(bg.strip_import("\ufeff%s\nbody {}" % IMPORT, IMPORT), "\ufeffbody {}")
@@ -103,8 +109,8 @@ class ImportTest(unittest.TestCase):
         self.assertEqual(bg.strip_import(text, IMPORT), "/* x */\na {}\n")
         self.assertEqual(bg.strip_import("a {}\n", IMPORT), "a {}\n")
         self.assertEqual(bg.strip_import(bg.ensure_import("a {}\n", IMPORT), IMPORT), "a {}\n")
-        self.assertTrue(bg.has_import(IMPORT + "\n", IMPORT))
-        self.assertFalse(bg.has_import("", IMPORT))
+        self.assertTrue(has_import(IMPORT + "\n", IMPORT))
+        self.assertFalse(has_import("", IMPORT))
 
     def test_round_trip_with_charset(self):
         original = '@charset "UTF-8";\r\n/* user */\r\na {}\r\n'

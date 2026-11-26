@@ -1,9 +1,13 @@
 browserGlass report
 version: 1.4.1
 python: 3.12.3
+dms: 2.1.2
+browsers: firefox native 160.0, firefox snap 160.0, librewolf flatpak unknown, zen native 1.17b
 glass: active (reason active, opacity 0.85, source dms, mode dark)
 niri: config yes, include yes, rule yes
 companion: connected (hosts 1, manifest yes, profiles disabled 1, installed 1, pending_restart 1, unsupported_variant 2)
+restart needed: yes
+applied: 5 of 5 profiles
 profiles:
   firefox native: 2 (1 running, 1 restart needed)
   firefox snap: 1 (0 running, 0 restart needed)

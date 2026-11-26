@@ -4,7 +4,7 @@ default
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -18,7 +18,7 @@ default
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -38,7 +38,7 @@ default
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
@@ -52,7 +52,7 @@ default
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
@@ -66,7 +66,7 @@ default
 }
 
 /* example.com.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -80,7 +80,7 @@ html, body {
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
@@ -94,7 +94,7 @@ html, body {
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
@@ -108,7 +108,7 @@ html, body {
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
@@ -122,7 +122,7 @@ html, body {
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
@@ -136,7 +136,7 @@ html, body {
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
@@ -150,7 +150,7 @@ html, body {
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
@@ -164,7 +164,7 @@ html, body {
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
@@ -178,7 +178,7 @@ html, body {
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -192,7 +192,7 @@ html, body {
 }
 
 /* example.com.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -206,7 +206,7 @@ html, body {
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -226,7 +226,7 @@ html, body {
 }
 
 /* Other sites: generic style (example.com.css) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)\\.?(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+\\.?(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)\\.?(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -245,7 +245,7 @@ excluded
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -259,7 +259,7 @@ excluded
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -279,7 +279,7 @@ excluded
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
@@ -293,7 +293,7 @@ excluded
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
@@ -307,7 +307,7 @@ excluded
 }
 
 /* example.com.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?example\\.com\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -321,7 +321,7 @@ html, body {
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
@@ -335,7 +335,7 @@ html, body {
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
@@ -349,7 +349,7 @@ html, body {
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
@@ -363,7 +363,7 @@ html, body {
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
@@ -377,7 +377,7 @@ html, body {
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
@@ -391,7 +391,7 @@ html, body {
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
@@ -405,7 +405,7 @@ html, body {
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
@@ -419,7 +419,7 @@ html, body {
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -433,7 +433,7 @@ html, body {
 }
 
 /* example.com.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -447,7 +447,7 @@ html, body {
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -467,7 +467,7 @@ html, body {
 }
 
 /* Other sites: generic style (example.com.css) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)\\.?(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+\\.?(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)\\.?(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
 html, body {
   background: transparent !important;
@@ -486,7 +486,7 @@ disabled
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -506,7 +506,7 @@ disabled
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
@@ -520,7 +520,7 @@ disabled
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
@@ -534,7 +534,7 @@ disabled
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
@@ -548,7 +548,7 @@ disabled
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
@@ -562,7 +562,7 @@ disabled
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
@@ -576,7 +576,7 @@ disabled
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
@@ -590,7 +590,7 @@ disabled
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
@@ -604,7 +604,7 @@ disabled
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
@@ -618,7 +618,7 @@ disabled
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -643,7 +643,7 @@ generic-off
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -657,7 +657,7 @@ generic-off
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -677,7 +677,7 @@ generic-off
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
@@ -691,7 +691,7 @@ generic-off
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
@@ -705,7 +705,7 @@ generic-off
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .gist {
   background: transparent !important;
@@ -719,7 +719,7 @@ generic-off
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
@@ -733,7 +733,7 @@ generic-off
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
@@ -747,7 +747,7 @@ generic-off
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
@@ -761,7 +761,7 @@ generic-off
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
@@ -775,7 +775,7 @@ generic-off
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
@@ -789,7 +789,7 @@ generic-off
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
@@ -803,7 +803,7 @@ generic-off
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -817,7 +817,7 @@ generic-off
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -842,7 +842,7 @@ excluded-disabled-generic-off
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -856,7 +856,7 @@ excluded-disabled-generic-off
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -876,7 +876,7 @@ excluded-disabled-generic-off
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .c {
   background: transparent !important;
@@ -890,7 +890,7 @@ excluded-disabled-generic-off
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .dup {
   background: transparent !important;
@@ -904,7 +904,7 @@ excluded-disabled-generic-off
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .my-site {
   background: transparent !important;
@@ -918,7 +918,7 @@ excluded-disabled-generic-off
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .numbers {
   background: transparent !important;
@@ -932,7 +932,7 @@ excluded-disabled-generic-off
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .spaced {
   background: transparent !important;
@@ -946,7 +946,7 @@ excluded-disabled-generic-off
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .upper {
   background: transparent !important;
@@ -960,7 +960,7 @@ excluded-disabled-generic-off
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .goo {
   background: transparent !important;
@@ -974,7 +974,7 @@ excluded-disabled-generic-off
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .shop {
   background: transparent !important;
@@ -988,7 +988,7 @@ excluded-disabled-generic-off
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .a-main {
   background: transparent !important;
@@ -1002,7 +1002,7 @@ excluded-disabled-generic-off
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 .b-side {
   background: transparent !important;
@@ -1027,7 +1027,7 @@ default gated
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1041,7 +1041,7 @@ default gated
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1061,7 +1061,7 @@ default gated
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
   background: transparent !important;
@@ -1075,7 +1075,7 @@ default gated
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
   background: transparent !important;
@@ -1089,7 +1089,7 @@ default gated
 }
 
 /* example.com.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?example\\.com\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
   background: transparent !important;
@@ -1103,7 +1103,7 @@ default gated
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
   background: transparent !important;
@@ -1117,7 +1117,7 @@ default gated
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
   background: transparent !important;
@@ -1131,7 +1131,7 @@ default gated
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
   background: transparent !important;
@@ -1145,7 +1145,7 @@ default gated
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
   background: transparent !important;
@@ -1159,7 +1159,7 @@ default gated
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
   background: transparent !important;
@@ -1173,7 +1173,7 @@ default gated
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
   background: transparent !important;
@@ -1187,7 +1187,7 @@ default gated
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
   background: transparent !important;
@@ -1201,7 +1201,7 @@ default gated
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1215,7 +1215,7 @@ default gated
 }
 
 /* example.com.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
   background: transparent !important;
@@ -1229,7 +1229,7 @@ default gated
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1249,7 +1249,7 @@ default gated
 }
 
 /* Other sites: generic style (example.com.css) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)\\.?(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+\\.?(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)\\.?(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
@@ -1268,7 +1268,7 @@ excluded gated
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1282,7 +1282,7 @@ excluded gated
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1302,7 +1302,7 @@ excluded gated
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
   background: transparent !important;
@@ -1316,7 +1316,7 @@ excluded gated
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
   background: transparent !important;
@@ -1330,7 +1330,7 @@ excluded gated
 }
 
 /* example.com.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?example\\.com(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?example\\.com\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
   background: transparent !important;
@@ -1344,7 +1344,7 @@ excluded gated
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
   background: transparent !important;
@@ -1358,7 +1358,7 @@ excluded gated
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
   background: transparent !important;
@@ -1372,7 +1372,7 @@ excluded gated
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
   background: transparent !important;
@@ -1386,7 +1386,7 @@ excluded gated
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
   background: transparent !important;
@@ -1400,7 +1400,7 @@ excluded gated
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
   background: transparent !important;
@@ -1414,7 +1414,7 @@ excluded gated
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
   background: transparent !important;
@@ -1428,7 +1428,7 @@ excluded gated
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
   background: transparent !important;
@@ -1442,7 +1442,7 @@ excluded gated
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1456,7 +1456,7 @@ excluded gated
 }
 
 /* example.com.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *), body:where(&,& *) {
   background: transparent !important;
@@ -1470,7 +1470,7 @@ excluded gated
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1490,7 +1490,7 @@ excluded gated
 }
 
 /* Other sites: generic style (example.com.css) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)(?:[:/]|$)).*") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:example\\.org|my-site\\.net|www\\.b\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:imports\\.test|numbers\\.test|broken\\.test|example\\.com|gist\\.a\\.test|my-site\\.net|spaced\\.test|upper\\.test|dup\\.test|a\\.test|b\\.test|c\\.test)\\.?(?:[:/]|$)|(?:www\\.)?(?:shop\\.co|goo)\\.[^./:]+\\.?(?:[:/]|$)|(?:www\\.)?(?:www\\.generic-host\\.test|generic-host\\.test|a-mirror\\.test|b-alt\\.test)\\.?(?:[:/]|$)).*") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){html:where(&,& *):where(:not([data-browserglass-own])), body:where(&,& *):where(:not([data-browserglass-own])) {
   background: transparent !important;
@@ -1509,7 +1509,7 @@ disabled gated
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1529,7 +1529,7 @@ disabled gated
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
   background: transparent !important;
@@ -1543,7 +1543,7 @@ disabled gated
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
   background: transparent !important;
@@ -1557,7 +1557,7 @@ disabled gated
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
   background: transparent !important;
@@ -1571,7 +1571,7 @@ disabled gated
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
   background: transparent !important;
@@ -1585,7 +1585,7 @@ disabled gated
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
   background: transparent !important;
@@ -1599,7 +1599,7 @@ disabled gated
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
   background: transparent !important;
@@ -1613,7 +1613,7 @@ disabled gated
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
   background: transparent !important;
@@ -1627,7 +1627,7 @@ disabled gated
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
   background: transparent !important;
@@ -1641,7 +1641,7 @@ disabled gated
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1666,7 +1666,7 @@ generic-off gated
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1680,7 +1680,7 @@ generic-off gated
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1700,7 +1700,7 @@ generic-off gated
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
   background: transparent !important;
@@ -1714,7 +1714,7 @@ generic-off gated
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
   background: transparent !important;
@@ -1728,7 +1728,7 @@ generic-off gated
 }
 
 /* gist.a.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?gist\\.a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.gist:where(&,& *) {
   background: transparent !important;
@@ -1742,7 +1742,7 @@ generic-off gated
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
   background: transparent !important;
@@ -1756,7 +1756,7 @@ generic-off gated
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
   background: transparent !important;
@@ -1770,7 +1770,7 @@ generic-off gated
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
   background: transparent !important;
@@ -1784,7 +1784,7 @@ generic-off gated
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
   background: transparent !important;
@@ -1798,7 +1798,7 @@ generic-off gated
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
   background: transparent !important;
@@ -1812,7 +1812,7 @@ generic-off gated
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
   background: transparent !important;
@@ -1826,7 +1826,7 @@ generic-off gated
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1840,7 +1840,7 @@ generic-off gated
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1865,7 +1865,7 @@ excluded-disabled-generic-off gated
 /* Site styles: sameerasw/my-internet (MIT); generated, do not edit */
 
 /* a.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)(?:[:/]|$))(?:[^/]*\\.)?a\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?!(?:[^/]*\\.)?(?:gist\\.a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?a\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -1879,7 +1879,7 @@ excluded-disabled-generic-off gated
 }
 
 /* +b.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?b\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?b\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;
@@ -1899,7 +1899,7 @@ excluded-disabled-generic-off gated
 }
 
 /* www.c.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?c\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?c\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.c:where(&,& *) {
   background: transparent !important;
@@ -1913,7 +1913,7 @@ excluded-disabled-generic-off gated
 }
 
 /* dup.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?dup\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?dup\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.dup:where(&,& *) {
   background: transparent !important;
@@ -1927,7 +1927,7 @@ excluded-disabled-generic-off gated
 }
 
 /* my-site.net.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?my-site\\.net\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.my-site:where(&,& *) {
   background: transparent !important;
@@ -1941,7 +1941,7 @@ excluded-disabled-generic-off gated
 }
 
 /* numbers.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?numbers\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.numbers:where(&,& *) {
   background: transparent !important;
@@ -1955,7 +1955,7 @@ excluded-disabled-generic-off gated
 }
 
 /* spaced.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?spaced\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.spaced:where(&,& *) {
   background: transparent !important;
@@ -1969,7 +1969,7 @@ excluded-disabled-generic-off gated
 }
 
 /* upper.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:[^/]*\\.)?upper\\.test(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:[^/]*\\.)?upper\\.test\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.upper:where(&,& *) {
   background: transparent !important;
@@ -1983,7 +1983,7 @@ excluded-disabled-generic-off gated
 }
 
 /* -goo.test.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?goo\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.goo:where(&,& *) {
   background: transparent !important;
@@ -1997,7 +1997,7 @@ excluded-disabled-generic-off gated
 }
 
 /* -shop.co.uk.css */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?shop\\.co\\.[^./:]+\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.shop:where(&,& *) {
   background: transparent !important;
@@ -2011,7 +2011,7 @@ excluded-disabled-generic-off gated
 }
 
 /* a.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:a-mirror\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.a-main:where(&,& *) {
   background: transparent !important;
@@ -2025,7 +2025,7 @@ excluded-disabled-generic-off gated
 }
 
 /* +b.test.css (mapping) */
-@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)(?:[:/].*)?") {
+@-moz-document regexp("https?://(?!(?:[^/]*\\.)?(?:a\\.test)\\.?(?:[:/]|$))(?:www\\.)?(?:b-alt\\.test)\\.?(?:[:/].*)?") {
 @media not (prefers-color-scheme: dark) {
 :where(:root:not([data-browserglass-off]),:not(:root,* *)){.b-side:where(&,& *) {
   background: transparent !important;

@@ -531,9 +531,9 @@ class ReportTest(BlackBoxCase):
             ("zen", "native"): (1, 0, 0),
         })
         self.assertIn("zen_transparency_mod", text)
-        glass = [line for line in text.splitlines() if line.startswith(REPORT_LINES[3])]
+        glass = [line for line in text.splitlines() if line.startswith("glass: ")]
         self.assertEqual(len(glass), 1)
-        self.assertTrue(glass[0].startswith(REPORT_LINES[3] + "active"), glass[0])
+        self.assertTrue(glass[0].startswith("glass: active"), glass[0])
 
     def test_after_uninstall(self):
         self.build_home()

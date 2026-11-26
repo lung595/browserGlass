@@ -4559,7 +4559,9 @@ function ink() {
     });
 }
 
-// The layers are looked for again, once per frame at most: when the page
+// The layers are looked for again, once per INK_MS at most (each pass runs
+// hit-test grids and style reads, too much for every frame of a long
+// scroll; the last request is still served): when the page
 // scrolls (a header sticks, or turns fixed), is resized, has loaded, ends a
 // transition (a bar fading in), when the size of the document, the body,
 // one of its children or a marked element changes, and when the body gets
@@ -4571,12 +4573,17 @@ function ink() {
 // (YouTube's dark theme starts as black text), and a view may have
 // another tone. Dark Reader starting gets these passes too, which look
 // for shadow trees it left light (restyle).
-let layerFrame = 0;
+let layerFrame = 0, layersAt = -Infinity;
 
 function layers() {
   if (!layerFrame)
-    layerFrame = requestAnimationFrame(() => {
+    layerFrame = requestAnimationFrame(function tick(now) {
+      if (now - layersAt < INK_MS) {
+        layerFrame = requestAnimationFrame(tick);
+        return;
+      }
       layerFrame = 0;
+      layersAt = now;
       frameSchemes();
       markCanvas();
       markBars();

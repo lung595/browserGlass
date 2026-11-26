@@ -12,11 +12,9 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Snap Firefox in the niri rule**: add the Snap app-id (`firefox_firefox`) once it is confirmed on a real Snap install. Until then, see *Known limits*.
 - **Live checks on more installs**: Zen, Floorp and Waterfox, plus the Flatpak and Snap variants. Their profile folders come from the browsers' documentation and are tested on a fake home only.
 - **Dark Reader and local addresses**: its stylesheet fetch runs with the add-on's access, so a page that links a stylesheet on the local network or on `localhost` gets its text copied in. Refuse loopback and private targets (and redirects to them).
-- **Hosts written with a final dot** (`example.org.`): live exclusions and per-site blocks do not match them yet; the URL lookaheads should accept an optional final dot.
 - **Waterfox's own defaults for the add-on signature guard**: the guard assumes Firefox's defaults for every family; use per-family defaults once Waterfox's are confirmed in its source.
-- **Unreadable `prefs.js`**: a read error is taken as an empty file today; warn and skip the profile instead, so no original value is recorded as absent by mistake.
-- **Contract `report.txt` fixture**: regenerate it from a real run and list every line in `schema.json` (`report_lines`); describe the daemon's real triggers and its 10 s poll in CONTRIBUTING.
-- **Lighter companion script**: handle `scroll` once per frame at most and group the tone checks that follow changes on `<html>`; load Dark Reader only in the pages it darkens.
+- **Daemon triggers in CONTRIBUTING**: describe the daemon's real triggers and its 10 s poll.
+- **Lighter companion script**: group the tone checks that follow changes on `<html>`; load Dark Reader only in the pages it darkens (the layer pass a `scroll` asks for already runs once per 300 ms at most).
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Hide footers, as an option**: about 250 of the bundled my-internet styles have a *no footer* block (`footer { display: none }`, Heise's among them). The sync keeps only their transparency features, so those blocks are never applied and footers, with their legal and consent-revoke links, stay. A setting, off by default, could apply them for those who want the shorter pages.
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.

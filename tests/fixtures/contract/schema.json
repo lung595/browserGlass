@@ -175,5 +175,5 @@
     "native-host": null,
     "active-site": "active_site"
   },
-  "report_lines": ["browserGlass report", "version: ", "python: ", "glass: ", "niri: ", "companion: ", "profiles:", "settings: ", "warnings: "]
+  "report_lines": ["browserGlass report", "version: ", "python: ", "dms: ", "browsers: ", "glass: ", "niri: ", "companion: ", "restart needed: ", "applied: ", "profiles:", "settings: ", "warnings: "]
 }

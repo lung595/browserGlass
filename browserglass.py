@@ -107,7 +107,6 @@ NIRI_DIR_REL = "niri"
 NIRI_CONFIG_NAME = "config.kdl"
 NIRI_OUT_NAME = "dms-browser-glass.kdl"
 DMS_RULES_REL = "niri/dms/windowrules.kdl"   # read only, never written
-DMS_FIREFOX_CSS_REL = "dms/firefox.css"      # DMS file, never touched
 DMS_PLUGIN_SETTINGS_REL = "dms/plugin_settings.json"
 
 # DMS colors (relative to $XDG_CACHE_HOME, default ~/.cache).
@@ -514,6 +513,9 @@ TMP_PREFIX = ".browserglass-"
 TMP_SUFFIX = ".tmp"
 # Upper bound for the embedded data files (styles.json is ~1 MB today).
 DATA_READ_LIMIT = 64 * 1024 * 1024
+# prefs.js grows with the user's own prefs and is never truncated: a cap
+# that is too low would make sync skip the profile.
+PREFS_READ_LIMIT = DATA_READ_LIMIT
 # errno values that mean "we may not write here": the file is skipped with a
 # "read_only" warning instead of failing the whole sync.
 _READ_ONLY_ERRNOS = (errno.EACCES, errno.EPERM, errno.EROFS)
@@ -2160,23 +2162,29 @@ def css_rx_alt(domains):
     return "|".join(css_rx_escape(d) for d in sorted(set(domains), key=lambda d: (-len(d), d)))
 
 
+# End of a host in the URL regexps (CSS string text): an optional final dot
+# ("example.org." is the same site), then a port, a path or the end.
+_HOST_END = "\\\\.?(?:[:/]|$)"
+
+
+def _host_lookahead(domains, op):
+    domains = [d for d in domains if d]
+    if not domains:
+        return ""
+    return "(?%s(?:[^/]*\\\\.)?(?:%s)%s)" % (op, css_rx_alt(domains), _HOST_END)
+
+
 def exclusion_lookahead(excluded):
     """Negative lookahead (CSS string text) refusing `excluded` domains and
     their subdomains right after "https?://"; "" when there are none."""
-    domains = [d for d in excluded if d]
-    if not domains:
-        return ""
-    return "(?!(?:[^/]*\\\\.)?(?:%s)(?:[:/]|$))" % css_rx_alt(domains)
+    return _host_lookahead(excluded, "!")
 
 
 def inclusion_lookahead(domains):
     """Positive lookahead (CSS string text) accepting only `domains` and
     their subdomains right after "https?://" (the live section's blocks);
     "" when there are none."""
-    domains = [d for d in domains if d]
-    if not domains:
-        return ""
-    return "(?=(?:[^/]*\\\\.)?(?:%s)(?:[:/]|$))" % css_rx_alt(domains)
+    return _host_lookahead(domains, "=")
 
 
 # ---- live gating (liveControl) ----------------------------------------------
@@ -2825,17 +2833,6 @@ Sites = collections.namedtuple("Sites", "styles mapping")
 _SitesIndex = collections.namedtuple("_SitesIndex", "suffix dash mapped css")
 
 
-def _site_key_name(key):
-    """Normalised style name of a styles.json / css-mapping.json key, or None."""
-    if not isinstance(key, str):
-        return None
-    name = key.strip()
-    if name.lower().endswith(".css"):
-        name = name[:-4]
-    name = name.strip().lower()
-    return name if _SITE_NAME.fullmatch(name) else None
-
-
 # ---------------------------------------------------------------------------
 # themes: each site's own dark mode (data/themes.json)
 # ---------------------------------------------------------------------------
@@ -2990,7 +2987,7 @@ def sites_load(data_dir):
     entries = []
     untouched = set()
     for key, features in website.items():
-        name = _site_key_name(key)
+        name = normalize_style_name(key)
         if name is None or not isinstance(features, dict):
             continue
         norm = name + ".css"
@@ -3011,7 +3008,7 @@ def sites_load(data_dir):
     except (OSError, ValueError, RecursionError):
         raw = {}
     for key, targets in (raw.items() if isinstance(raw, dict) else ()):
-        name = _site_key_name(key)
+        name = normalize_style_name(key)
         if name is None or not isinstance(targets, list):
             continue
         hosts = mapping.setdefault(name + ".css", [])
@@ -3032,7 +3029,7 @@ def _sites_own(data_dir):
         return []
     out = []
     for name in names:
-        key = _site_key_name(name) if name.endswith(".css") else None
+        key = normalize_style_name(name) if name.endswith(".css") else None
         if key is None or key + ".css" != name:
             continue
         try:
@@ -3177,7 +3174,7 @@ def _sites_block_rows(sites, excluded=(), disabled=(), generic=True, problems=No
             if problems is not None:
                 problems.extend("%s: %s" % (key, error) for error in errors)
     neg_excl = exclusion_lookahead(excluded)
-    end = "(?:[:/].*)?"
+    end = "\\\\.?(?:[:/].*)?"
     any_sub = "(?:[^/]*\\\\.)?"
     www = "(?:www\\\\.)?"
     out = []
@@ -3191,7 +3188,7 @@ def _sites_block_rows(sites, excluded=(), disabled=(), generic=True, problems=No
             continue
         neg = ""
         if deeper.get(domain):
-            neg = "(?!%s(?:%s)(?:[:/]|$))" % (any_sub, css_rx_alt(deeper[domain]))
+            neg = "(?!%s(?:%s)%s)" % (any_sub, css_rx_alt(deeper[domain]), _HOST_END)
         block(key, "%s%s%s%s%s" % (neg_excl, neg, any_sub, css_rx_escape(domain), end),
               index.css[key], lambda host, d=domain: host == d or host.endswith("." + d))
     for base, key in sorted(index.dash.items()):
@@ -3209,12 +3206,12 @@ def _sites_block_rows(sites, excluded=(), disabled=(), generic=True, problems=No
     if generic and SITES_GENERIC_KEY in index.css and SITES_GENERIC_KEY not in skip:
         known = []
         if index.suffix:
-            known.append("%s(?:%s)(?:[:/]|$)" % (any_sub, css_rx_alt(index.suffix)))
+            known.append("%s(?:%s)%s" % (any_sub, css_rx_alt(index.suffix), _HOST_END))
         if index.dash:
-            known.append("%s(?:%s)\\\\.[^./:]+(?:[:/]|$)" % (www, css_rx_alt(index.dash)))
+            known.append("%s(?:%s)\\\\.[^./:]+%s" % (www, css_rx_alt(index.dash), _HOST_END))
         hosts = [h for _, mapped_hosts in index.mapped for h in mapped_hosts]
         if hosts:
-            known.append("%s(?:%s)(?:[:/]|$)" % (www, css_rx_alt(hosts)))
+            known.append("%s(?:%s)%s" % (www, css_rx_alt(hosts), _HOST_END))
         lookahead = "(?!%s)" % "|".join(known) if known else ""
         out.append((SITES_GENERIC_COMMENT, "%s%s.*" % (neg_excl, lookahead),
                     index.css[SITES_GENERIC_KEY], lambda host: True))
@@ -4139,12 +4136,6 @@ def _split_bom(text):
 # other @import and @layer statements (CSS Cascade 5).
 _CSS_PRELUDE = re.compile(
     r"(?:\s+|/\*[\s\S]*?\*/|@(?:charset|import|layer)\b[^;{}]*;)*", re.I)
-
-
-def has_import(text, import_line):
-    """True when a whole line of `text` imports what `import_line` imports."""
-    matcher = _import_matcher(import_line)
-    return any(matcher.fullmatch(_line_body(line)) for line in _lines(_split_bom(text)[1]))
 
 
 def _import_in_place(text, matcher):
@@ -5406,6 +5397,9 @@ def state_lock(folder, env=None, default_timeout=DEFAULT_LOCK_TIMEOUT):
             fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
         except FileNotFoundError:
             make_dirs_tracked(folder)
+            if not os.path.isdir(folder):
+                # A dangling symlink (or a file) in the way: mkdir can never succeed.
+                raise FileNotFoundError(errno.ENOENT, "state folder cannot be created", folder)
             continue
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -5851,10 +5845,10 @@ def apply_ours(name, text, block):
     return ensure_import(text, _FILE_IMPORT[name])
 
 
-def read_optional(path):
-    """read_text(path), or None when the file does not exist. Raises OSError."""
+def read_optional(path, limit=READ_LIMIT):
+    """read_text(path, limit), or None when the file does not exist. Raises OSError."""
     try:
-        return read_text(path)
+        return read_text(path, limit)
     except FileNotFoundError:
         return None
 
@@ -6098,7 +6092,7 @@ def prefs_apply(profile, plan, warnings=None, family=None, pid=None):
     """Apply `plan` to `profile`/prefs.js (never created, never deleted).
     Returns True when the file changed. Raises OSError."""
     path = os.path.join(profile, PREFS_JS)
-    text = read_optional(path)
+    text = read_optional(path, PREFS_READ_LIMIT)
     if text is None or not plan:
         return False
     new = prefs_restore(text, plan)
@@ -6717,9 +6711,13 @@ def _sync_profile(ctx, profile):
     record = state["profiles"].get(pid)
     fresh = record is None
     try:
-        prefs_text = read_optional(os.path.join(path, PREFS_JS))
-    except (OSError, ValueError):
-        prefs_text = None
+        prefs_text = read_optional(os.path.join(path, PREFS_JS), PREFS_READ_LIMIT)
+    except (OSError, ValueError) as exc:
+        # Never record "all absent" for a file we could not read: uninstall
+        # would delete the user's own values.
+        warnings.append(make_warning(WARN_READ_FAILED, "profile skipped, prefs.js could not be read: %s"
+                                     % _oserror_text(exc), family, pid))
+        return False
     if fresh:
         record = {
             "path": path, "family": family, "variant": profile.variant,
@@ -7728,7 +7726,7 @@ def _uninstall_plan(ctx, pid, path, record, traces, userjs_text):
         # it was stripped): its values in prefs.js are ours, the companion
         # prefs and content-override 2 included (the v0 rule misses them).
         try:
-            text = read_optional(os.path.join(path, PREFS_JS)) or ""
+            text = read_optional(os.path.join(path, PREFS_JS), PREFS_READ_LIMIT) or ""
         except (OSError, ValueError):
             text = ""
         plan = prefs_plan_lost(text, ours)
@@ -7778,7 +7776,7 @@ def companion_residues_in(path):
     """The prefs.js text of the profile `path` when it holds a record of
     the companion add-on (companion_residues), else None (unreadable too)."""
     try:
-        text = read_optional(os.path.join(path, PREFS_JS))
+        text = read_optional(os.path.join(path, PREFS_JS), PREFS_READ_LIMIT)
     except (OSError, ValueError):
         return None
     return text if text is not None and companion_residues(text)[0] != text else None
@@ -7829,7 +7827,7 @@ def _clean_prefs_now(path, plan, warnings=None, family=None, pid=None):
     """Apply `plan` (None: the v0 rule, decided on the current file) to the
     prefs.js of a free profile. Returns (changed, done). Raises OSError."""
     prefs_path = os.path.join(path, PREFS_JS)
-    text = read_optional(prefs_path)
+    text = read_optional(prefs_path, PREFS_READ_LIMIT)
     if text is None:
         return False, True
     if plan is None:

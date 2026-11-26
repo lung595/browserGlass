@@ -18,8 +18,8 @@ import "keeper.js" as Keeper
 // replaces the folder, so the script first waits a grace period
 // ($BG_SWEEP_GRACE, 4 s) and does nothing (EXIT_KEPT) if plugin.json is back.
 // components/keeper.js starts that process so that it outlives the plugin,
-// and, once it exits, drops the plugin's plugin_settings.json entry (unless
-// it was kept) and shows the toast.
+// and, once it exits, drops the plugin's plugin_settings.json entry (only
+// when the uninstall succeeded) and shows the toast.
 // At rest this costs one string: no timer, no process.
 Item {
     id: sweep

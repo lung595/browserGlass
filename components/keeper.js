@@ -55,8 +55,10 @@ function spawnWithStdin(command, text, onExit) {
 
 // What the sweep does once its uninstaller exited. Logic.EXIT_KEPT:
 // plugin.json came back during the grace period (an update, a reinstall),
-// nothing changes. Otherwise the plugin is gone: its plugin_settings.json
-// entry is dropped and a toast tells how the uninstall went.
+// nothing changes. Otherwise the plugin is gone and a toast tells how the
+// uninstall went. Its plugin_settings.json entry is dropped only once the
+// uninstall succeeded: after a failure (a busy state lock...) the browsers
+// are still glassed, and a reinstall needs those settings to restore them.
 //   after: {settings: SettingsData, toasts: ToastService, pluginId,
 //           doneText, failedText (already translated)}
 // plugin_settings.json: DMS keeps a removed plugin's entry, and writes its
@@ -65,7 +67,7 @@ function spawnWithStdin(command, text, onExit) {
 function afterSweep(exitCode, after) {
     if (exitCode === Logic.EXIT_KEPT || !after)
         return "kept";
-    var settings = after.settings;
+    var settings = exitCode === 0 ? after.settings : null;
     var next = settings ? Logic.withoutPlugin(settings.pluginSettings, after.pluginId) : null;
     if (next !== null) {
         settings.pluginSettings = next;

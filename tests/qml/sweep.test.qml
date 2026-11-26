@@ -178,7 +178,12 @@ Item {
             {
                 "wait": 50,
                 "run": () => {
-                    t.check("failed: the entry is dropped all the same", SettingsData.pluginSettings.browserGlass, undefined);
+                    // Nothing was restored: the entry stays for a reinstall to pick up
+                    t.check("failed: the settings entry stays", SettingsData.pluginSettings.browserGlass, {
+                        "enabled": true,
+                        "opacity": 70
+                    });
+                    t.check("failed: nothing written", SettingsData.pluginSettingsWrites.length, 0);
                     t.check("one error toast with the exit code", ToastService.log.map(x => [x.level, x.message, x.details]), [["error", "Browser Glass removed, but restoring the browsers failed", "exit code 1"]]);
                     t.check("the keeper lets go", Keeper.count(), 0);
 

@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- **A site opened with a final dot** (`https://example.org./`) is now treated as the same site: exclusions, per-site styles and live blocks apply to it, and the generic style no longer applies there as well.
+- **An unreadable `prefs.js`** no longer leads uninstall to delete your own preference values: sync skips that profile with a `read_failed` warning instead of recording every original as absent. A large `prefs.js` (over 4 MiB) is now read normally.
+- **Sync and uninstall no longer hang** when the state folder is a dangling symlink (for example to an unmounted disk): they report the state folder as unusable.
+- **Uninstall**: when deleting the plugin folder fails to restore the browsers (for example while a sync is running), the plugin's settings are kept, so a reinstall can restore them.
+- **Long scrolls are lighter on the companion add-on**: the page layers (bars, glass layers, fills) are looked for again at most once every 300 ms while a page or one of its panes scrolls, instead of on every frame; the last position is still checked once the scroll stops.
+
 ## [1.4.1] - 2026-11-18
 
 ### Changed

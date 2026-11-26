@@ -37,6 +37,8 @@ Documented differences with v0 (normalised away by v0_normalize()):
   8. browserGlass's own site css (data/sites/) ends its style's blocks.
   9. The generic style loses its "background: none" line: background images
      (a photo behind a <section>) stay, background colours still go.
+  10. A host may end with a final dot ("example.org." is the same site):
+      every host end accepts an optional "\\.".
 
 Exclusions keep "www." as entered, like v0: "www.x" refuses www.x and its
 subdomains, not x (the parity golden uses such an exclusion).
@@ -122,6 +124,7 @@ def v0_normalize(css):
     css = css.replace("/* bestbuy.com .css */", "/* bestbuy.com.css */")
     css = css.replace("bestbuy\\\\.com\\\\ ", "bestbuy\\\\.com")
     css = css.replace("|-cifraclub\\\\.com\\\\.br", "").replace("-cifraclub\\\\.com\\\\.br|", "")
+    css = css.replace("(?:[:/]|$)", bg._HOST_END).replace("(?:[:/].*)?", "\\\\.?(?:[:/].*)?")
     # v1 ends a style's blocks with its data/sites/ file.
     for key, fix in bg._sites_own(str(DATA)):
         parts = css.split("/* %s" % key)
