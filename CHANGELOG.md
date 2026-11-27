@@ -3,7 +3,7 @@
 All notable changes to Browser Glass are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.4.2] - 2026-11-27
 
 ### Changed
 
@@ -316,7 +316,7 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
-[Unreleased]: https://github.com/lung595/browserGlass/compare/v1.4.1...HEAD
+[1.4.2]: https://github.com/lung595/browserGlass/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/lung595/browserGlass/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/lung595/browserGlass/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/lung595/browserGlass/compare/v1.3.2...v1.3.3
