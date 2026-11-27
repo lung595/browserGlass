@@ -6,11 +6,13 @@ included. Every browser here is a folder in a FakeHome.
 Run: python3 -B -m unittest discover -s tests/py -v
 """
 
+import atexit
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 import test_contract
@@ -54,6 +56,20 @@ def _without(snapshot, prefix):
     return {k: v for k, v in snapshot.items() if not (k == prefix or k.startswith(prefix + "/"))}
 
 
+_UNSIGNED = []
+
+
+def unsigned_plugin():
+    """A plugin dir holding a copy of extension/ and no companion/: the
+    repo ships a signed xpi, and these tests deposit the unsigned one."""
+    if not _UNSIGNED:
+        root = tempfile.mkdtemp(prefix="bg-unsigned-")
+        atexit.register(shutil.rmtree, root, True)
+        shutil.copytree(str(REPO / bg.EXTENSION_DIR), os.path.join(root, bg.EXTENSION_DIR))
+        _UNSIGNED.append(root)
+    return _UNSIGNED[0]
+
+
 class CompanionCase(unittest.TestCase):
 
     maxDiff = None
@@ -91,6 +107,8 @@ class CompanionCase(unittest.TestCase):
         return doc
 
     def sync(self, plugin_dir=REPO, **over):
+        if plugin_dir is REPO:
+            plugin_dir = unsigned_plugin()
         args = ["sync", "--settings", settings_json(**over)]
         if plugin_dir is not None:
             args += ["--plugin-dir", str(plugin_dir)]
@@ -160,7 +178,7 @@ class DepositTest(CompanionCase):
         self.assertEqual(manifest["path"], wrapper)
         self.assertEqual(manifest["allowed_extensions"], [bg.COMPANION_ID])
         self.assertEqual(os.stat(wrapper).st_mode & 0o777, 0o755)
-        self.assertIn(str(REPO), self.fh.read(STATE + "/" + bg.HOST_WRAPPER))
+        self.assertIn(unsigned_plugin(), self.fh.read(STATE + "/" + bg.HOST_WRAPPER))
 
         snap = self.fh.snapshot(".")
         again = self.sync()

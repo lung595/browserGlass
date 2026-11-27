@@ -1,5 +1,5 @@
 browserGlass report
-version: 1.4.1
+version: 1.4.2
 python: 3.12.3
 dms: 2.1.2
 browsers: firefox native 160.0, firefox snap 160.0, librewolf flatpak unknown, zen native 1.17b

@@ -4,7 +4,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 ## Planned
 
-- **Signed companion add-on** (next version with signing keys): have Mozilla sign the companion and ship it as `companion/browserglass@companion.xpi`, so *Live control* works on Firefox release, ESR and Beta builds, LibreWolf shows it as verified, and `xpinstall.signatures.required` is no longer written. 1.3.0 to 1.4.1 support it but ship the unsigned add-on.
+- ~~**Signed companion add-on**~~ (done in 1.4.2): Mozilla signs the companion, shipped as `companion/browserglass@companion.xpi`, so *Live control* works on Firefox release, ESR and Beta builds, LibreWolf shows it as verified, and `xpinstall.signatures.required` is no longer written.
 - **New screenshots**: a GIF of the launcher, and the *Sites* settings with the new page layers.
 - **Live control in Flatpak and Snap browsers**: through the WebExtensions portal or a path shared with the sandbox, since the helper cannot run inside it today.
 - **Live control checked on Zen, Floorp and Waterfox**: it is built for every Firefox-family browser but tested on Firefox and LibreWolf only.
@@ -15,6 +15,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 - **Waterfox's own defaults for the add-on signature guard**: the guard assumes Firefox's defaults for every family; use per-family defaults once Waterfox's are confirmed in its source.
 - **Daemon triggers in CONTRIBUTING**: describe the daemon's real triggers and its 10 s poll.
 - **Lighter companion script**: group the tone checks that follow changes on `<html>`; load Dark Reader only in the pages it darkens (the layer pass a `scroll` asks for already runs once per 300 ms at most).
+- **A steady LibreWolf end-to-end run**: `test_own_surfaces` now and then reads the page's background halfway through its fade.
 - **Light mode in the end-to-end test**: reader view and PDFs are checked in dark mode only (`tests/e2e/`).
 - **Hide footers, as an option**: about 250 of the bundled my-internet styles have a *no footer* block (`footer { display: none }`, Heise's among them). The sync keeps only their transparency features, so those blocks are never applied and footers, with their legal and consent-revoke links, stay. A setting, off by default, could apply them for those who want the shorter pages.
 - **Choose the profiles**: an option to leave some profiles of a browser without glass.
@@ -32,7 +33,7 @@ These are ideas, not promises, and they have no dates. Anything that would need 
 
 - **A manual restart is needed.** Firefox reads its CSS only when it starts. After a change (a new wallpaper, the opacity, a setting), a running browser shows the new look only after a restart. When the glass turns on, niri applies the plugin's rule at once, so a running browser stays opaque until its restart. The exceptions: the light or dark switch (with DMS's *Sync with portal* on), and site exclusions with Live control.
 - **`gs on` and `gs off` are not live**: the browser's own bars are read at start-up, so they follow at the next restart; the niri rule changes at once.
-- **Live control needs an add-on that loads unsigned** (until it is signed). Without a signed `companion/browserglass@companion.xpi` that matches `extension/` (1.3.0 to 1.4.1 ship none), Browser Glass places the unsigned companion and sets `xpinstall.signatures.required` to `false`, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*.
+- **Live control from a changed `extension/` needs an add-on that loads unsigned.** The signed `companion/browserglass@companion.xpi` (since 1.4.2) is used only while it matches `extension/`. Without a match (1.3.0 to 1.4.1 ship none, and a local change to `extension/` breaks it), Browser Glass places the unsigned companion and sets `xpinstall.signatures.required` to `false`, as in 1.2: Firefox release, ESR and Beta builds refuse it, so there the launcher's changes apply at the next restart, and LibreWolf shows it as *could not be verified*.
 - **Private windows have no live control**: the companion does not run there and their site cannot be read, so `gs blist` refuses in a private window, and a private window shows exclusion changes after a restart.
 - **Frames stay opaque**: with Live control, frames inside a page (a captcha, an embedded video or form) keep their own background; without it they follow the generic rule.
 - **Bars laid in the flow**: a web app's sidebar or header that is neither fixed nor sticky keeps its own colours (no uniform veil), since it cannot be told from a panel of the page.

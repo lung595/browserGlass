@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- **The companion add-on is signed by Mozilla.** *Live control* now works on Firefox release, ESR and Beta builds, which refuse unsigned add-ons, and LibreWolf no longer shows the add-on as *could not be verified*. Browser Glass no longer writes `xpinstall.signatures.required = false`: the value an older version wrote leaves `user.js`, and your own value goes back in `prefs.js` once the browser is closed. Restart the browser once after the update to load the signed add-on.
+
 ### Fixed
 
 - **A site opened with a final dot** (`https://example.org./`) is now treated as the same site: exclusions, per-site styles and live blocks apply to it, and the generic style no longer applies there as well.

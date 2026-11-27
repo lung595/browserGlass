@@ -39,8 +39,14 @@ class ExtensionSourcesTest(unittest.TestCase):
         plugin = json.loads((REPO / "plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(self.manifest["version"], plugin["version"])
 
+    def test_manifest_as_amo_writes_it(self):
+        # AMO rewrites manifest.json as json.dumps(indent=2), no final
+        # newline; the signed xpi must match the sources byte for byte.
+        text = read("manifest.json")
+        self.assertEqual(text, json.dumps(json.loads(text), indent=2))
+
     def test_manifest(self):
-        gecko = self.manifest["browser_specific_settings"]["gecko"]
+        gecko =self.manifest["browser_specific_settings"]["gecko"]
         self.assertEqual(gecko["id"], bg.COMPANION_ID)
         # CSS nesting, which the gated stylesheets need, came with Firefox 117.
         self.assertEqual(gecko["strict_min_version"], "117.0")

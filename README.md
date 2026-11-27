@@ -202,7 +202,7 @@ Open **Settings → Plugins → Browser Glass**. A search field sits on top, the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| **Live control** | Off | Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. To load it, Browser Glass sets `xpinstall.signatures.required` to `false` and lets add-ons placed in the profile folder load without a prompt. Firefox release builds refuse unsigned add-ons: there, changes apply at the next restart. A signed add-on, which they accept, is planned for a later version. Uninstalling Browser Glass removes the add-on and puts these settings back. Off, the pages get the basic glass only: the sites' own dark themes, Dark pages, the bars' veil and the text kept readable all need the add-on. It is off until you turn it on, as it changes the browsers' add-on settings; the widget's popout says what it would add while it is off |
+| **Live control** | Off | Installs Browser Glass's small companion add-on in each browser profile, so that the launcher's glass commands apply at once instead of at the next browser restart. The add-on is signed by Mozilla, so every Firefox build loads it, release included; Browser Glass lets add-ons placed in the profile folder load without a prompt. Uninstalling Browser Glass removes the add-on and puts these settings back. Off, the pages get the basic glass only: the sites' own dark themes, Dark pages, the bars' veil and the text kept readable all need the add-on. It is off until you turn it on, as it changes the browsers' add-on settings; the widget's popout says what it would add while it is off |
 
 The page, like the **Status** page, has a line for it:
 
@@ -281,7 +281,7 @@ Restart the browser: Firefox reads its style files only at start-up. Close **eve
 
 The exclusion is saved, but no companion add-on could apply it at once, so the browser shows it after its next restart. The *Live control* line in **Settings → Plugins → Browser Glass → Status** tells you why:
 
-- **Firefox release, ESR and Beta builds** refuse unsigned add-ons, and the companion is not signed yet: there, changes apply at the next restart. A signed add-on, which they accept, is planned for a later version.
+- **Firefox release, ESR and Beta builds** refuse unsigned add-ons. The companion is signed since 1.4.2, but if you changed the files in `extension/`, Browser Glass places the unsigned add-on instead, which those builds refuse: there, changes apply at the next restart.
 - **You disabled the add-on** in `about:addons`: enable it again there.
 - **The first restart.** The add-on is placed in the profile while the browser runs, and the browser loads it when it starts. Restart the browser once; *waiting for a browser restart* then turns into *connected*.
 - **After a plugin update** the browser still runs the older add-on: the status says *waiting for a browser restart*, and `gs blist` answers *Restart the browser once more*. Restart it once.
@@ -293,7 +293,7 @@ The exclusion is saved, but no companion add-on could apply it at once, so the b
 <details>
 <summary><b>about:addons says the companion <i>could not be verified</i></b></summary>
 
-LibreWolf shows this for every add-on that is not signed by Mozilla, and the Browser Glass companion is not signed yet (a signed add-on is planned for a later version). It is normal and harmless: the add-on is loaded and works. Turn **Live control** off if you would rather not have it; the next sync removes the add-on. Removing it in `about:addons` also works: Browser Glass then leaves it out, and takes its preferences back.
+LibreWolf shows this for every add-on that is not signed by Mozilla. Since 1.4.2 the companion is signed, so you see this only with an older version, or when the files in `extension/` were changed and the unsigned add-on is used. It is normal and harmless: the add-on is loaded and works. Restart the browser once after updating to 1.4.2 to get the signed one. Turn **Live control** off if you would rather not have it; the next sync removes the add-on. Removing it in `about:addons` also works: Browser Glass then leaves it out, and takes its preferences back.
 </details>
 
 <details>
