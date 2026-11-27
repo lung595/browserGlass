@@ -794,6 +794,8 @@ document.getElementById("host").attachShadow({mode: "open"}).innerHTML = "<style
 SHADOW = ("const el = document.getElementById('host').shadowRoot.getElementById(arguments[0]);"
           " return arguments[1] ? el.hasAttribute(arguments[1]) : getComputedStyle(el).backgroundColor;")
 OWN_BG = "rgb(28, 40, 52)"
+ATTRS = ("return [document.getElementById(arguments[0]), document.documentElement, document.body]"
+         ".map(e => [...e.attributes].map(a => a.name + '=' + a.value).join(' '));")
 # A page measured dark while it loads (ch.ch): light text that goes, and
 # navy text on a yellow half of its own.
 YELLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
@@ -1645,7 +1647,10 @@ class DarkenE2E(unittest.TestCase):
                                        mn.WAIT_TIMEOUT, "shero", None, OWN_BG),
                             "own colour not back: %s" % b.js(SHADOW, "shero", None))
             self.assertFalse(b.js(SHADOW, "shero", CANVAS), "still glass under a light theme")
-            self.assertEqual(self.bg_of(b, "hero"), OWN_BG)
+            # the hero's colour fades back in (the generic style's transition)
+            self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('hero')).backgroundColor"
+                                       " === arguments[0];", mn.WAIT_TIMEOUT, OWN_BG),
+                            "hero colour not back: %s %r" % (self.bg_of(b, "hero"), b.js(ATTRS, "hero")))
 
     def test_mixed_tone(self):
         for name, binary in tone.browsers():

@@ -25,7 +25,9 @@
 // site (its rows in its own colour or the page's get
 // data-browserglass-canvas too, a layer behind its content holding skip
 // links data-browserglass-under, hidden, as is a backdrop drawn in a
-// canvas stretched over the page: YouTube's ambient mode). Its blur ends with VEIL, a
+// canvas stretched over the page: YouTube's ambient mode); so does a
+// layer floating over the page (a menu, a drawer, a dialog, a cookie
+// banner: markFloats). Its blur ends with VEIL, a
 // filter this script puts in the page:
 // Firefox lays the blurred backdrop over what scrolls under the bar, so
 // on the glass (a see-through page) a thin line of text, blurred into a
@@ -97,6 +99,7 @@ const BRAND = "data-browserglass-brand";
 const UNDER = "data-browserglass-under";
 const SEAM = "data-browserglass-seam";
 const TUCK = "data-browserglass-tuck";
+const FLAT = "data-browserglass-flat";
 const KEPT = "data-browserglass-own";
 const FADE = "data-browserglass-fade";
 const FADE_IMAGE = "--browserglass-fade";
@@ -585,6 +588,7 @@ const sizes = new ResizeObserver(() => {
 });
 
 function update() {
+  watchSheets();
   measure();
   darken();
   paint();
@@ -1296,6 +1300,14 @@ function large(el) {
   return r.width >= 0.9 * document.documentElement.clientWidth && r.height >= 0.6 * window.innerHeight;
 }
 
+// Whether an element's background colour is still fading (a transition
+// running: the site's own colour coming back once Dark Reader is off): a
+// colour in between, no page layer's yet; a later pass decides.
+function fading(el) {
+  return el.getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "background-color"
+    && a.playState === "running");
+}
+
 // A page column or an app's surface: as tall as most of the window
 // (COLUMN_TALL) and down to its bottom (COLUMN_GAP), though narrower, or
 // a band across the window's width, though low (a site's second menu
@@ -1485,6 +1497,8 @@ function markCanvas() {
     pageColors.add(color);
     layerColors.set(el, color);
     mark(el, CANVAS);
+    // a faint gradient over its colour (Python's content wrapper): glass too
+    fade(el, getComputedStyle(el));
   };
   // a see-through element painted by a pseudo-element of its own
   // (underPaint): a layer, that pseudo-element see-through (FILLED)
@@ -1548,7 +1562,7 @@ function markCanvas() {
         if (below.some((b) => !holds(b, el)) && pinned(el))
           break;
         const color = getComputedStyle(el).backgroundColor;
-        if (alpha(color) >= SOLID && (large(el) || column(el, color))) {
+        if (alpha(color) >= SOLID && (large(el) || column(el, color)) && !fading(el)) {
           // the other rows of its column too (pile), in view or not
           for (const row of pile(el).rows)
             if (row === el || plain(row, color))
@@ -1997,8 +2011,13 @@ function unfade() {
 // marked before the header stuck), or by a row of it in the page's
 // colour (pageRow: a shop's header stuck at the top from load, its first
 // row painted, the nav row below see-through; not a notice of a colour of
-// its own).
+// its own). A sidebar holding the site's menus (siteChrome, siteMenus:
+// YouTube's guide, a docs site's navigation) is a bar see-through too, over
+// nothing: the chrome's one veil, never bare glass beside the content.
 const EDGE = 2;
+// how far off the window's edge a sidebar may stand (the margin of a docs
+// site's page: Python's sticky navigation 16px in)
+const SIDE_GUTTER = 24;
 const BAR_MIN = 24;
 const OWN_BG = 0.5;
 // The bar's backdrop-filter refers to it (url(#VEIL)); without it, the
@@ -2069,8 +2088,10 @@ function over(bar, w, h) {
 
 function markBars() {
   const root = document.documentElement;
-  if (!root || off !== false || !document.body)
+  if (!root || off !== false || !document.body) {
+    liftHeads();
     return;
+  }
   veil(root);
   const w = root.clientWidth, h = window.innerHeight;
   // as wide as the window, or as the page column it stays in
@@ -2119,8 +2140,12 @@ function markBars() {
         break;
       if (!along(el) || !pinned(el))
         continue;
-      if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h))) {
-        barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el)]));
+      // a bar markFloats took as a layer before the bar it is stacked
+      // against was marked (Apple's nav under its locale banner): a bar
+      if (floats.delete(el))
+        rows.push(el.getBoundingClientRect());
+      if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h) || navSide(el, w, h))) {
+        barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el), ...rowColors(el)]));
         mark(el, BAR);
         rows.push(el.getBoundingClientRect());
       }
@@ -2129,16 +2154,25 @@ function markBars() {
   };
   // a marked bar shows the veil, not its own background: only its place
   // is checked again
-  const kept = marked("[" + BAR + "]");
+  const kept = marked("[" + BAR + "]").filter((el) => !floats.has(el));
   rows.push(...kept.map((el) => el.getBoundingClientRect()));
   for (const el of kept)
-    if (!pinned(el) || !along(el))
+    if (!(((pinned(el) || (heads.has(el) && headShape(el, w, h, false))) && along(el))
+        || (heads.has(el) && underHead(el, w, h)))) {
       el.removeAttribute(BAR);
+      heads.delete(el);
+    }
   rows.length = 0;
+  const covers = new Map();
+  for (let i = 0; i < GRID; i++)
+    markHead(unwalled(stackAt((i + 0.5) * w / GRID, EDGE), w, h, covers), w, h, pinned);
+  underHeads(w, h, covers);
   rows.push(...marked("[" + BAR + "]").map((el) => el.getBoundingClientRect()));
   for (let i = 0; i < GRID; i++) {
     const x = (i + 0.5) * w / GRID, y = (i + 0.5) * h / GRID;
-    for (const [px, py] of [[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]])
+    // a sidebar may stand in a gutter (SIDE_GUTTER) off the window's edge
+    for (const [px, py] of [[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y],
+      [SIDE_GUTTER + EDGE, y], [w - SIDE_GUTTER - EDGE, y]])
       probe(px, py);
   }
   // the rows stacked against a bar, then against those (the list grows)
@@ -2149,8 +2183,10 @@ function markBars() {
         if (py > EDGE && py < h - EDGE)
           probe(x, py);
     }
+  // and under the pinned bars found then
+  underHeads(w, h, covers);
   // one veil per bar: an inner one marked before its outer one was in place
-  const bars = marked("[" + BAR + "]");
+  const bars = marked("[" + BAR + "]").filter((el) => !floats.has(el));
   for (const el of bars)
     if (outer(el, "[" + BAR + "]"))
       el.removeAttribute(BAR);
@@ -2165,6 +2201,440 @@ function markBars() {
       if (el.hasAttribute(BAR))
         fillBar(el);
   settleRisers();
+  markFloats();
+}
+
+// A bar's blur is painted by its ::before (the content layers), which
+// needs the bar positioned: a static one (a header in the flow, a dialog's
+// box in its backdrop) is made relative while marked. A header in the flow
+// given the veil (heads) becomes a stacking context of its own (isolated),
+// at the page's level: what it holds floating at a z-index of its own
+// (IKEA's search suggestions) would paint under the page's positioned
+// content after it (IKEA's row of category pills). Such a header, with no
+// z-index, is lifted to the highest z-index of what it holds (headZ: its
+// fixed header and menus at 25 stay over a hero at 10, Figma), HEAD_Z at
+// least. A static bar holding an absolute part placed by an element outside
+// it (Apple's nav, 100% of the window wide) is left static, that part not
+// shrunk to the bar (FLAT): it keeps the veil's colour, its blur left out
+// (a ::before would be placed by that outside element, a backdrop-filter
+// on the bar would place that part again).
+// Inline; their own values come back once they are no bar any more, or the
+// add-on is off.
+const HEAD_Z = 1;
+const lifts = new Map();
+
+// The highest z-index of the positioned elements an element holds, HEAD_Z
+// at least.
+function headZ(el) {
+  let z = HEAD_Z;
+  for (const part of el.querySelectorAll("*")) {
+    const style = getComputedStyle(part);
+    if (style.position !== "static")
+      z = Math.max(z, parseInt(style.zIndex, 10) || 0);
+  }
+  return String(z);
+}
+
+// Whether an element holds an absolute part placed by an element outside
+// it: making it relative would move or resize that part.
+function escapes(el) {
+  for (const part of el.querySelectorAll("*"))
+    if (getComputedStyle(part).position === "absolute" && part.offsetParent && !el.contains(part.offsetParent))
+      return true;
+  return false;
+}
+
+function liftHeads() {
+  for (const [el, was] of lifts)
+    if (off !== false || !el.isConnected || !el.hasAttribute(BAR)) {
+      for (const [name, value, priority] of was)
+        value ? el.style.setProperty(name, value, priority) : el.style.removeProperty(name);
+      lifts.delete(el);
+    }
+  for (const el of marked("[" + FLAT + "]"))
+    if (off !== false || !el.hasAttribute(BAR))
+      el.removeAttribute(FLAT);
+  if (off !== false)
+    return;
+  for (const el of marked("[" + BAR + "]")) {
+    if (lifts.has(el) || el.hasAttribute(FLAT))
+      continue;
+    const style = getComputedStyle(el);
+    const head = heads.has(el) && /^(static|relative)$/.test(style.position) && style.zIndex === "auto";
+    if (style.position !== "static" && !head)
+      continue;
+    if (style.position === "static" && escapes(el)) {
+      el.setAttribute(FLAT, "");
+      continue;
+    }
+    lifts.set(el, ["position", "z-index"].map((name) =>
+      [name, el.style.getPropertyValue(name), el.style.getPropertyPriority(name)]));
+    if (style.position === "static")
+      el.style.setProperty("position", "relative", "important");
+    if (head)
+      el.style.setProperty("z-index", headZ(el), "important");
+  }
+}
+
+// The site's header at the top of the page (heads): in the flow, or
+// sticky (or fixed) before anything scrolls under it, it gets the bar's
+// veil too, even see-through, never bare glass at the top and a veil only
+// once scrolled. Up from the element on top at a point of the top edge,
+// the outermost element shaped as a header (headShape) holding the site's
+// menus (siteMenus: its own header or nav, or one inside it, a web
+// component's in its shadow tree), shown. Its rows across it in a colour
+// of their own (a promo strip, a brand row, a white nav row) are
+// see-through with the bar's (rowColors, fillBar): one veil; its buttons
+// and logos keep their colours.
+const heads = new Set();
+
+function markHead(top, w, h, pinned) {
+  let pick = null, menus = false;
+  for (let el = top; el && el !== document.body && el !== document.documentElement; el = up(el)) {
+    menus = menus || siteChrome(el);
+    if (headShape(el, w, h, pinned(el)))
+      pick = el;
+  }
+  if (!pick || pick.hasAttribute(BAR) || floats.has(pick) || !(menus || siteMenus(pick) || linkRow(pick))
+      || !pick.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+    return;
+  markHeadAs(pick);
+}
+
+// The headers and rows in the flow under a bar at the top (underHead).
+function underHeads(w, h, covers) {
+  for (const el of document.querySelectorAll(HEAD_BLOCKS))
+    if (!el.hasAttribute(BAR) && underHead(el, w, h))
+      markHeadAs(el);
+  markUnder(w, h, covers);
+}
+
+// A header given the veil: its rows' colours see-through (rowColors), the
+// lighter veils Dark Reader's blocks got in it gone (markBlocks leaves
+// what a bar holds alone, as in a pinned bar).
+function markHeadAs(el) {
+  for (const b of [el, ...el.querySelectorAll("[" + BLOCK + "]")])
+    b.removeAttribute(BLOCK);
+  barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el), ...rowColors(el)]));
+  mark(el, BAR);
+  heads.add(el);
+}
+
+// A row of the site's links with no nav around them (Arch Linux's
+// archnavbar: a list of LINK_ROW links at least).
+const LINK_ROW = 3;
+
+function linkRow(el) {
+  return el.querySelectorAll("li a[href]").length >= LINK_ROW;
+}
+
+// The element on top in a stack once what lies in a wrapper over the
+// whole window (windowCover, fixed: a consent wall, a dialog's backdrop)
+// is set aside: the header under it. `covers` caches the verdicts.
+function unwalled(stack, w, h, covers) {
+  const covered = (el) => {
+    if (!el || el === document.body || el === document.documentElement)
+      return false;
+    if (!covers.has(el)) {
+      const style = getComputedStyle(el);
+      covers.set(el, (style.position === "fixed" && windowCover(el, style, w, h)) || covered(up(el)));
+    }
+    return covers.get(el);
+  };
+  return stack.find((el) => !covered(el));
+}
+
+// A row in the flow right under a bar at the top of the window, or a
+// header under it (the
+// mega-menu row under Swissinfo's sticky header, GitHub's repository
+// header under its top bar), near the page's top: a header too
+// (underHead). Up from the element on top just under the bar, the
+// outermost one whose top is the bar's bottom, BAND_LOW low at most.
+function markUnder(w, h, covers) {
+  for (const bar of marked("[" + BAR + "]")) {
+    const b = bar.getBoundingClientRect();
+    if (floats.has(bar) || (b.top > EDGE && !heads.has(bar)) || b.bottom + EDGE >= h)
+      continue;
+    for (let i = 0; i < GRID; i++) {
+      let pick = null;
+      const top = unwalled(stackAt(b.left + (i + 0.5) * b.width / GRID, b.bottom + EDGE), w, h, covers);
+      for (let el = top; el && el !== document.body && el !== document.documentElement && !holds(el, bar); el = up(el)) {
+        const r = el.getBoundingClientRect();
+        if (Math.abs(r.top - b.bottom) <= EDGE && r.height <= BAND_LOW * h && r.top + window.scrollY <= BAND_LOW * h)
+          pick = el;
+      }
+      if (pick && !pick.hasAttribute(BAR) && !floats.has(pick) && underHead(pick, w, h))
+        markHeadAs(pick);
+    }
+  }
+}
+
+// The shape of a header at the top: across the window, low (BAND_LOW),
+// its top at the top of the page, or at the window's top edge when held
+// there (fixed, sticky).
+function headShape(el, w, h, held) {
+  const r = el.getBoundingClientRect();
+  return r.width >= 0.6 * w && r.height >= BAR_MIN && r.height <= BAND_LOW * h && r.top <= EDGE
+    && (held || r.top + window.scrollY <= EDGE);
+}
+
+// A header in the flow right under the header at the top (heads), as
+// wide, holding the site's menus, at most the window's height, outside
+// the page's main content (Python's: a strip of site links, then its
+// brand header holding the main menu and a hero): the bar's veil too, one
+// chrome. Its hero's own panels keep their fills (not rows of it).
+// shortcut: compared in the window, so a header under a sticky one loses
+// the veil once scrolled under it; fine for headers in the flow.
+const HEAD_BLOCKS = "header, [role=banner]";
+
+function underHead(el, w, h) {
+  const r = el.getBoundingClientRect();
+  if (r.width < 0.6 * w || r.height < BAR_MIN || r.height > h || el.closest("main, article, [role=main]")
+      || !/^(static|relative)$/.test(getComputedStyle(el).position) || !siteMenus(el))
+    return false;
+  for (const bar of marked("[" + BAR + "]"))
+    if (bar !== el && !floats.has(bar) && !holds(el, bar) && Math.abs(bar.getBoundingClientRect().bottom - r.top) <= EDGE)
+      return true;
+  return false;
+}
+
+function siteMenus(el) {
+  return !!(el.querySelector(BAND_MENUS) || (el.shadowRoot && el.shadowRoot.querySelector(BAND_MENUS)));
+}
+
+// The colours of a bar's rows: an element inside it across FILL_COVER of
+// its width, or ROW_COVER of it and as tall as the bar (a page column's
+// row: Swissinfo's mega-menu row, 86 % of its row; not a hero's panel),
+// opaque, shown, neither a control nor kept for its text.
+const ROW_COVER = 0.8;
+
+function rowColors(bar) {
+  const box = bar.getBoundingClientRect();
+  const colors = [];
+  const kids = inside(bar);
+  for (let i = 0; i < kids.length && i < FILL_NODES; i++) {
+    const el = kids[i];
+    if (NOT_FILLS.has(el.localName) || el.matches(BRANDS) || el.hasAttribute(KEPT))
+      continue;
+    const r = el.getBoundingClientRect();
+    const color = getComputedStyle(el).backgroundColor;
+    const across = r.width >= FILL_COVER * box.width
+      || (r.width >= ROW_COVER * box.width && r.height >= FILL_COVER * box.height);
+    if (across && r.height > 0 && within(r, box) && alpha(color) >= SOLID
+        && el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+      colors.push(color);
+  }
+  return colors;
+}
+
+// Floating layers: a menu, a mega menu, a popover, a drawer, a dialog, a
+// cookie banner laid over the page get the bar's veil too (BAR), never
+// bare glass (their text printed over the page's) nor the site's opaque
+// panel. One is found at FLOAT_GRID by FLOAT_GRID points over the window:
+// up from the element on top there, the outermost one lifted over the
+// page (lifted), shown, holding text, FLOAT_AREA large at least, not one
+// a bar would take (fixed along an edge: markBars). A wrapper lifted over
+// the whole window (a dialog's, a z-index above the page) is skipped for
+// its panel on the way down to the point. A scrim holds no text and is
+// left alone, and so are the cards of the page (not lifted). The layer's
+// rows in its colour are see-through (fillBar): one veil. A layer no
+// longer shown loses the mark. Also run on pointerover (hover menus).
+const FLOAT_GRID = 8;
+const FLOAT_AREA = 96 * 96;
+const FLOAT_WINDOW = 0.9;
+const FLOAT_ROLES = "[role=dialog], [role=alertdialog], [role=menu], [role=listbox], [aria-modal=true]";
+const floats = new Set();
+
+function markFloats() {
+  const root = document.documentElement;
+  if (!root || off !== false || !document.body)
+    return;
+  const w = root.clientWidth, h = window.innerHeight;
+  for (const el of floats)
+    if (!el.isConnected || !el.hasAttribute(BAR) || !shownFloat(el)) {
+      el.removeAttribute(BAR);
+      floats.delete(el);
+    }
+  const found = new Set();
+  for (let i = 0; i < FLOAT_GRID; i++)
+    for (let j = 0; j < FLOAT_GRID; j++) {
+      const top = stackAt((i + 0.5) * w / FLOAT_GRID, (j + 0.5) * h / FLOAT_GRID)[0];
+      const layer = top && floatOf(top, w, h);
+      if (layer)
+        found.add(layer);
+    }
+  const all = [...floats, ...found];
+  for (const el of all) {
+    // one veil per layer: the outermost
+    if (all.some((o) => o !== el && holds(o, el))) {
+      if (floats.delete(el))
+        el.removeAttribute(BAR);
+      continue;
+    }
+    if (!floats.has(el)) {
+      // made see-through as a row of the bar it hangs from: the veil now
+      el.removeAttribute(CANVAS);
+      barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el)]));
+      mark(el, BAR);
+      floats.add(el);
+      if (el.getRootNode() !== document)
+        veil(el.getRootNode());
+    }
+    fillBar(el);
+    clearBacking(el);
+  }
+  liftHeads();
+}
+
+// A layer's backing: an empty panel the site lays apart behind it (no
+// text, often inert: Digitec's white search panel behind its suggestion
+// list, across the window), absolute or fixed, opaque, covering the
+// layer, in one of its FLOAT_BACKING nearest parents. It is see-through
+// (CANVAS FILL): the layer's veil is the one surface there, not a veil
+// over the site's opaque slab.
+const FLOAT_BACKING = 3;
+
+function clearBacking(layer) {
+  const box = layer.getBoundingClientRect();
+  let p = up(layer);
+  for (let n = 0; n < FLOAT_BACKING && p && p !== document.body; n++, p = up(p))
+    for (const el of layered(p)) {
+      if (holds(el, layer) || el.hasAttribute(CANVAS) || el.hasAttribute(BAR) || texted(el)
+          || !/^(absolute|fixed)$/.test(getComputedStyle(el).position))
+        continue;
+      const paint = paintOf(el);
+      if (paint && !paint.pseudo && within(box, el.getBoundingClientRect()) && !scrim(el)
+          && el.checkVisibility({visibilityProperty: true, opacityProperty: true}))
+        el.setAttribute(CANVAS, FILL);
+    }
+}
+
+// A scrim: the site's dimming layer, over the whole window, faded
+// (opacity) or in a see-through colour; it keeps its colour.
+function scrim(el) {
+  const style = getComputedStyle(el), r = el.getBoundingClientRect();
+  const root = document.documentElement;
+  return parseFloat(style.opacity) < 1 || alpha(style.backgroundColor) < SOLID
+    || (r.width >= FLOAT_WINDOW * root.clientWidth && r.height >= FLOAT_WINDOW * window.innerHeight);
+}
+
+function shownFloat(el) {
+  const r = el.getBoundingClientRect();
+  return r.width * r.height >= FLOAT_AREA && el.checkVisibility({visibilityProperty: true, opacityProperty: true})
+    && textShown(el);
+}
+
+// Whether some text in an element is shown: a menu its site hides by its
+// content's opacity or visibility (Shopify's mega menu, its wrapper left
+// as it was) is closed. Text in a shadow tree counts as shown.
+const SHOWN = {visibilityProperty: true, opacityProperty: true};
+
+function textShown(el) {
+  if (el.shadowRoot)
+    return true;
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let node = walk.nextNode(); node; node = walk.nextNode())
+    if (node.data.trim() && node.parentElement.checkVisibility(SHOWN))
+      return true;
+  return false;
+}
+
+// The floating layer the element on top at a point lies in, null if none.
+// The way up ends at a bar (markBars): a flyout hanging out of it (Apple's
+// search under its nav) is a layer of its own, the bar never one; a list
+// lying within the bar's box is on the bar's veil already, none.
+function floatOf(el, w, h) {
+  const chain = [];
+  let bar = null;
+  for (let p = el; p && p !== document.body && p !== document.documentElement; p = up(p)) {
+    if (p.hasAttribute(BAR) && !floats.has(p)) {
+      bar = p;
+      break;
+    }
+    chain.push(p);
+  }
+  let pick = null;
+  chain.forEach((p, k) => {
+    const style = getComputedStyle(p);
+    if (!lifted(p, style))
+      return;
+    const r = p.getBoundingClientRect();
+    // the panel in it, the outermost one large and less than the window
+    const panel = () => chain.slice(0, k).reverse().find((q) => {
+      const b = q.getBoundingClientRect();
+      return b.width * b.height >= FLOAT_AREA && (b.width < FLOAT_WINDOW * w || b.height < FLOAT_WINDOW * h);
+    }) || pick;
+    if (r.width >= FLOAT_WINDOW * w && r.height >= FLOAT_WINDOW * h) {
+      if (windowCover(p, style, w, h))
+        pick = panel();
+      return;
+    }
+    // a positioner smaller than what it holds (Galaxus' header popovers)
+    if (r.width * r.height < FLOAT_AREA) {
+      pick = panel();
+      return;
+    }
+    if (style.position !== "fixed" || !edgeBar(r, w, h))
+      pick = p;
+  });
+  if (pick && bar && within(pick.getBoundingClientRect(), bar.getBoundingClientRect()))
+    return null;
+  return pick && shownFloat(pick) && texted(pick) ? pick : null;
+}
+
+// Whether an element is lifted over the page: fixed, an open modal
+// <dialog>, or absolute with a floating role or hanging BAR_MIN out of
+// the site's chrome it is in (a menu dropping from a header).
+function lifted(el, style) {
+  if (style.position === "fixed" || el.matches("dialog:modal"))
+    return true;
+  if (style.position !== "absolute")
+    return false;
+  if (el.matches(FLOAT_ROLES) || revealed(el))
+    return true;
+  let chrome = up(el);
+  while (chrome && chrome !== document.body && !siteChrome(chrome)
+         && !(chrome.hasAttribute(BAR) && !floats.has(chrome)))
+    chrome = up(chrome);
+  if (!chrome || chrome === document.body)
+    return false;
+  const r = el.getBoundingClientRect(), c = chrome.getBoundingClientRect();
+  return r.bottom > c.bottom + BAR_MIN || r.top < c.top - BAR_MIN
+    || r.right > c.right + BAR_MIN || r.left < c.left - BAR_MIN;
+}
+
+// A wrapper over the whole window around a floating layer: lifted over
+// the page (a z-index), a <dialog>, a floating role (Ars Technica's
+// consent wall), or a scrim (a see-through colour of its own: GitHub's
+// dialog backdrop). Not an app's shell in the page's colour.
+function windowCover(el, style, w, h) {
+  const r = el.getBoundingClientRect();
+  if (r.width < FLOAT_WINDOW * w || r.height < FLOAT_WINDOW * h)
+    return false;
+  const a = alpha(style.backgroundColor);
+  return parseInt(style.zIndex, 10) > 0 || el.localName === "dialog" || el.matches(FLOAT_ROLES)
+    || (a > 0 && a < SOLID);
+}
+
+// A panel its menu button shows: the button naming it (aria-controls)
+// expanded, or a popup toggle beside it expanded or checked (Vector's
+// dropdowns: the language menu in a wiki's title bar).
+const SHOWN_BY = ":scope > [aria-expanded=true], :scope > [aria-haspopup]:checked";
+
+function revealed(el) {
+  if (el.id && document.querySelector("[aria-expanded=true][aria-controls~=\"" + CSS.escape(el.id) + "\"]"))
+    return true;
+  return !!(el.parentElement && el.parentElement.querySelector(SHOWN_BY));
+}
+
+// The shape of a bar (markBars): across the window and low, along its
+// top or its bottom edge, or a sidebar.
+function edgeBar(r, w, h) {
+  return (r.width >= 0.6 * w && r.height <= 0.35 * h && (r.top <= EDGE || r.bottom >= h - EDGE)) || sideBar(r, w, h);
+}
+
+function texted(el) {
+  return !!(el.textContent.trim() || (el.shadowRoot && el.shadowRoot.textContent.trim()));
 }
 
 // The sticky rows markBands made glass before they stuck (risers): one
@@ -2196,9 +2666,15 @@ function stuck(el) {
 }
 
 // A sidebar's box `r` in a window `w` by `h`: most of its height, narrow,
-// touching its left or its right edge.
+// along its left or its right edge, at most SIDE_GUTTER off it.
 function sideBar(r, w, h) {
-  return r.height >= 0.6 * h && r.width <= 0.4 * w && (r.left <= EDGE || r.right >= w - EDGE);
+  return r.height >= 0.6 * h && r.width <= 0.4 * w && (r.left <= SIDE_GUTTER || r.right >= w - SIDE_GUTTER);
+}
+
+// Whether a pinned element shaped as a sidebar holds the site's menus (a
+// nav, role=navigation, on it or in it): chrome, veiled though see-through.
+function navSide(el, w, h) {
+  return sideBar(el.getBoundingClientRect(), w, h) && (siteChrome(el) || siteMenus(el));
 }
 
 // A bar tucked under a higher one (BBC's row of sections, slid up under
@@ -2446,21 +2922,30 @@ function underlay(el) {
 }
 
 function fillBar(bar, colors = [...pageColors, ...(barColors.get(bar) || [])]) {
-  if (!colors.length)
-    return;
   const box = bar.getBoundingClientRect();
   const kids = inside(bar);
   for (let i = 0; i < kids.length && i < FILL_NODES; i++) {
     const el = kids[i];
-    if (el.hasAttribute(CANVAS) || el.hasAttribute(KEPT) || el.closest("[" + UNDER + "]"))
+    if (el.hasAttribute(KEPT) || el.closest("[" + UNDER + "]"))
       continue;
     const r = el.getBoundingClientRect();
+    const band = barRow(r, box) || r.height >= FILL_COVER * box.height || r.width >= FILL_COVER * box.width;
+    if (el.hasAttribute(CANVAS)) {
+      // a row see-through already: what its gradient left goes too
+      if (band && within(r, box) && fades(getComputedStyle(el), () => true))
+        clearGradient(el);
+      continue;
+    }
     if (NOT_FILLS.has(el.localName) && !(el.localName === "button" && r.height >= BAR_BUTTON * box.height))
       continue;
-    const band = barRow(r, box) || r.height >= FILL_COVER * box.height || r.width >= FILL_COVER * box.width;
     // a row painted by a pseudo-element of its own: that one see-through
-    const color = getComputedStyle(el).backgroundColor;
+    const style = getComputedStyle(el), color = style.backgroundColor;
     const paint = alpha(color) >= SOLID ? {pseudo: null, color} : band ? underPaint(el) : null;
+    // a row across it painted by a linear gradient alone (its colour
+    // cleared by a style), as rowColors takes an opaque one: see-through
+    if (!paint && r.width >= FILL_COVER * box.width && within(r, box) && !el.matches(BRANDS)
+        && fades(style, () => true))
+      clearGradient(el);
     if (!paint || !colors.some((c) => near(c, paint.color)))
       continue;
     // a part of a filled row, unless a field's box or a control
@@ -2479,6 +2964,14 @@ function fillBar(bar, colors = [...pageColors, ...(barColors.get(bar) || [])]) {
     else
       el.setAttribute(CANVAS, FILL);
   }
+}
+
+// A row of a bar made see-through: its linear gradient over its colour
+// goes too (Python's menu row, a lighter blue fading into its header's),
+// one veil. Taken off with the page's layers (unfade).
+function clearGradient(el) {
+  el.style.setProperty(FADE_IMAGE, "none");
+  el.setAttribute(FADE, "");
 }
 
 // Blocks Dark Reader darkens: the white cards, panels and strips of a light
@@ -2523,7 +3016,7 @@ function markBlocks(near, texts) {
       return false;
     if (!floating.has(el)) {
       const style = getComputedStyle(el);
-      floating.set(el, style.position === "fixed" || style.position === "sticky"
+      floating.set(el, style.position === "fixed" || style.position === "sticky" || el.hasAttribute(BAR)
         || (style.position === "absolute" && style.zIndex !== "auto") || floats(up(el)));
     }
     return floating.get(el);
@@ -4536,7 +5029,8 @@ function quantiles(ys) {
   return inks;
 }
 
-// A picture loaded after the last pass is looked at again: a lazy one
+// A picture loaded after the last pass is looked at again (a style sheet
+// loaded reads the tone again, recoloured): a lazy one
 // (no width, so not near, until it is in: a shop's product photos
 // scrolled into view), a source swapped, pixels not there to read. One
 // listener for the document (load does not bubble, it is caught on its
@@ -4544,6 +5038,46 @@ function quantiles(ys) {
 function loaded(e) {
   if (off === false && e.target.localName === "img")
     ink();
+  else if (sheetNode(e.target))
+    recoloured();
+}
+
+// Menus shown on hover: the floating layers looked for again, once per
+// INK_MS at most.
+let floatFrame = 0, floatsAt = -Infinity;
+
+// A menu opening a while after the pointer came (a hover delay, an
+// animation) with no other event: the pass runs again FLOAT_LATE_MS after
+// the last hover (frames, no timer).
+const FLOAT_LATE_MS = 500;
+let lateFrame = 0, lateAt = 0;
+
+function hovered() {
+  lateAt = performance.now() + FLOAT_LATE_MS;
+  if (off === false && !lateFrame)
+    lateFrame = requestAnimationFrame(function tick(now) {
+      if (now < lateAt) {
+        lateFrame = requestAnimationFrame(tick);
+        return;
+      }
+      lateFrame = 0;
+      passFloats();
+    });
+  passFloats();
+}
+
+function passFloats() {
+  if (off === false && !floatFrame)
+    floatFrame = requestAnimationFrame(function tick(now) {
+      if (now - floatsAt < INK_MS) {
+        floatFrame = requestAnimationFrame(tick);
+        return;
+      }
+      floatFrame = 0;
+      floatsAt = now;
+      markFloats();
+      ink();
+    });
 }
 
 function ink() {
@@ -4704,6 +5238,53 @@ function watch() {
   }
 }
 
+// The page's own colours change without a reload and without touching
+// <html>: a single-page app's style sheets land in <head> after its text
+// was first measured (YouTube's black text, then its dark theme), a sheet
+// finishes loading (loaded), or a theme class lands on <body>. The tone
+// is read again in the next frame, and the bars, their veils and the ink
+// follow it (layers): a bar never keeps the veil of the other tone. Dark
+// Reader's own style elements are not the page's, nor is the inline style
+// of the body (rewritten on scroll); a darkened page stays dark.
+const SHEET_NODES = "style, link[rel~=stylesheet i]";
+let recolouredFrame = 0;
+
+function recoloured() {
+  if (darkened || off === true || recolouredFrame)
+    return;
+  recolouredFrame = requestAnimationFrame(() => {
+    recolouredFrame = 0;
+    measure();
+    darken();
+    paint();
+    layers();
+  });
+}
+
+function sheetNode(node) {
+  return node.nodeType === Node.ELEMENT_NODE && node.matches(SHEET_NODES) && !node.classList.contains("darkreader");
+}
+
+const sheets = new MutationObserver((records) => {
+  if (records.some((r) => r.type === "childList"
+      ? [...r.addedNodes, ...r.removedNodes].some(sheetNode)
+      : r.attributeName !== "style" && !r.attributeName.startsWith(OWN)))
+    recoloured();
+});
+
+function watchSheets() {
+  const head = document.head, body = document.body;
+  if (head === sheets.head && body === sheets.body)
+    return;
+  sheets.disconnect();
+  sheets.head = head;
+  sheets.body = body;
+  if (head)
+    sheets.observe(head, {childList: true});
+  if (body)
+    sheets.observe(body, {attributes: true});
+}
+
 observer.observe(document, {childList: true});
 watch();
 
@@ -4748,6 +5329,8 @@ document.addEventListener("transitionend", (e) => {
 for (const type of ["scroll", "transitionend"])
   document.addEventListener(type, layers, {capture: true, passive: true});
 document.addEventListener("load", loaded, {capture: true, passive: true});
+for (const type of ["pointerover", "focusin"])
+  document.addEventListener(type, hovered, {capture: true, passive: true});
 for (const type of ["scrollend", "resize", "load"])
   window.addEventListener(type, layers, {passive: true});
 for (const type of ["click", "submit"])

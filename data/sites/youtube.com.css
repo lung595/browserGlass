@@ -1,11 +1,11 @@
 /* browserGlass: the bars that float over the videos (header, category chips,
-   overlay menu) get the glass tint at 80 % with a blur, so their text never
-   sits right on the thumbnails. */
+   overlay menu) get the bar's veil (the DMS surface at 65 %) and its blur,
+   as every site's chrome, so their text never sits right on the thumbnails. */
 #masthead-container,
 ytd-app #chips-wrapper,
 ytd-app:not([guide-persistent-and-visible]) tp-yt-app-drawer > #contentContainer {
-  background: var(--browserglass-bar, rgba(16, 16, 20, 0.8)) !important;
-  backdrop-filter: blur(24px) saturate(1.5) !important;
+  background: var(--browserglass-nav, rgba(16, 20, 24, 0.65)) !important;
+  backdrop-filter: blur(20px) saturate(1.5) !important;
 }
 #masthead-container #background.ytd-masthead,
 #masthead-container #frosted-glass {

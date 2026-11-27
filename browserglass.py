@@ -74,7 +74,7 @@ import unicodedata
 # consts
 # ============================================================================
 
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 PLUGIN_ID = "browserGlass"
 PROG = "browserglass"
 # Runs this file's text read from stdin (`python3 -I -c STDIN_BOOTSTRAP
@@ -207,6 +207,9 @@ ATTR_SEAM = "data-browserglass-seam"
 # up under its masthead): the part covered clipped away, by the px cut
 # from its top and its bottom in TUCK_SIDES, inline.
 ATTR_TUCK = "data-browserglass-tuck"
+# ... and FLAT on a static bar left static (an absolute part of it placed
+# by an element outside it): the veil's colour, no blur on its ::before.
+ATTR_FLAT = "data-browserglass-flat"
 TUCK_SIDES = ("--browserglass-tuck-top", "--browserglass-tuck-bottom")
 # ... and OWN on a surface the generic style cleared though its text was
 # drawn for it (a dark section holding light text on a light page): the
@@ -1952,6 +1955,8 @@ RULE_OPACITY = 0.25
 NAV_BAR_BLUR = "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"
 _BAR_SELECTOR = "[" + ATTR_BAR + "]:not(#browserglass-a):not(#browserglass-b)"
 _TUCK_SELECTOR = "[" + ATTR_TUCK + "]:not(#browserglass-a):not(#browserglass-b)"
+_TUCK_BAR_SELECTOR = "[" + ATTR_BAR + "][" + ATTR_TUCK + "]:not(#browserglass-a):not(#browserglass-b)"
+_FLAT_SELECTOR = "[" + ATTR_FLAT + "]:not(#browserglass-a):not(#browserglass-b)"
 # The bar's colour for the page's tone, set on the root: a custom property
 # reaches the bars of shadow trees, where html:root[tone] cannot match.
 NAV_BAR_VAR = "--browserglass-nav"
@@ -2025,24 +2030,48 @@ _CONTENT_LAYERS = (
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "before" + "::before, " + _BLOCK_SELECTOR % "after" + "::after"
     " {{ background-color: transparent !important; }}\n"
+    # the blur on a ::before under the bar's content, never on the bar: a
+    # backdrop-filter there would make the bar the containing block of its
+    # fixed parts (a drawer's scrim shrunk to the header) and the Backdrop
+    # Root of a floating layer in it (a drawer's blur over nothing but the
+    # header). Static, the bar is made relative (content.js, liftBars).
     + "  " + _BAR_SELECTOR + " {{\n"
     "    background: var(" + NAV_BAR_VAR + ") !important;\n"
-    "    backdrop-filter: " + NAV_BAR_BLUR + " !important;\n"
+    "    backdrop-filter: none !important;\n"
+    "    isolation: isolate !important;\n"
     "  }}\n"
+    # the site's own size, margins or transform on that ::before (a 40px
+    # rule on a 72px header) never shrink the blur
+    + "  " + _BAR_SELECTOR + "::before {{ content: \"\" !important; position: absolute !important;"
+    " inset: 0 !important; z-index: -1 !important; pointer-events: none !important;"
+    " width: auto !important; height: auto !important; margin: 0 !important;"
+    " min-width: 0 !important; min-height: 0 !important; max-width: none !important; max-height: none !important;"
+    " transform: none !important; opacity: 1 !important;"
+    " border-radius: inherit !important; background: none !important;"
+    " backdrop-filter: " + NAV_BAR_BLUR + " !important; }}\n"
+    + "  " + _FLAT_SELECTOR + "::before {{ content: none !important; }}\n"
     + "  " + _TUCK_SELECTOR + " {{ clip-path: inset(var(" + TUCK_SIDES[0] + ", -100vmax) -100vmax var("
     + TUCK_SIDES[1] + ", -100vmax) -100vmax) !important; }}\n"
+    # a tucked bar's clip-path would make it the Backdrop Root of its
+    # ::before: its blur on the bar itself
+    # (bars only: a row tucked under a bar, such as a full-window scrim, no blur)
+    + "  " + _TUCK_BAR_SELECTOR + " {{ backdrop-filter: " + NAV_BAR_BLUR + " !important; }}\n"
+    + "  " + _TUCK_BAR_SELECTOR + "::before {{ backdrop-filter: none !important; }}\n"
     "  :root {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    :root {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
     "  }}\n"
     "  html:root[" + ATTR_TONE + "=\"dark\"] {{ " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
-    "  html:root[" + ATTR_TONE + "=\"light\"] {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
+    # the light veils never on a page declaring its dark version: its glass
+    # stays dark whatever was measured (_CONTENT_TONE), its bars with it
+    "  html:root[" + ATTR_TONE + "=\"light\"]:not(" + _DARK_PAGE_WHERE + ") {{ " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
     "  :root {{ " + BLOCK_VAR + ": rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
     "    :root {{ " + BLOCK_VAR + ": rgba({light}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
     "  }}\n"
     "  html:root[" + ATTR_TONE + "=\"dark\"] {{ " + BLOCK_VAR + ": rgba({dark}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
-    "  html:root[" + ATTR_TONE + "=\"light\"] {{ " + BLOCK_VAR + ": rgba({light}, " + str(BLOCK_VEIL_OPACITY) + "); }}\n"
+    "  html:root[" + ATTR_TONE + "=\"light\"]:not(" + _DARK_PAGE_WHERE + ") {{ " + BLOCK_VAR + ": rgba({light}, "
+    + str(BLOCK_VEIL_OPACITY) + "); }}\n"
     "  html:root[" + ATTR_TONE + "=\"dark\"] {{ scrollbar-color: rgba({light}, " + str(SCROLL_THUMB_OPACITY)
     + ") transparent; }}\n"
     "  html:root[" + ATTR_TONE + "=\"light\"] {{ scrollbar-color: rgba({dark}, " + str(SCROLL_THUMB_OPACITY)
@@ -2053,10 +2082,12 @@ _CONTENT_LAYERS = (
 # surface while the theme is light, like the chrome tint.
 SITES_BAR_OPACITY = 0.8
 # Rules of a block with the regexp "https?://.*" (_content_block).
+# The bar's veil (NAV_BAR_VAR) too: site styles use it, live control or not
+# (_CONTENT_LAYERS sets it again after the add-on's tone).
 _CONTENT_BAR_VAR = (
-    "  :root {{ --browserglass-bar: rgba({dark}, {a}); }}\n"
+    "  :root {{ --browserglass-bar: rgba({dark}, {a}); " + NAV_BAR_VAR + ": rgba({dark}, {nav}); }}\n"
     "  @media (prefers-color-scheme: light) {{\n"
-    "    :root {{ --browserglass-bar: rgba({light}, {a}); }}\n"
+    "    :root {{ --browserglass-bar: rgba({light}, {a}); " + NAV_BAR_VAR + ": rgba({light}, {nav}); }}\n"
     "  }}\n"
 )
 # readerOpaque=false: reader view in glass. --main-background is set on body.
@@ -2663,7 +2694,7 @@ def content_css(settings, opacity, sites_css="", off=False, surfaces=None, sites
     rgb = {mode: "%d, %d, %d" % surface_rgb(surfaces.get(mode), mode) for mode in MODES}
     bar = format_number(SITES_BAR_OPACITY)
     if sites_css and sites_css.strip():
-        parts.append(_content_block("https?://.*", _CONTENT_BAR_VAR.format(a=bar, **rgb), gate))
+        parts.append(_content_block("https?://.*", _CONTENT_BAR_VAR.format(a=bar, nav=format_number(NAV_BAR_OPACITY), **rgb), gate))
         parts.append(sites_css if sites_css.endswith("\n") else sites_css + "\n")
     if gate:
         # one block for every page: ATTR_TONE comes with the add-on, which

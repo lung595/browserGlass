@@ -3,6 +3,24 @@
 All notable changes to Browser Glass are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.3] - 2026-11-28
+
+### Changed
+
+- **Floating layers get the bar's veil** (with Live control): a dropdown or mega menu, a popover, a side drawer or hamburger menu, a dialog and a cookie banner now show the same 65% surface and blur as the navigation bars, in the page's tone, instead of bare glass (frame.work's dark drawer printed its links over the hero's text) or the site's opaque panel. Their rows in their own colour go see-through, hover menus are found as the pointer moves, a dimming scrim and the cards of the page are left alone, and the mark goes once the layer closes.
+- **Search popups get the bar's veil** (with Live control): a search flyout hanging out of a navigation bar now gets the veil itself instead of staying an opaque slab or a see-through row of the bar (Apple's search under its nav, also when the nav was met before the banner above it), a suggestion list inside a bar's box gets no second veil over the bar's, and an empty opaque panel the site lays behind a suggestion list goes see-through, so the list's veil is the one surface (Digitec's white search panel). A header in the flow given the veil is lifted over the page's content after it, so the suggestions dropping from it are no longer painted under that content (IKEA's row of category pills over its search suggestions).
+- **Sidebars holding the site's menus get the bar's veil** (with Live control): a fixed or sticky sidebar as tall as the window with a `nav` or `role=navigation`, such as YouTube's guide or the navigation of a docs page, now shows the 65% surface and blur even when it is see-through over nothing but the page, instead of bare glass beside the content; one standing up to 24 px off the window's edge (Python's docs) counts too.
+
+### Fixed
+
+- **A menu's scrim no longer blurs the page**: a see-through full-window layer a site puts under its open mega menu (Cloudflare) was taken for a row tucked under the header and blurred, so the whole page went blurry while the menu was open. Only a tucked bar gets the blur now.
+- **A veiled header no longer hides its own menus or moves its nav** (with Live control): a header in the flow given the veil is lifted to the highest `z-index` of what it holds, so its fixed header and mega menus stay over the page's hero (Figma's), instead of `z-index: 1` under it; a static header holding an absolute nav the page places is left static, so that nav keeps its width (Apple's 404 page), with the veil's colour but no blur; the site's own size on a bar's `::before` no longer cuts the blur short (Shopify's 40px of a 72px header); a hover menu that opens a while after the pointer came gets the veil (GitHub's second mega menu), and a menu its site closes by its content's opacity loses it (Shopify's mega menu left a veil over the page).
+- **A tall header under a strip of site links gets the veil** (with Live control): a header in the flow right under the site's header at the top, holding the site's menus (Python's blue header with its main menu and a hero, under its strip of links), now gets the bar's 65% veil and blur instead of staying an opaque blue slab, and its menu row painted by a gradient goes see-through with it, also when a style cleared its colour; the hero's own panels keep theirs. A page layer painting a faint gradient over its colour (Python's content wrapper) now goes glass with its gradient instead of staying an opaque white or dark slab.
+- **A page that paints its own dark theme late keeps the light veil on its bars no more** (with Live control): the tone is measured again when a style sheet lands in the page's `<head>` or finishes loading and when a theme class lands on `<body>`, so a web app whose text first shows black while its styles are still coming (YouTube, now and then on a slow load) no longer keeps the light 65% veil and dark ink on its masthead over the dark glass until a reload. A page declaring its dark version on `<html>` (YouTube's `dark` attribute) never gets the light veil on its bars or blocks, as it never got the light glass.
+- **More chrome gets the bar's veil** (with Live control): a row of site links at the top with no `nav` (Arch Linux), a header under a cookie wall covering the window (Ars Technica), a band in the flow right under a veiled header (GitHub's repository header, Swissinfo's menu row), a popover inside a zero-size positioner (Galaxus), a dialog in a window-wide backdrop of no z-index (GitHub) and a dropdown shown by its `aria-expanded` or checked `aria-haspopup` toggle (Arch Linux's language list) now get the 65% veil and blur. YouTube's overlay guide gets the 65% veil instead of 80%, in the theme's tone with or without Live control.
+- **A menu or drawer inside a veiled header gets its blur again** (with Live control): the header's blur is now painted by its `::before`, so a drawer or menu inside it blurs the page instead of nothing (frame.work's drawer, Apple's and AfterShip's menus), and a dimming scrim inside the header keeps covering the window in its own colour instead of shrinking to the header and turning see-through (frame.work).
+- **A dark section of a light page could stay glass once Dark Reader turned off** (with Live control): switching back to a light theme, a dark section as large as the window was read as the page's background while its own colour was still fading back in, and the smaller dark sections of that colour then turned see-through for good. A colour still in its transition is no longer taken for the page's background; a later pass decides once it has settled.
+
 ## [1.4.2] - 2026-11-27
 
 ### Changed
@@ -316,6 +334,7 @@ First public release: a rewrite of the earlier, unpublished v0 scripts (a bash `
 
 - `browser-glass-sync` and `browser-glass-sites`, replaced by `browserglass.py`.
 
+[1.4.3]: https://github.com/lung595/browserGlass/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/lung595/browserGlass/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/lung595/browserGlass/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/lung595/browserGlass/compare/v1.3.3...v1.4.0

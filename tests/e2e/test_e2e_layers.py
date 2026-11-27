@@ -19,9 +19,11 @@ test_e2e_darken.py. Checked:
     page), under a dark theme and a light one;
   - a fixed left sidebar with its own colour is marked too, a see-through
     fixed bar is not;
-  - a tall see-through fixed header is left alone over nothing, and marked
-    once content lies under its lower row only (its top row a notice); a
-    thin see-through strip down the right edge over the content is not;
+  - a tall see-through fixed header at the top holding the site's links
+    is marked before any scroll (a header gets the bar's veil), and stays
+    marked once content lies under its lower row only (its top row a
+    notice); a thin see-through strip down the right edge over the
+    content is not;
   - a background rendered late inside an existing element (as an Angular
     app does) is marked once it is there;
   - a sticky nav below a hero is left alone until it sticks to the top,
@@ -31,12 +33,14 @@ test_e2e_darken.py. Checked:
     is marked once stuck over a hero as large as the window, the layer
     still see-through under the veil;
   - in a web app's shell (a page that does not scroll, a pane scrolls
-    inside), the sidebar and the header in the flow keep their own look,
-    and so do the short rows of links in the pane (1.3.1);
+    inside), the header at the top gets the bar's veil (a header in the
+    flow), the sidebar in the flow keeps its own look, and so do the short
+    rows of links in the pane (1.3.1);
   - in a page that does not scroll, a side panel showing a picture and a
     plain block along an edge (no link, no nav role) are left alone;
-  - a header in the flow of a page whose body is fixed to lock its scroll
-    (a dialog open) is left alone;
+  - a header in the flow at the top of a page whose body is fixed to lock
+    its scroll (a dialog open) keeps the bar's veil of a header in the
+    flow, in the dark surface;
   - black text straight on the root of a dark page under a light theme
     (the dark tint at 88 % over the light glass, mixed in sRGB) is inked;
   - dark text straight on the dark glass gets the light surface colour,
@@ -74,8 +78,9 @@ test_e2e_darken.py. Checked:
     its child filled, its ::after strip in the page's colour see-through;
     an app's surface right of its menu, down to near the bottom, is
     marked, its panels are not, under a light theme too (the root under
-    the dark tint); the app's see-through menu, its first child a scrim at
-    opacity 0, is no bar; a menu row across the window,
+    the dark tint); the app's see-through menu down the left edge, its
+    first child a scrim at opacity 0, is a bar (a sidebar holding the
+    site's menus); a menu row across the window,
     dark or light, is marked, a coloured band under it is not; a coloured
     column, a column filled by a player, a light column on a dark page and
     a short card are left alone;
@@ -182,7 +187,7 @@ test_e2e_darken.py. Checked:
     with text of its own and a box in another grey keep theirs;
   - a light page's blue header in the flow and green hero a site style
     clears (test_cleared_header: booking.com, PyPI, crates.io): the
-    header's white link and the hero's white title are inked dark, the
+    header gets the bar's light veil, its white link and the hero's white title are inked dark, the
     title without its dark text-shadow, an icon-font glyph (an empty <i>
     drawing its ::before) is inked dark, the white word mark follows the
     links (inverted), and one on its own blue button stays white, as
@@ -349,8 +354,8 @@ html, body {background:transparent} body {color:rgb(235,235,235)}
 <p id="black">Black</p></body></html>"""
 
 # A cookie banner: a see-through fixed wrapper over the page's text, and in
-# it a large opaque form; a modal fixed itself. Neither is the page's
-# background.
+# it a large opaque form (a floating layer: the bar's veil); a modal fixed
+# itself. Neither is the page's background.
 BANNER_PAGE = STYLE + """
 #wrap {position:fixed; inset:0; background:transparent; z-index:5}
 #consent {position:absolute; inset:5% 2%; background:rgb(40,40,60)}
@@ -1495,7 +1500,9 @@ class LayersE2E(unittest.TestCase):
             tone.set_scheme(b, False)
             b.navigate(srv.url("/h.html", "light.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
-            self.assertEqual(self.bg_of(b, "head"), "rgba(0, 0, 0, 0)", "the site style did not clear the header")
+            # the cleared header in the flow still gets the bar's veil
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "head", BAR), "the cleared header not veiled")
+            self.assertEqual(self.bg_of(b, "head"), "rgba(%d, %d, %d, 0.65)" % bg.surface_rgb(None, "light"))
             for name in ("headlink", "title"):
                 self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, name, INK),
                                 name + ": white text not inked dark on the light glass")
@@ -1792,7 +1799,7 @@ class LayersE2E(unittest.TestCase):
                 self.assertEqual(b.js(IN_SHADOW, hosts, name, None), DARK_SURFACE, name)
                 self.assertEqual(b.js("let tree = document; for (const host of arguments[0])"
                                       " tree = tree.getElementById(host).shadowRoot;"
-                                      "return getComputedStyle(tree.getElementById(arguments[1])).backdropFilter;",
+                                      "return getComputedStyle(tree.getElementById(arguments[1]), '::before').backdropFilter;",
                                       hosts, name), BLUR, name)
             self.assertTrue(b.js("const tree = document.getElementById('app').shadowRoot;"
                                  "return !!tree.getElementById('browserglass-veil');"), "no veil in the shadow tree")
@@ -2021,6 +2028,9 @@ class LayersE2E(unittest.TestCase):
             self.assertLess(b.chrome_js(REDDEST, *b.js(rect, 20, 74, 200, 40)), 20,
                             "the row tucked under the header shows through its veil")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "cats", bg.ATTR_TUCK), "the tucked row not cut")
+            # no bar: no blur of its own (a full-window scrim tucked so would blur the page)
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('cats')).backdropFilter;"), "none",
+                             "the tucked row that is no bar blurred")
             # back at the top, below the header again: whole
             b.js("window.scrollTo(0, 0);")
             b.js("return new Promise((resolve) => setTimeout(resolve, 800));")
@@ -2473,8 +2483,9 @@ class LayersE2E(unittest.TestCase):
                 self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "panel", BLOCK, "veil"),
                                 "a panel on the surface left a full panel: %r" % self.bg_of(b, "panel"))
                 self.assertEqual(tone.rgba(self.bg_of(b, "panel"))[3], bg.BLOCK_VEIL_OPACITY)
-                # the menu over nothing, its scrim at opacity 0: no bar
-                self.assertFalse(b.wait_for(dk.MARKED, 2.0, "menu", BAR), "a menu backed by a faded scrim marked")
+                # the menu over nothing, its scrim at opacity 0: a sidebar
+                # holding the site's menus, veiled all the same
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "menu", BAR), "the app's side menu not veiled")
             tone.set_scheme(b, True)
 
             for page in ("/band.html", "/bandl.html"):
@@ -2519,7 +2530,7 @@ class LayersE2E(unittest.TestCase):
                              "rgb(40, 40, 40)")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "bar", BAR), "header not marked")
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
-            self.assertEqual(b.js("return getComputedStyle(document.getElementById('bar')).backdropFilter;"),
+            self.assertEqual(b.js("return getComputedStyle(document.getElementById('bar'), '::before').backdropFilter;"),
                              BLUR)
             # the filter the blur refers to: without it, no blur at all
             self.assertEqual(b.js("return document.querySelectorAll('filter#browserglass-veil feFlood + feMerge').length;"),
@@ -2545,20 +2556,21 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(b.js(BAR_COLOR), DARK_SURFACE)
             tone.set_scheme(b, True)
 
-            # a tall see-through header: left alone over nothing, marked once
-            # content lies under its lower row only (its middle line on its
-            # own notice)
+            # a tall see-through header at the top: a header holding the
+            # site's links, veiled before any scroll, and still once content
+            # lies under its lower row only (its middle line on its own notice)
             b.navigate(srv.url("/tall.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
             self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
                                        mn.WAIT_TIMEOUT, tone.LIVE))
-            self.assertFalse(b.wait_for(dk.MARKED, 2.0, "tall", BAR), "a see-through header over nothing marked")
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "tall", BAR), "a see-through header at the top not marked")
             b.js("window.scrollTo(0, 110);")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "tall", BAR),
                             "a tall see-through header over content under its lower row not marked")
             self.assertFalse(b.wait_for(dk.MARKED, 2.0, "marks", BAR), "a thin see-through strip marked")
 
-            # a cookie banner over the text keeps its colour, and a modal
+            # a cookie banner over the text gets the bar's veil (a floating
+            # layer), and a modal
             b.navigate(srv.url("/banner.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
             self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
@@ -2566,8 +2578,9 @@ class LayersE2E(unittest.TestCase):
             b.js("document.getElementById('modal').style.display = 'block'; window.dispatchEvent(new Event('resize'));")
             self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']');",
                                         2.0, CANVAS), "a fixed layer over the text marked as the background")
-            self.assertEqual(b.js("return getComputedStyle(document.getElementById('consent')).backgroundColor;"),
-                             "rgb(40, 40, 60)")
+            self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('consent')).backgroundColor"
+                                       " === arguments[0];", mn.WAIT_TIMEOUT, DARK_SURFACE),
+                            "the cookie banner not veiled")
 
             b.navigate(srv.url("/l.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
@@ -2608,16 +2621,18 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('paint')).backgroundColor;"),
                              "rgba(0, 0, 0, 0)")
 
-            # an app shell's parts in the flow keep their own look
+            # an app shell: its header at the top gets the bar's veil (a
+            # header in the flow), its other parts in the flow keep their look
             for page in ("/shell.html", "/rows.html"):
                 b.navigate(srv.url(page, "dark.test"))
                 b.js(dk.RUN, self.content_js, self.darkreader_js, [])
                 self.assertTrue(b.wait_for("return document.documentElement.hasAttribute(arguments[0]);",
                                            mn.WAIT_TIMEOUT, tone.LIVE))
-                self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']');",
-                                            2.0, BAR), "a part of the shell marked (%s)" % page)
+                self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "top", BAR), "the shell's header not veiled")
                 self.assertEqual(b.js("return getComputedStyle(document.getElementById('top')).backgroundColor;"),
-                                 "rgb(30, 30, 60)")
+                                 DARK_SURFACE)
+                self.assertFalse(b.wait_for("return !!document.querySelector('[' + arguments[0] + ']:not(#top)');",
+                                            2.0, BAR), "a part of the shell marked (%s)" % page)
 
             b.navigate(srv.url("/split.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
@@ -2631,7 +2646,9 @@ class LayersE2E(unittest.TestCase):
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
             b.js(LOCK)
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "lockside", BAR), "fixed sidebar not marked")
-            self.assertFalse(self.marked(b, "head", BAR), "a header marked under a scroll lock")
+            # the header in the flow at the top: the veil of a header (heads)
+            self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "head", BAR), "the header not veiled under a scroll lock")
+            self.assertEqual(self.bg_of(b, "head"), DARK_SURFACE)
 
             b.navigate(srv.url("/ink.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])

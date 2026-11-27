@@ -124,6 +124,10 @@ class ExtensionSourcesTest(unittest.TestCase):
             "document.body, {childList: true}",
             # each canvas once, to judge a backdrop shown or grown later
             "canvas",
+            # the style sheets of <head> (its children only) and the
+            # attributes of <body>: the page's own colours changing late
+            "head, {childList: true}",
+            "body, {attributes: true}",
             # new frames, while the page is darkened
             "document, {childList: true, subtree: true}",
         ]))
@@ -340,12 +344,17 @@ class ExtensionSourcesTest(unittest.TestCase):
             self.assertNotIn(gone, bars[:bars.index("\nfunction ", 1)])
         # headers and bottom bars, sidebars, on all four edges
         self.assertIn("r.top <= EDGE || r.bottom >= h - EDGE", bars)
-        self.assertIn("r.left <= EDGE || r.right >= w - EDGE", js[js.index("function sideBar("):])
-        self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y]]", bars)
+        self.assertIn("r.left <= SIDE_GUTTER || r.right >= w - SIDE_GUTTER", js[js.index("function sideBar("):])
+        self.assertIn("[[x, EDGE], [x, h - EDGE], [EDGE, y], [w - EDGE, y],\n"
+                      "      [SIDE_GUTTER + EDGE, y], [w - SIDE_GUTTER - EDGE, y]]", bars)
+        # a sidebar holding the site's menus: a bar though see-through
+        self.assertIn("backed(el) || over(el, w, h) || navSide(el, w, h)", bars)
+        self.assertIn("return sideBar(el.getBoundingClientRect(), w, h) && (siteChrome(el) || siteMenus(el));", js)
         self.assertIn("removeAttribute(BAR)", bars)
         self.assertIn("mark(el, BAR)", bars)
         mark = js[js.index("function markCanvas()"):js.index("function markBars()")]
-        self.assertIn("if (alpha(color) >= SOLID && (large(el) || column(el, color))) {\n"
+        # a colour still fading (Dark Reader just off) is no layer's yet
+        self.assertIn("if (alpha(color) >= SOLID && (large(el) || column(el, color)) && !fading(el)) {\n"
                       "          for (const row of pile(el).rows)\n"
                       "            if (row === el || plain(row, color))\n"
                       "              layer(row, color);", mark)
@@ -402,7 +411,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('wide(el) && getComputedStyle(el).position !== "sticky"', column)
         # a header across the page column it stays in, painted by its child
         self.assertIn('outer(el, "[" + CANVAS + "]")', bars)
-        self.assertIn("if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h)))", bars)
+        self.assertIn("if (!el.hasAttribute(BAR) && (backed(el) || over(el, w, h) || navSide(el, w, h)))", bars)
         # a child faded out (a drawer's scrim at opacity 0) paints nothing
         self.assertIn("kid.checkVisibility({visibilityProperty: true, opacityProperty: true})", bars)
         # any child covering it, one filled too (an empty layer behind the
@@ -479,7 +488,7 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('const UNDER = "%s";' % bg.ATTR_UNDER, js)
         self.assertIn("[" + bg.ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}", bg._CONTENT_LAYERS)
         bars = js[js.index("function markBars()"):js.index("function markFills()")]
-        self.assertIn("barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el)]));\n"
+        self.assertIn("barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el), ...rowColors(el)]));\n"
                       "        mark(el, BAR);\n        rows.push(el.getBoundingClientRect());", bars)
         # a row held right against a marked bar joins the stack
         self.assertIn("(r.top <= EDGE || r.bottom >= h - EDGE || stacked(el, r))", bars)
@@ -838,9 +847,11 @@ class ExtensionSourcesTest(unittest.TestCase):
                       % (bg.ATTR_BLOCK, bg.BLOCK_VAR), layers)
         # the veil is in the tone's surface: the dark one on a darkened
         # page, the light one on a page in its own light theme
+        # (the light one never on a page declaring its dark version)
         for scheme, rgb in (("dark", "0, 0, 0"), ("light", "255, 255, 255")):
-            self.assertIn('html:root[%s="%s"] { %s: rgba(%s, %s); }'
-                          % (bg.ATTR_TONE, scheme, bg.BLOCK_VAR, rgb, bg.BLOCK_VEIL_OPACITY), layers)
+            where = ":not(%s)" % bg._DARK_PAGE_WHERE if scheme == "light" else ""
+            self.assertIn('html:root[%s="%s"]%s { %s: rgba(%s, %s); }'
+                          % (bg.ATTR_TONE, scheme, where, bg.BLOCK_VAR, rgb, bg.BLOCK_VEIL_OPACITY), layers)
         self.assertIn('[%s~="glass"]:not(#browserglass-a):not(#browserglass-b) '
                       '{ background-color: transparent !important; }' % bg.ATTR_BLOCK, layers)
         # its empty pseudo-elements in its colour, named, are cleared; a

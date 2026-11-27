@@ -422,7 +422,11 @@ class ChoiceTest(SignedCase):
         self.sync_here()
         st = os.stat(str(path))
         bad = bytearray(self.signed)
-        bad[len(bad) // 2] ^= 0xff
+        # a byte of content.js's deflated data (not a local header's
+        # copy of its CRC, which no reader checks): its entry differs
+        with zipfile.ZipFile(io.BytesIO(self.signed)) as zf:
+            entry = zf.getinfo("content.js")
+        bad[entry.header_offset + 30 + len(entry.filename) + entry.compress_size // 2] ^= 0xff
         path.write_bytes(bytes(bad))
         os.utime(str(path), ns=(st.st_atime_ns, st.st_mtime_ns))
         self.assertEqual((os.stat(str(path)).st_size, os.stat(str(path)).st_mtime_ns),

@@ -623,16 +623,23 @@ class LayersTest(unittest.TestCase):
         self.assertIn("[%s]:where(&,& *) { background-color: transparent !important; }"
                       % bg.ATTR_CANVAS, block)
         self.assertEqual((bg.NAV_BAR_OPACITY, bg.NAV_BAR_BLUR), (0.65, "blur(20px) saturate(1.5) url(\"#browserglass-veil\")"))
+        # the blur on its ::before, never on the bar (no containing block
+        # of its fixed parts, no Backdrop Root of a layer in it)
         self.assertIn("%s:where(&,& *) {\n    background: var(--browserglass-nav) !important;\n"
-                      "    backdrop-filter: blur(20px) saturate(1.5) url(\"#browserglass-veil\") !important;"
-                      % bar, block)
+                      "    backdrop-filter: none !important;\n    isolation: isolate !important;" % bar, block)
+        self.assertIn("%s:where(&,& *)::before { content: \"\" !important; position: absolute !important;"
+                      " inset: 0 !important; z-index: -1 !important;" % bar, block)
+        self.assertIn("backdrop-filter: blur(20px) saturate(1.5) url(\"#browserglass-veil\") !important; }", block)
         self.assertIn(":root:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }" % rgb["dark"], block)
         self.assertIn(":root:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }" % rgb["light"], block)
         # the bar's colour is a custom property of the root: it reaches the
         # bars of shadow trees, where html:root[tone] cannot match
+        # (the light one never on a page declaring its dark version: the
+        # dark glass stays there, its bars with it)
         for tone in bg.MODES:
-            self.assertIn('html:root[%s="%s"]:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }'
-                          % (bg.ATTR_TONE, tone, rgb[tone]), block)
+            where = ":not(%s)" % bg._DARK_PAGE_WHERE if tone == "light" else ""
+            self.assertIn('html:root[%s="%s"]%s:where(&,& *) { --browserglass-nav: rgba(%s, 0.65); }'
+                          % (bg.ATTR_TONE, tone, where, rgb[tone]), block)
         # the tone wins over the theme: last
         self.assertLess(block.index("not (prefers-color-scheme: dark)"), block.index(bg.ATTR_TONE))
         self.assertLess(css.index('[%s="light"]' % bg.ATTR_TONE), css.index(block))
