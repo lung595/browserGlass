@@ -263,7 +263,7 @@ Item {
             "run": () => {
                 // --- Domains, as browserglass.py normalize_domain() reads them ---
                 const vectors = [["https://www.YouTube.com/", "www.youtube.com"], ["*.youtube.com", "youtube.com"], ["bücher.de", "xn--bcher-kva.de"], ["BÜCHER.de.", "xn--bcher-kva.de"], ["faß.de", "xn--fa-hia.de"], ["https://user:pw@Sub.Example.com:8080/path?q#f", "sub.example.com"], ["..example.org", "example.org"], ["*.*.x.org", "x.org"], ["münchen.bücher.de", "xn--mnchen-3ya.xn--bcher-kva.de"], ["ｅｘａｍｐｌｅ。ｃｏｍ", "example.com"], ["日本語。jp", "xn--wgv71a119e.jp"], ["президент.рф", "xn--d1abbgf6aiiy.xn--p1ai"], ["[::1]", ""], ["bad host", ""], ["a_b.com", ""], ["", ""], ["http://", ""], ["a".repeat(64) + ".com", ""], ["例え.テスト", "xn--r8jz45g.xn--zckzah"], ["ab--c.ü", "ab--c.xn--tda"], ["www.gov.uk", "www.gov.uk"], ["x.com/path", "x.com"], ["mañana.com", "xn--maana-pta.com"], ["ǅ.com", "xn--d-toa.com"], ["😀.com", "xn--e28h.com"]];
-                t.check("normDomain matches normalize_domain", vectors.map(v => Launcher.normDomain(v[0])), vectors.map(v => v[1]));
+                t.check("normDomain matches normalize_domain", vectors.map(v => Logic.normDomain(v[0])), vectors.map(v => v[1]));
                 t.check("an entry: {domain} or a string; nothing else", [Launcher.entryDomain({
                         "domain": "*.YouTube.com"
                     }), Launcher.entryDomain("https://www.youtube.com/watch?v=1"), Launcher.entryDomain(null), Launcher.entryDomain(7)], ["youtube.com", "www.youtube.com", "", ""]);

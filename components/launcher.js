@@ -37,8 +37,6 @@
 // Action (launcherAction(a)): {kind: "on" | "off" | "blist" | "unblist" |
 //   "list-remove", domain, host, source, age, error}
 
-var PLUGIN_ID = "browserGlass";
-
 // How long a current-site answer is reused, and how long an action waits
 // for one before it gives up (ms)
 var SITE_CACHE_MS = 3000;
@@ -62,10 +60,6 @@ var COMMANDS = [
 
 // active-site error codes (contract spec "active_site")
 var SITE_ERRORS = ["no_browser", "private", "not_web", "no_session", "ambiguous", "unsupported", "outdated"];
-
-function _isObject(v) {
-    return v !== null && typeof v === "object" && !Array.isArray(v);
-}
 
 // The source strings of the launcher, its toasts and refusals
 function launcherText(key) {
@@ -197,16 +191,11 @@ function needsSite(q) {
 // Excluded sites
 // ---------------------------------------------------------------------------
 
-// Shared with the clipboard exclusion (logic.js)
-function normDomain(text) {
-    return Logic.normDomain(text);
-}
-
 // The domain of one excludedSites entry ({domain} or a bare string), "" when
 // it has none
 function entryDomain(entry) {
-    var text = _isObject(entry) ? entry.domain : entry;
-    return typeof text === "string" ? normDomain(text) : "";
+    var text = Logic._isObject(entry) ? entry.domain : entry;
+    return typeof text === "string" ? Logic.normDomain(text) : "";
 }
 
 // The excluded domains, normalised, each once, in order
@@ -223,8 +212,8 @@ function excludedDomains(excludedSites) {
 
 // An exclusion covers its domain and every subdomain
 function covers(entry, host) {
-    var e = normDomain(entry);
-    var h = normDomain(host);
+    var e = Logic.normDomain(entry);
+    var h = Logic.normDomain(host);
     return e !== "" && h !== "" && (h === e || h.slice(-(e.length + 1)) === "." + e);
 }
 
@@ -262,7 +251,7 @@ function _item(id, cmd, name, comment, icon, rank) {
 }
 
 function _siteOk(site) {
-    return _isObject(site) && typeof site.error !== "string" && typeof site.domain === "string" && site.domain !== "";
+    return Logic._isObject(site) && typeof site.error !== "string" && typeof site.domain === "string" && site.domain !== "";
 }
 
 // The command items for `cmds` (matchCommands()). state:
@@ -287,7 +276,7 @@ function commandItems(cmds, state) {
         } else if (site === null) {
             item.comment = launcherText("finding");
         } else if (!_siteOk(site)) {
-            item.comment = launcherText(_isObject(site) ? site.error : "failed");
+            item.comment = launcherText(Logic._isObject(site) ? site.error : "failed");
         } else {
             // unblist names the exclusions it removes, as its toast does (a
             // host-only entry is not the registrable domain)
@@ -408,7 +397,7 @@ function refusalToast(error) {
 // show "glass list" again.
 function planAction(a, excludedSites) {
     var plan = {"save": null, "toasts": [], "pending": null, "reopen": false};
-    var act = _isObject(a) ? a : {};
+    var act = Logic._isObject(a) ? a : {};
     var list = Array.isArray(excludedSites) ? excludedSites.slice() : [];
     var domains = excludedDomains(list);
     var kind = act.kind;
@@ -425,7 +414,7 @@ function planAction(a, excludedSites) {
         plan.toasts.push(refusalToast(act.error));
         return plan;
     }
-    var domain = normDomain(act.domain);
+    var domain = Logic.normDomain(act.domain);
     if (!domain) {
         plan.toasts.push(refusalToast("failed"));
         return plan;
@@ -441,7 +430,7 @@ function planAction(a, excludedSites) {
         plan.pending = {"kind": "exclude", "domain": domain, "source": source, "age": age};
         return plan;
     }
-    var host = kind === "unblist" ? normDomain(act.host || domain) : domain;
+    var host = kind === "unblist" ? Logic.normDomain(act.host || domain) : domain;
     var kept = list.filter(function (e) {
         var d = entryDomain(e);
         return kind === "unblist" ? !covers(d, host) : d !== domain;
@@ -464,10 +453,10 @@ function planAction(a, excludedSites) {
 // from the add-on (or the list) and live control is on. "gs on" while the
 // sync says glass is still off (DMS blur off, opacity 100%...) warns why.
 function toastFor(pending, outcome, liveControl) {
-    if (!_isObject(pending) || !outcome || !outcome.ok)
+    if (!Logic._isObject(pending) || !outcome || !outcome.ok)
         return null;
     if (pending.kind === "glass") {
-        var r = _isObject(outcome.result) ? outcome.result : {};
+        var r = Logic._isObject(outcome.result) ? outcome.result : {};
         if (pending.on && r.glass === false) {
             var w = _toast("warning", "onNotShown");
             w.details = Logic.reasonText(r.reason);
@@ -476,7 +465,7 @@ function toastFor(pending, outcome, liveControl) {
         }
         return _toast("info", pending.on ? "on" : "off");
     }
-    var live = outcome.result && _isObject(outcome.result.live) ? outcome.result.live : {};
+    var live = outcome.result && Logic._isObject(outcome.result.live) ? outcome.result.live : {};
     var applied = liveControl !== false && (live.acked || 0) > 0 && (pending.source === "companion" || pending.source === "list");
     var key = pending.kind === "exclude" ? (applied ? "excluded" : "excludedRestart") : (applied ? "included" : "includedRestart");
     var t = _toast("info", key, pending.domain);
@@ -493,5 +482,5 @@ function toastFor(pending, outcome, liveControl) {
 // restart is needed: the sync's generic restart toast is left out then. A
 // live one keeps it, as another change may still need the restart.
 function replacesRestartToast(toast) {
-    return _isObject(toast) && (toast.text === launcherText("excludedRestart") || toast.text === launcherText("includedRestart"));
+    return Logic._isObject(toast) && (toast.text === launcherText("excludedRestart") || toast.text === launcherText("includedRestart"));
 }

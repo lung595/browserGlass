@@ -103,6 +103,15 @@ class Failure(Exception):
 # denylist
 # ---------------------------------------------------------------------------
 
+def _style_file(key):
+    """The file name browserglass.py's normalize_style_name loads `key` as:
+    "X .CSS" and "x.css" are the same style."""
+    name = key.strip()
+    if name.lower().endswith(".css"):
+        name = name[:-4]
+    return name.strip().lower() + ".css"
+
+
 class Denylist(object):
     """Digests of the style names and of the words the bundle must not hold."""
 
@@ -135,7 +144,8 @@ class Denylist(object):
         and lowercased the way browserglass.py normalises keys)."""
         if not isinstance(key, str):
             return False
-        return any(_digest(k) in self.names for k in {key, key.strip(), key.strip().lower()})
+        forms = {key, key.strip(), key.strip().lower(), _style_file(key)}
+        return any(_digest(k) in self.names for k in forms)
 
     def denies_text(self, text):
         """True when `text` contains one of the listed words (any case)."""
@@ -279,8 +289,9 @@ def _filter_mapping(mapping, dropped, denylist):
     entries or targets naming a denied word. Returns (mapping, changed)."""
     out = {}
     changed = False
+    dropped = {_style_file(k) for k in dropped}  # JSON keys: always str
     for key, targets in mapping.items():
-        if key in dropped or denylist.denies_name(key) or denylist.denies_text(key):
+        if _style_file(key) in dropped or denylist.denies_name(key) or denylist.denies_text(key):
             changed = True
             continue
         if isinstance(targets, list):

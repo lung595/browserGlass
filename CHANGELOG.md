@@ -12,6 +12,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Sync and uninstall no longer hang** when the state folder is a dangling symlink (for example to an unmounted disk): they report the state folder as unusable.
 - **Uninstall**: when deleting the plugin folder fails to restore the browsers (for example while a sync is running), the plugin's settings are kept, so a reinstall can restore them.
 - **Long scrolls are lighter on the companion add-on**: the page layers (bars, glass layers, fills) are looked for again at most once every 300 ms while a page or one of its panes scrolls, instead of on every frame; the last position is still checked once the scroll stops.
+- `tools/sign_companion.py` now refuses a manifest version with a leading zero (such as `1.04`) before recording it, because AMO would reject it and the version number would be used up. The no-op `sign --version-check` flag is removed.
+- **Zen transparency warning**: a Zen profile with a large `prefs.js` (over 4 MiB) now gets the `zen_transparency_mod` warning again when a transparency pref is on.
+- A setting changed while a sync waits to retry on a busy state lock now joins that retry instead of running one more sync after it.
+- Docs: the guide now says what happens when the uninstall that runs after the plugin folder is deleted fails: an error toast shows, and the plugin's settings entry is kept so a reinstall can restore the browsers.
+- **A site excluded while the browser runs** no longer flashes glass before it turns off when it is opened with a final dot (`https://example.org./`).
 
 ## [1.4.1] - 2026-11-18
 

@@ -463,7 +463,6 @@ Item {
                     t.check("one sync at start", root.syncs().length, 1);
                     Proc.flush();
                     t.check("a stale niri rule asks for a sync", Proc.isPending(root.syncId), true);
-                    t.check("for that reason", root.d.book.reasons, ["niri_rule_stale"]);
                     Proc.flush();
                     t.check("the resync ran", root.syncs().length, 2);
                     Proc.flush();

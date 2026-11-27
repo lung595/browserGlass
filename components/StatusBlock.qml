@@ -10,7 +10,7 @@ import "logic.js" as Logic
 // needed, opacity and tint, the niri rule, the browsers found and the
 // warnings. It only reads what BrowserGlassDaemon.qml shares through its
 // PluginGlobalVar values (names in logic.js) and runs nothing itself. Used by
-// the settings page; `compact` drops the per-browser lines.
+// the settings page.
 Column {
     id: block
 
@@ -22,7 +22,6 @@ Column {
     property bool restartNeeded: vars.restartNeeded === true
     property bool syncing: vars.syncing === true
     property string lastError: typeof vars.lastError === "string" ? vars.lastError : ""
-    property bool compact: false
 
     readonly property var glass: status && status.glass ? status.glass : null
     readonly property string reason: glass ? String(glass.reason || "") : (lastSync ? String(lastSync.reason || "") : "")
@@ -109,13 +108,6 @@ Column {
         return block.browserName(browser) + ": " + parts.join(", ");
     }
 
-    function profileCount() {
-        let n = 0;
-        for (let i = 0; i < block.browsers.length; i++)
-            n += block.listOf(block.browsers[i].profiles).length;
-        return n;
-    }
-
     // What the warning means (translated), with the browser it is about
     function warningText(warning) {
         const text = I18n.trFor("browserGlass", Logic.warningText(warning.code));
@@ -128,11 +120,6 @@ Column {
         if (!companion)
             return "";
         return I18n.trFor("browserGlass", Logic.liveStatusText(String(companion.state || "")));
-    }
-
-    function profileCountText() {
-        const n = block.profileCount();
-        return n === 1 ? I18n.trFor("browserGlass", "1 browser profile") : I18n.trFor("browserGlass", "%1 browser profiles").arg(n);
     }
 
     Row {
@@ -237,18 +224,9 @@ Column {
         color: Theme.surfaceVariantText
     }
 
-    StyledText {
-        objectName: "statusProfileCount"
-        visible: block.compact && block.browsers.length > 0
-        width: parent.width
-        text: block.profileCountText()
-        font.pixelSize: Theme.fontSizeSmall
-        color: Theme.surfaceVariantText
-    }
-
     Column {
         objectName: "statusBrowsers"
-        visible: !block.compact && block.browsers.length > 0
+        visible: block.browsers.length > 0
         width: parent.width
         spacing: Theme.spacingXS
 
@@ -260,7 +238,7 @@ Column {
         }
 
         Repeater {
-            model: block.compact ? [] : block.browsers
+            model: block.browsers
 
             StyledText {
                 required property var modelData

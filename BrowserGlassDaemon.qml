@@ -693,8 +693,7 @@ PluginComponent {
         // "enabled" turns false only when the user disables the plugin, not
         // when the shell quits or reloads it; a deleted folder is the sweep's
         const enabled = SettingsData.getPluginSetting(Logic.PLUGIN_ID, "enabled", true);
-        const action = Logic.teardownAction(enabled, sweep.manifestPresent(), true);
-        if (action !== "uninstall" || !root.pluginDir)
+        if (enabled !== false || !sweep.manifestPresent() || !root.pluginDir)
             return;
         // The script waits up to 2 minutes for a running sync to finish
         Quickshell.execDetached(Logic.uninstallArgv(root.pluginDir));

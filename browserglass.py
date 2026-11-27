@@ -1003,7 +1003,7 @@ def zen_transparency(profile):
     prefs = {}
     for name in (PREFS_JS, USER_JS):  # user.js is applied last, at startup
         try:
-            prefs.update(parse_prefs(read_text(os.path.join(profile, name))))
+            prefs.update(parse_prefs(read_text(os.path.join(profile, name), limit=PREFS_READ_LIMIT)))
         except (OSError, ValueError):
             continue
     return any(_ZEN_PREF.fullmatch(pref) and _zen_pref_on(value) for pref, value in prefs.items())
@@ -1443,7 +1443,7 @@ def plugin_disabled(env=None):
     """True when $XDG_CONFIG_HOME/dms/plugin_settings.json says DMS has
     browserGlass disabled: its entry has "enabled": false, which DMS's
     disablePlugin writes and which makes the daemon's onDestruction run the
-    uninstall (logic.js teardownAction, enabled === false). False when the
+    uninstall (BrowserGlassDaemon.qml onDestruction, enabled === false). False when the
     file is missing, unreadable, not a JSON object or has no such value: no
     uninstall ran then."""
     path = os.path.join(xdg_dir("XDG_CONFIG_HOME", env), DMS_PLUGIN_SETTINGS_REL)

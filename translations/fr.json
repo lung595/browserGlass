@@ -5,9 +5,6 @@
   "%1 back under glass — applies after a restart": {
     "%1 back under glass — applies after a restart": "%1 remis sous verre — appliqué au redémarrage"
   },
-  "%1 browser profiles": {
-    "%1 browser profiles": "%1 profils de navigateur"
-  },
   "%1 excluded": {
     "%1 excluded": "%1 exclu"
   },
@@ -55,9 +52,6 @@
   },
   "%1, no match": {
     "%1, no match": "%1, aucune correspondance"
-  },
-  "1 browser profile": {
-    "1 browser profile": "1 profil de navigateur"
   },
   "1 profile": {
     "1 profile": "1 profil"

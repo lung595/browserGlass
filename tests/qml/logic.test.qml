@@ -3,7 +3,7 @@ import "components/logic.js" as Logic
 
 // components/logic.js on its own: settings JSON, command lines, output
 // parsing, the sync debounce bookkeeping, toast and status decisions, the
-// clipboard exclusion and the teardown choice.
+// clipboard exclusion and the teardown's plugin_settings.json entry.
 Item {
     id: root
 
@@ -266,18 +266,17 @@ Item {
                     // --- Debounce bookkeeping ----------------------------------------
                     let b = Logic.newSyncBook();
                     let r = Logic.syncRequest(b, "start", 1000, 800);
-                    t.check("first request schedules", [r.schedule, r.book.phase, r.book.reasons], [true, "scheduled", ["start"]]);
+                    t.check("first request schedules", [r.schedule, r.book.phase], [true, "scheduled"]);
                     t.check("the book given is not mutated", b.phase, "idle");
                     r = Logic.syncRequest(r.book, "pluginData", 1100, 800);
-                    t.check("a request inside the window reschedules (restarts the debounce)", [r.schedule, r.book.scheduledAt, r.book.dirty, r.book.reasons], [true, 1100, false, ["start", "pluginData"]]);
+                    t.check("a request inside the window reschedules (restarts the debounce)", [r.schedule, r.book.scheduledAt, r.book.dirty], [true, 1100, false]);
                     r = Logic.syncRequest(r.book, "pluginData", 1150, 800);
-                    t.check("a repeated reason is listed once", r.book.reasons, ["start", "pluginData"]);
                     r = Logic.syncRequest(r.book, "blur", 1150 + 800, 800);
                     t.check("a request after the window marks dirty, no new launch", [r.schedule, r.book.dirty, r.book.phase], [false, true, "scheduled"]);
                     let f = Logic.syncFinished(r.book, 3000, false);
                     t.check("a dirty book runs once more after the sync", [f.schedule, f.retry, f.book.phase, f.book.dirty, f.book.scheduledAt], [true, false, "scheduled", false, 3000]);
                     f = Logic.syncFinished(f.book, 4000, false);
-                    t.check("then goes idle", [f.schedule, f.book.phase, f.book.reasons], [false, "idle", []]);
+                    t.check("then goes idle", [f.schedule, f.book.phase], [false, "idle"]);
                     // Busy retries
                     let book = Logic.syncRequest(Logic.newSyncBook(), "x", 0, 800).book;
                     const retries = [];
@@ -292,6 +291,12 @@ Item {
                     t.check("a success resets the retry count", f.book.busyRetries, 0);
                     book.busyRetries = 3;
                     t.check("a new request resets the retry count", Logic.syncRequest(book, "ipc", 200, 800).book.busyRetries, 0);
+                    // A lock retry waits BUSY_RETRY_MS: a request during that wait joins it
+                    book = Logic.syncFinished(Logic.syncRequest(Logic.newSyncBook(), "x", 0, 800).book, 1000, true).book;
+                    r = Logic.syncRequest(book, "settings", 2000, 800);
+                    t.check("a request during the retry wait restarts it, no extra sync", [r.schedule, r.book.dirty], [true, false]);
+                    t.check("a request once the retry may run is dirty", Logic.syncRequest(book, "settings", 1000 + Logic.BUSY_RETRY_MS, 800).schedule, false);
+                    t.check("a launcher command during the retry wait runs at once", Logic.syncRequestNow(book, "launcher", 2000).schedule, true);
                     // The wall clock went back while a sync was scheduled
                     r = Logic.syncRequest(Logic.newSyncBook(), "x", 5000, 800);
                     r = Logic.syncRequest(r.book, "y", 1000, 800);
@@ -302,7 +307,7 @@ Item {
                     t.check("a later request counts it as launched", Logic.syncRequest(r.book, "settings", 5000, 800).schedule, false);
                     r = Logic.syncRequest(Logic.newSyncBook(), "settings", 5000, 800);
                     r = Logic.syncRequestNow(r.book, "launcher", 5100);
-                    t.check("a pending debounced request is restarted with no wait", [r.schedule, r.book.reasons], [true, ["settings", "launcher"]]);
+                    t.check("a pending debounced request is restarted with no wait", [r.schedule, r.book.dirty], [true, false]);
                     r = Logic.syncRequest(Logic.newSyncBook(), "settings", 5000, 800);
                     r = Logic.syncRequestNow(r.book, "launcher", 5000 + 800);
                     t.check("a sync that may run: an urgent one follows", [r.schedule, r.book.dirty, r.book.urgent], [false, true, true]);
@@ -405,21 +410,20 @@ Item {
                     const needs = Logic.parseStatus('{"glass":{"active":true},"restart_needed":true,"warnings":[]}', 0);
                     const fine = Logic.parseStatus('{"glass":{"active":true},"restart_needed":false,"warnings":[]}', 0);
                     let d = Logic.statusDecision(needs, firstCtx);
-                    t.check("restart_needed true: poll", [d.poll, d.resync], [true, false]);
+                    t.check("restart_needed true: no resync", d.resync, false);
                     t.ok("the restart episode goes on", d.ctx.restartShown);
                     d = Logic.statusDecision(fine, d.ctx);
-                    t.check("restart_needed false: stop polling", [d.poll, d.resync], [false, false]);
+                    t.check("restart_needed false: no resync", d.resync, false);
                     t.check("and the restart episode ends", [d.ctx.restartShown, d.ctx.restartOpacity], [false, null]);
-                    t.check("a failed status stops polling", Logic.statusDecision(Logic.parseStatus("", 1), d.ctx).poll, false);
+                    t.check("a failed status: no resync", Logic.statusDecision(Logic.parseStatus("", 1), d.ctx).resync, false);
                     d = Logic.statusDecision(stale, Logic.newToastContext());
-                    t.check("niri_rule_stale: resync, no poll", [d.poll, d.resync], [false, true]);
+                    t.check("niri_rule_stale: resync", d.resync, true);
                     const again = Logic.statusDecision(stale, d.ctx);
                     t.check("only once per stale episode", again.resync, false);
                     const cleared = Logic.statusDecision(fine, again.ctx);
                     t.check("a status without it ends the episode", Logic.statusDecision(stale, cleared.ctx).resync, true);
                     d = Logic.statusDecision(st, Logic.newToastContext());
                     t.check("status warnings toast once", [d.toasts.length, Logic.statusDecision(st, d.ctx).toasts.length], [1, 0]);
-                    t.check("held keeps polling", Logic.statusDecision(held, Logic.newToastContext()).poll, true);
 
                     // --- Clipboard exclusion ---------------------------------------------
                     const hosts = ["https://www.Example.com/path?q=1#x", "http://user:pw@sub.example.org:8080/", "example.net", "example.com:8080/x", "about:newtab", "file:///etc/passwd", "", "two words.com", "localhost", "https:/bad.com", "javascript:alert(1)", "https://[::1]/", "https://a..b.com"];
@@ -492,7 +496,6 @@ Item {
                     t.check("invalid clipboard", [e.ok, e.reason, e.list], [false, "invalid", []]);
 
                     // --- Teardown --------------------------------------------------------
-                    t.check("teardown choices", [Logic.teardownAction(false, true, true), Logic.teardownAction(true, true, true), Logic.teardownAction(undefined, true, true), Logic.teardownAction(false, false, true), Logic.teardownAction(true, false, true), Logic.teardownAction(false, false, false)], ["uninstall", "none", "none", "sweep", "sweep", "none"]);
                     const store = {
                         "browserGlass": {
                             "enabled": false

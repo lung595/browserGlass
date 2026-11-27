@@ -55,8 +55,11 @@ let lastSent = null;
 let reportGen = 0;
 let connectedAt = 0;
 
+// A host may come with a final dot (example.org.), which `*://*.example.org/*`
+// does not match: without the second pattern such a page paints glass first.
 function patterns(domains) {
-  return domains.map((d) => /^[0-9.]+$/.test(d) ? "*://" + d + "/*" : "*://*." + d + "/*");
+  return domains.flatMap((d) => /^[0-9.]+$/.test(d) ? ["*://" + d + "/*"]
+    : ["*://*." + d + "/*", "*://*." + d + "./*"]);
 }
 
 function cleanList(domains) {

@@ -511,14 +511,14 @@ function familyNames(browsers) {
 // (dirty) and runs after it.
 //   phase  "idle" | "scheduled" (runCommand called, callback not yet back)
 //   scheduledAt  time of the last runCommand call (ms)
+//   waitMs  the debounce of that call (a lock retry waits BUSY_RETRY_MS)
 //   dirty  a request came while the sync may be running
-//   reasons  what asked for the pending sync
 //   busyRetries  consecutive "state lock held" failures
 //   urgent  the pending (dirty) sync must run without debounce (a launcher
 //           command, syncRequestNow())
 
 function newSyncBook() {
-    return {"phase": "idle", "scheduledAt": 0, "dirty": false, "reasons": [], "busyRetries": 0, "urgent": false};
+    return {"phase": "idle", "scheduledAt": 0, "waitMs": SYNC_DEBOUNCE_MS, "dirty": false, "busyRetries": 0, "urgent": false};
 }
 
 function _copyBook(book) {
@@ -526,33 +526,35 @@ function _copyBook(book) {
     return {
         "phase": b.phase || "idle",
         "scheduledAt": b.scheduledAt || 0,
+        "waitMs": typeof b.waitMs === "number" ? b.waitMs : SYNC_DEBOUNCE_MS,
         "dirty": b.dirty === true,
-        "reasons": Array.isArray(b.reasons) ? b.reasons.slice() : [],
         "busyRetries": b.busyRetries || 0,
         "urgent": b.urgent === true
     };
 }
 
-// A sync is asked for. {book, schedule}: schedule true means call
+// The pending sync may already be running: its debounce is (nearly) over,
+// or the wall clock went back (do not restart it then)
+function _mayRun(b, now) {
+    var since = now - b.scheduledAt;
+    return b.phase === "scheduled" && (since < 0 || since >= b.waitMs * DEBOUNCE_SAFETY);
+}
+
+// A sync is asked for (reason names the caller, for the reader). {book, schedule}: schedule true means call
 // Proc.runCommand now (first request, or one still inside the debounce
 // window, which restarts it with fresh settings).
 function syncRequest(book, reason, now, debounceMs) {
     var b = _copyBook(book);
     var wait = typeof debounceMs === "number" ? debounceMs : SYNC_DEBOUNCE_MS;
-    if (reason && b.reasons.indexOf(reason) < 0)
-        b.reasons.push(reason);
     // A fresh request gets its own lock retries
     b.busyRetries = 0;
-    var since = now - b.scheduledAt;
-    // The wall clock went back: the sync may be running, do not restart it
-    if (since < 0)
-        since = wait;
-    if (b.phase === "scheduled" && since >= wait * DEBOUNCE_SAFETY) {
+    if (_mayRun(b, now)) {
         b.dirty = true;
         return {"book": b, "schedule": false};
     }
     b.phase = "scheduled";
     b.scheduledAt = now;
+    b.waitMs = wait;
     return {"book": b, "schedule": true};
 }
 
@@ -562,20 +564,16 @@ function syncRequest(book, reason, now, debounceMs) {
 // sync may be running and an urgent one follows it.
 function syncRequestNow(book, reason, now) {
     var b = _copyBook(book);
-    if (reason && b.reasons.indexOf(reason) < 0)
-        b.reasons.push(reason);
     b.busyRetries = 0;
-    var since = now - b.scheduledAt;
-    if (since < 0)
-        since = SYNC_DEBOUNCE_MS;
-    if (b.phase === "scheduled" && since >= SYNC_DEBOUNCE_MS * DEBOUNCE_SAFETY) {
+    if (_mayRun(b, now)) {
         b.dirty = true;
         b.urgent = true;
         return {"book": b, "schedule": false};
     }
     b.phase = "scheduled";
     // It launches at once: a later request must count it as running
-    b.scheduledAt = now - SYNC_DEBOUNCE_MS;
+    b.scheduledAt = now;
+    b.waitMs = 0;
     return {"book": b, "schedule": true};
 }
 
@@ -600,10 +598,11 @@ function syncFinished(book, now, busy) {
         b.dirty = false;
         b.urgent = false;
         b.phase = "scheduled";
-        b.scheduledAt = urgent ? now - SYNC_DEBOUNCE_MS : now;
+        b.scheduledAt = now;
+        // The debounce the daemon passes for this launch
+        b.waitMs = urgent ? 0 : (retry && !wasDirty ? BUSY_RETRY_MS : SYNC_DEBOUNCE_MS);
         return {"book": b, "schedule": true, "retry": retry && !wasDirty, "urgent": urgent};
     }
-    b.reasons = [];
     b.urgent = false;
     return {"book": b, "schedule": false, "retry": false, "urgent": false};
 }
@@ -756,15 +755,15 @@ function liveControlChanged(before, after) {
     return _isObject(a) && _isObject(b) && a.liveControl !== b.liveControl;
 }
 
-// What to do with a status (parseStatus()'s value). {poll, resync, toasts, ctx}
-//   poll    keep polling status every POLL_INTERVAL_MS (restart_needed)
+// What to do with a status (parseStatus()'s value). {resync, toasts, ctx}
+// (polling follows restart_needed, which the daemon publishes)
 //   resync  run sync now: the niri rule is stale (once per stale episode,
 //           so a sync that cannot drop it does not loop)
 function statusDecision(parsed, ctx) {
     var c = _copyCtx(ctx);
     var toasts = [];
     if (!parsed || !parsed.ok)
-        return {"poll": false, "resync": false, "toasts": toasts, "ctx": c};
+        return {"resync": false, "toasts": toasts, "ctx": c};
     if (!parsed.restartNeeded) {
         c.restartShown = false;
         c.restartOpacity = null;
@@ -779,7 +778,7 @@ function statusDecision(parsed, ctx) {
         c.staleResync = false;
     }
     _warningToasts(parsed.status.warnings, c, toasts);
-    return {"poll": parsed.restartNeeded, "resync": resync, "toasts": toasts, "ctx": c};
+    return {"resync": resync, "toasts": toasts, "ctx": c};
 }
 
 // ---------------------------------------------------------------------------
@@ -1010,17 +1009,6 @@ function excludeFromClipboard(text, excludedSites) {
 // ---------------------------------------------------------------------------
 // Teardown
 // ---------------------------------------------------------------------------
-
-// What to do when the daemon is destroyed. "sweep": plugin.json is gone (the
-// folder may have been deleted): after a grace period, uninstall from the
-// script text kept in memory and drop the plugin_settings.json entry. "uninstall": the plugin was disabled
-// (enabled === false): run the script's uninstall. "none": the shell quits
-// or reloads the plugin.
-function teardownAction(enabledSetting, manifestPresent, haveScriptText) {
-    if (!manifestPresent)
-        return haveScriptText ? "sweep" : "none";
-    return enabledSetting === false ? "uninstall" : "none";
-}
 
 // pluginSettings without the plugin's entry, or null when it has none
 function withoutPlugin(pluginSettings, pluginId) {

@@ -361,9 +361,6 @@ Item {
                     })]);
                 PluginService.setGlobalVar(root.pid, "status", listLike);
                 t.check("array-like browser and profile lists", findAll(control("statusBrowsers"), "statusBrowser", []).filter(i => i.objectName === "statusBrowser").map(i => i.text), ["Firefox: 2 profiles, 1 running, restart needed"]);
-                control("statusBlock").compact = true;
-                t.check("compact: the profile count of array-like lists", [control("statusProfileCount").visible, control("statusProfileCount").text], [true, "2 browser profiles"]);
-                control("statusBlock").compact = false;
                 PluginService.setGlobalVar(root.pid, "status", json("contract/status.json"));
                 openCategory("help");
                 t.ok("a Zen browser found: the Zen Mods note shows", control("zenWarning").visible);

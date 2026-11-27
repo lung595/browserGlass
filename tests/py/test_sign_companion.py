@@ -359,7 +359,7 @@ class JwtTest(SignCompanionCase):
 class SignTest(SignCompanionCase):
 
     def test_happy_path(self):
-        code, line, err = self.run_sub("sign", "--version-check", *self.common())
+        code, line, err = self.run_sub("sign", *self.common())
         self.assertEqual(code, 0, err)
         version = self.manifest_version()
         out = os.path.join(self.state, "signed", "browserglass@companion-%s.xpi" % version)
@@ -615,7 +615,7 @@ class VersionCheckTest(SignCompanionCase):
         code, _, _ = self.run_in("sign", *self.common())
         self.assertEqual(code, 0)
         count = len(self.amo.requests)
-        code, line, err = self.run_sub("sign", "--version-check", *self.common())
+        code, line, err = self.run_sub("sign", *self.common())
         self.assertEqual(code, 1)
         self.assertEqual(line["status"], "refused")
         self.assertIn("already sent to AMO", err)

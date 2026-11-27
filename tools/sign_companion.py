@@ -7,7 +7,7 @@ unlisted channel (self-distributed, no public listing) through the AMO API v5.
 
     sign_companion.py pack   [options]
     sign_companion.py verify XPI [options]
-    sign_companion.py sign   [--version-check] [options]
+    sign_companion.py sign   [options]
     sign_companion.py fetch  VERSION [options]
 
 Options (after the subcommand): --api-url URL (default
@@ -30,12 +30,12 @@ manifest.mf.
 sign: refuses a manifest version already recorded in <state>/amo-versions.json
 or not greater than the largest one recorded (AMO consumes a version number
 forever, even after a rejection, so the version is recorded before the upload
-is sent; --version-check is always on). Then: upload (channel unlisted), wait
-for the validation, submit the version with approval notes, wait until its
-file is public, download it (redirects followed by hand, only to
-addons.mozilla.org, *.mozilla.net or the --api-url host; the Authorization
-header goes only to the --api-url host and addons.mozilla.org), verify it and
-write it to --out (default <state>/signed/browserglass@companion-<version>.xpi).
+is sent). Then: upload (channel unlisted), wait for the validation, submit
+the version with approval notes, wait until its file is public, download it
+(redirects followed by hand, only to addons.mozilla.org, *.mozilla.net or the
+--api-url host; the Authorization header goes only to the --api-url host and
+addons.mozilla.org), verify it and write it to --out (default
+<state>/signed/browserglass@companion-<version>.xpi).
 Nothing is retried automatically: HTTP 409 means the version number is used,
 429 means try later. When a wait ends without an answer, the AMO version id is
 printed and "fetch VERSION" picks the signed file up later.
@@ -128,7 +128,9 @@ APPROVAL_NOTES = (
 STATUS_PUBLIC = "public"
 STATUS_DISABLED = "disabled"
 
-_VERSION_RE = re.compile(r"^[0-9]{1,9}(\.[0-9]{1,9}){0,3}$")
+# no leading zeros: AMO refuses "1.04" after the version is already recorded;
+# \Z, not $, which lets a final newline through
+_VERSION_RE = re.compile(r"^(0|[1-9][0-9]{0,8})(\.(0|[1-9][0-9]{0,8})){0,3}\Z")
 _UPLOAD_ID_RE = re.compile(r"^[0-9A-Za-z-]{1,64}$")
 _B64URL = r"[A-Za-z0-9_-]"
 _JWT_RE = re.compile(r"JWT\s+\S+")
@@ -832,9 +834,8 @@ def cmd_verify(args, env, result):
 
 
 def make_amo(args, env):
-    api = check_api_url(args.api_url)
     key, secret = load_credentials(env)
-    return Amo(api, key, secret, args.poll_interval, args.timeout)
+    return Amo(args.api_url, key, secret, args.poll_interval, args.timeout)
 
 
 def cmd_sign(args, env, result):
@@ -894,9 +895,7 @@ def build_parser(env):
     sub.add_parser("pack", parents=[common], help="build the xpi")
     p = sub.add_parser("verify", parents=[common], help="check a signed xpi against the sources")
     p.add_argument("xpi")
-    p = sub.add_parser("sign", parents=[common], help="upload, wait, download the signed xpi")
-    p.add_argument("--version-check", action="store_true",
-                   help="refuse a version already sent (always on)")
+    sub.add_parser("sign", parents=[common], help="upload, wait, download the signed xpi")
     p = sub.add_parser("fetch", parents=[common], help="download the signed xpi of a version sent before")
     p.add_argument("version")
     return parser
@@ -927,8 +926,6 @@ def main(argv=None, env=None):
         say("error: %s" % exc)
         result["status"] = exc.status
         code = exc.code
-    except urllib.error.HTTPError as exc:
-        say("error: HTTPError %s: %s" % (exc.code, short(exc.reason, 120)))
     except urllib.error.URLError as exc:
         say("error: URLError: %s" % short(exc.reason, 120))
     except (OSError, ValueError, zipfile.BadZipFile, ImportError) as exc:
