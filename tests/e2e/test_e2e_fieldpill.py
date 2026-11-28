@@ -11,22 +11,22 @@ main, as the bundled one does), under the light theme:
     (two bars; the header under a bar is made one again on each pass),
     holding a white bordered field (#archq) and a light bordered button
     (#archgo), the form's white kept opaque in the bar (it holds controls):
-    the form, the field and the button are veiled, and stay so;
+    the form, the field and the button keep the site's look, no mark;
   - a search pill (#pill) under the bar, painted by empty absolute layers
     under its content (a white one, #pillbg, holding a grey one shown while
     a field is open, #pillopen), holding a see-through field and a coloured
     button:
-    both layers veiled, the coloured button kept;
+    both layers and the coloured button keep the site's look, no mark;
   - an icon button in a wrapper holding its hidden white touch fill
     (#ibfill, YouTube's): no pill, the fill left alone;
   - a framed white card (a border: one the glass keeps opaque) holding a
     light bordered button (#cardbtn) and a white borderless one (#bare),
-    and the same card in an open shadow tree (#xc): the buttons are veiled,
-    the borderless one with a ring;
-  - the marks stay from pass to pass.
+    and the same card in an open shadow tree (#xc): the buttons keep their
+    own fill, no mark and no ring;
+  - that stays so from pass to pass.
 Under a dark theme (no Dark Reader here) the page keeps its tone: the marks
-stay as they were. Darkened (Dark Reader, a dark theme): the borderless
-button veiled by the card's blocks gets the ring too, the bordered one none.
+stay as they were. Darkened (Dark Reader, a dark theme): both buttons veiled
+by the card's blocks (Dark Reader's fill, not the site's), and no ring.
 """
 
 import os
@@ -93,14 +93,19 @@ return Object.fromEntries(arguments[0].map((id) => {
     : document.getElementById(id);
   return [id, el ? el.getAttribute(arguments[1]) : 'missing'];
 }));"""
-WANT = {"arch": "veil", "archq": "veil", "archgo": "veil", "pillbg": "veil edge", "pillopen": "veil edge",
-        "go": None, "where": None, "ibfill": None, "cardbtn": "veil", "bare": "veil edge", "xc-btn": "veil", "xc-bare": "veil edge"}
-SETTLED = """const shadow = document.getElementById('xc').shadowRoot;
-return ['arch', 'archq', 'archgo', 'pillbg', 'cardbtn'].every((id) =>
-  document.getElementById(id).hasAttribute(arguments[0])) && !!shadow.querySelector('button[' + arguments[0] + ']');"""
+WANT = {"arch": None, "archq": None, "archgo": None, "pillbg": None, "pillopen": None,
+        "go": None, "where": None, "ibfill": None, "cardbtn": None, "bare": None, "xc-btn": None, "xc-bare": None}
+# the site's own fill and no ring, judged once the page's tone is set
+OWN = {"arch": "rgb(255, 255, 255)", "archq": "rgb(255, 255, 255)", "archgo": "rgb(248, 249, 250)",
+       "pillbg": "rgb(255, 255, 255)", "cardbtn": "rgb(246, 248, 250)", "bare": "rgb(255, 255, 255)"}
+LOOKS = """return Object.fromEntries(arguments[0].map((id) => {
+  const s = getComputedStyle(document.getElementById(id));
+  return [id, s.backgroundColor + ' ' + s.boxShadow];
+}));"""
 SAMPLES = 10
 SAMPLE_GAP = 0.2
-DARK_WANT = {"cardbtn": "veil", "bare": "veil edge"}
+DARK_WANT = {"cardbtn": "veil", "bare": "veil"}
+SHADOWS = "return arguments[0].map((id) => getComputedStyle(document.getElementById(id)).boxShadow);"
 DARK_SETTLED = ("return document.getElementById('bare').hasAttribute(arguments[0])"
                 " && document.getElementById('cardbtn').hasAttribute(arguments[0]);")
 
@@ -147,8 +152,8 @@ class FieldPillE2E(unittest.TestCase):
                                                 tone.TONE), want))
 
     def marks_are(self, b):
-        b.wait_for(SETTLED, mn.WAIT_TIMEOUT, bg.ATTR_BLOCK)
         self.assertEqual(b.js(BLOCKS, list(WANT), bg.ATTR_BLOCK), WANT)
+        self.assertEqual(b.js(LOOKS, list(OWN)), {k: v + " none" for k, v in OWN.items()})
 
     def check(self, binary):
         prefs = tone.browser_prefs()
@@ -160,11 +165,11 @@ class FieldPillE2E(unittest.TestCase):
             b.js(tone.RUN_CONTENT, self.content_js)
             self.tone_is(b, "light")
             self.marks_are(b)
-            # the veils stay from pass to pass (the header made a bar keeps them)
+            # no mark from pass to pass (the header made a bar again)
             for _ in range(SAMPLES):
                 time.sleep(SAMPLE_GAP)
                 b.js("window.scrollBy(0, 1);")
-                self.assertEqual(b.js(BLOCKS, list(WANT), bg.ATTR_BLOCK), WANT)
+                self.marks_are(b)
             b.js("window.scrollTo(0, 0);")
             # a dark theme: the page's tone, and so its marks, stay
             tone.set_scheme(b, True)
@@ -180,11 +185,12 @@ class FieldPillE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(dk.DARKENED), "not darkened")
             self.assertTrue(b.wait_for(DARK_SETTLED, mn.WAIT_TIMEOUT, bg.ATTR_BLOCK), "card buttons not veiled")
             self.assertEqual(b.js(BLOCKS, list(DARK_WANT), bg.ATTR_BLOCK), DARK_WANT)
-            # the ring stays from pass to pass (judged once: it is a shadow)
+            # the veils stay from pass to pass, and no ring
             for _ in range(SAMPLES // 2):
                 time.sleep(SAMPLE_GAP)
                 b.js("window.scrollBy(0, 1);")
                 self.assertEqual(b.js(BLOCKS, list(DARK_WANT), bg.ATTR_BLOCK), DARK_WANT)
+                self.assertEqual(b.js(SHADOWS, list(DARK_WANT)), ["none", "none"])
 
 
 if __name__ == "__main__":

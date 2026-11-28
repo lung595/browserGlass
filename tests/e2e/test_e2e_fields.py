@@ -8,10 +8,10 @@ LibreWolf with BG_LIBREWOLF).
 and main, as the bundled one does; a white band across the page, above
 the content, is the page's layer), under the light theme:
   - a white search field in a sticky header the style made glass
-    (#q, bordered) and a light grey borderless button (#flat): both get
-    a veil (BLOCK "veil"), the borderless one a thin edge ("edge") too;
+    (#q, bordered) and a light grey borderless button (#flat): both keep
+    the site's own look (no block mark, their fill and no ring);
   - a fixed cookie box with a brand button (#accept, its green kept) and
-    a light secondary one (#more, "veil");
+    a light secondary one (#more, no mark, its own fill);
   - a white button on an indigo band (#onband): it keeps its white;
   - a lone light grey panel of text (#panel, 800 px wide, too narrow for
     a module) and a low bordered header bar (#bar, 900x54): both veiled;
@@ -23,8 +23,8 @@ Under a dark theme (no Dark Reader here) the page keeps its tone (its text
 is dark): the marks stay as they were.
 
 /toggle.html?dark, a page whose own toggle sets html.dark, under the dark
-theme: its white search field (#q, the browser's default) gets the veil and
-light ink, readable on the dark glass.
+theme: its white search field (#q, the browser's default) keeps its white
+and its dark text: no veil under the dark theme.
 """
 
 import os
@@ -87,11 +87,12 @@ html.dark header{background:rgb(22,27,34)}
 BLOCKS = """return Object.fromEntries(arguments[0].map((id) =>
   [id, document.getElementById(id).getAttribute(arguments[1])]));"""
 IDS = ("q", "flat", "accept", "more", "onband", "panel", "bar", "tile")
-WANT = {"q": "veil", "flat": "veil edge", "accept": None, "more": "veil", "onband": None,
+WANT = {"q": None, "flat": None, "accept": None, "more": None, "onband": None,
         "panel": "veil", "bar": "veil", "tile": "veil"}
 FADING = "return document.getElementById('foot').getAttribute(arguments[0]);"
 FILL_OF = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;"
 INK_OF = "return getComputedStyle(document.getElementById(arguments[0])).color;"
+SHADOW_OF = "return getComputedStyle(document.getElementById(arguments[0])).boxShadow;"
 
 
 def stylesheet():
@@ -127,8 +128,12 @@ class FieldsE2E(unittest.TestCase):
                                                 tone.TONE), want))
 
     def marks_are(self, b):
-        b.wait_for("return document.getElementById('q').hasAttribute(arguments[0]);", mn.WAIT_TIMEOUT, bg.ATTR_BLOCK)
+        b.wait_for("return document.getElementById('panel').hasAttribute(arguments[0]);", mn.WAIT_TIMEOUT, bg.ATTR_BLOCK)
         self.assertEqual(b.js(BLOCKS, list(IDS), bg.ATTR_BLOCK), WANT)
+        # fields and secondary buttons keep the site's own fill, no ring
+        for el, fill in (("q", "rgb(255, 255, 255)"), ("flat", "rgb(238, 238, 238)"), ("more", "rgb(246, 248, 250)")):
+            self.assertEqual(b.js(FILL_OF, el), fill)
+            self.assertEqual(b.js(SHADOW_OF, el), "none")
         self.assertEqual(b.js(FADING, bg.ATTR_FADE_PSEUDO), "before")
         # the brand button keeps its green, the one on the band its white
         self.assertEqual(b.js(FILL_OF, "accept"), "rgb(31, 136, 61)")
@@ -156,9 +161,9 @@ class FieldsE2E(unittest.TestCase):
                 b.navigate(srv.url("/toggle.html?dark", "plain.test"))
                 b.js(tone.RUN_CONTENT, self.content_js)
                 self.tone_is(b, "dark")
-                self.assertTrue(b.wait_for("return document.getElementById('q').getAttribute(arguments[0]) === 'veil';",
-                                           mn.WAIT_TIMEOUT, bg.ATTR_BLOCK))
-                self.assertGreater(tone.luminance(tone.rgba(b.js(INK_OF, "q"))), 0.5)
+                self.assertIsNone(b.js(BLOCKS, ["q"], bg.ATTR_BLOCK)["q"])
+                self.assertEqual(b.js(FILL_OF, "q"), "rgb(255, 255, 255)")
+                self.assertLess(tone.luminance(tone.rgba(b.js(INK_OF, "q"))), 0.5)
 
 
 if __name__ == "__main__":

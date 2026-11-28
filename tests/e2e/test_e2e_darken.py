@@ -93,7 +93,7 @@ the list). Checked:
     label, proton.me's violet button, an input button, a crimson fill in
     oklch(), a pastel teal under a dark label) keep their fill and label
     colours as the page had them; a black button under a white label in
-    a fixed header keeps them with a thin light ring ("lift"); text
+    a fixed header keeps them, with no ring added ("self"); text
     buttons whose background is a var() the page never sets, which Dark
     Reader fills, are see-through again ("clear"), a tab the page fills
     once darkened is not; left alone: a pale button, a light grey and a
@@ -103,9 +103,9 @@ the list). Checked:
   - controls Dark Reader darkens to the tone of what is behind them
     (zalando.ch, post.ch: test_edges): a white button in a black consent
     panel in an open shadow root and a black button with an inset black
-    shadow in a white popover drawn late, both turned near-black, get a
-    thin light ring ("edge"), while a button with a grey border stays
-    unmarked; a floating label over a white field in a yellow form is read
+    shadow in a white popover drawn late, both turned near-black, and a
+    button with a grey border all stay unmarked, no ring added round
+    them; a floating label over a white field in a yellow form is read
     on the field (no dark ink); a light theme takes the marks off;
   - a page whose only opaque surface is a white column half the window
     wide (ch.ch), light words on its see-through half: the column's navy
@@ -149,6 +149,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 import urllib.parse
 
@@ -655,6 +656,9 @@ window.showPopover = () => {
 # shadow.
 CONSENT = ("const el = document.getElementById('consent').shadowRoot.getElementById(arguments[0]);"
            " return [el.getAttribute(arguments[1]), getComputedStyle(el).boxShadow];")
+# The thin light ring the add-on drew round buttons once: never again.
+ADDED_RING = "rgba(255, 255, 255, 0.25)"
+EDGE_SETTLE_S = 2
 CONSENT_IS = ("return document.getElementById('consent').shadowRoot.getElementById(arguments[0])"
               ".getAttribute(arguments[1]) === arguments[2];")
 
@@ -1005,17 +1009,17 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(DARKENED), "not darkened")
             self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "wrap", CANVAS), "wrapper not marked")
             b.js("window.showPopover();")
-            ring = "rgba(255, 255, 255, 0.25) 0px 0px 0px 1px inset"
+            self.assertTrue(b.wait_for("return !!document.getElementById('lang');"), "popover not drawn")
+            time.sleep(EDGE_SETTLE_S)
             # a white button Dark Reader darkens on the site's black panel,
-            # a black one it leaves on the white card it darkens: an edge
-            self.assertTrue(b.wait_for(CONSENT_IS, mn.WAIT_TIMEOUT, "accept", BRAND, "edge"),
-                            "accept: %r" % b.js(CONSENT, "accept", BRAND))
-            self.assertEqual(b.js(CONSENT, "accept", BRAND)[1], ring)
-            self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, "lang", BRAND, "edge"),
-                            "lang: %r" % b.js(TILED, "lang", BRAND))
-            self.assertEqual(b.js(RING, "lang"), ring)
-            # a button with a border of its own is left alone
-            self.assertIsNone(b.js(CONSENT, "bordered", BRAND)[0])
+            # a black one it leaves on the white card it darkens, a button
+            # with a border of its own: no mark, no ring added
+            for name in ("accept", "bordered"):
+                mark, shadow = b.js(CONSENT, name, BRAND)
+                self.assertIsNone(mark, name)
+                self.assertNotIn(ADDED_RING, shadow, name)
+            self.assertIsNone(b.js(TILED, "lang", BRAND))
+            self.assertNotIn(ADDED_RING, b.js(RING, "lang"))
             # the label laid over its field is read on the field's box: not
             # inked dark on it
             self.assertFalse(b.js(MARKED, "hint", INK), "label inked %r" % b.js(TILED, "hint", INK))
@@ -1507,11 +1511,11 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for(PART_BG.replace("return ", "return 'rgb(176, 20, 50)' === "),
                                        mn.WAIT_TIMEOUT, "ease", None), "eased: %r" % b.js(PART_BG, "ease", None))
             self.assertEqual(b.js(PART_COLOR, "ease", None), "rgb(255, 255, 255)")
-            # a black button: its colours and a thin light ring
-            self.assertEqual(b.js(TILED, "black", BRAND), "self lift")
+            # a black button: its colours, no ring added
+            self.assertEqual(b.js(TILED, "black", BRAND), "self")
             self.assertEqual(b.js(PART_BG, "black", None), "rgb(26, 26, 26)")
             self.assertEqual(b.js(PART_COLOR, "black", None), "rgb(255, 255, 255)")
-            self.assertEqual(b.js(RING, "black"), "rgba(255, 255, 255, 0.25) 0px 0px 0px 1px inset")
+            self.assertNotIn(ADDED_RING, b.js(RING, "black"))
             # text buttons Dark Reader filled from an unset var(): see-through
             for name in ("ghost", "close", "aside"):
                 self.assertTrue(b.wait_for(TILED_IS, mn.WAIT_TIMEOUT, name, BRAND, "clear"), name + " not cleared")

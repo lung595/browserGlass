@@ -191,10 +191,8 @@ ATTR_RULE = "data-browserglass-rule"
 # ... and BRAND, "self", "before" or "after", on a small button in a
 # saturated colour, just before Dark Reader dulls it (see _CONTENT_LAYERS),
 # with its fill and its label's colour in BRAND_FILL and BRAND_INK, inline:
-# both painted back; "lift" with the part on a dark one (a thin light
-# ring), "edge" alone on one Dark Reader left without contrast to what
-# holds it (the ring only), "clear" alone on one Dark Reader filled
-# though it painted none, "text" alone on a text over a picture (its
+# both painted back; "clear" alone on one Dark Reader filled though it
+# painted none, "text" alone on a text over a picture (its
 # colour in BRAND_INK, painted back).
 ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
@@ -1949,20 +1947,13 @@ _CONTENT_DARKEN = (
 #   see-through page Dark Reader leaves alone (SRF's teasers, the Docker
 #   docs' link cards, in the site's own dark theme or its light one) gets
 #   "veil" too: the veil is the surface of the page's tone (BLOCK_VAR, set
-#   on the root as the bar's), the light one on a light page; and so does
-#   a field or a secondary button painting an opaque light plain fill on
-#   the glass or a light box (a white search field, a #f6f8fa "Cancel"),
-#   "edge" with it when it draws no border nor shadow of its own: a thin
-#   ring in its text colour (currentcolor at RULE_OPACITY), inset;
+#   on the root as the bar's), the light one on a light page. Fields and
+#   buttons on a see-through page keep the site's own fill, border and
+#   shape: no veil, no ring;
 # - a small button in a saturated colour (ATTR_BRAND, the part painting its
 #   fill named): that fill and its label's colour as the page had them
 #   before Dark Reader ran (a brand yellow it turns olive), the label's on
-#   the whole button; "lift" with the part, a dark button under a light
-#   label: also a thin light ring (white at RULE_OPACITY, inset), or it
-#   reads as plain text on the dark glass or a bar; "edge" alone, a button
-#   Dark Reader left a few luminance steps from what holds it (a white
-#   one darkened on a site's black panel): that ring only, its colours
-#   Dark Reader's; "clear", a button that
+#   the whole button; "clear", a button that
 #   painted no fill before Dark Reader filled it (a var() the page never
 #   set): see-through, its colours Dark Reader's; "text" alone, a text on
 #   a picture of the page's own: its colour as the page had it. Without the two ids: a
@@ -2007,13 +1998,10 @@ _UNINVERT_SELECTOR = "[" + ATTR_UNINVERT + "]:not(#browserglass-a):not(#browserg
 _BRAND_SELECTOR = "[" + ATTR_BRAND + "~=\"%s\"]"
 _BRAND_PARTS = "%s" + _BRAND_SELECTOR % "self" + ", %s" + _BRAND_SELECTOR % "before" + "::before, %s" \
     + _BRAND_SELECTOR % "after" + "::after"
-_BRAND_LIFT = _BRAND_SELECTOR % "lift"
-_BRAND_INKED = "[" + ATTR_BRAND + "]:not(" + _BRAND_SELECTOR % "clear" + "):not(" + _BRAND_SELECTOR % "edge" + ")"
+_BRAND_INKED = "[" + ATTR_BRAND + "]:not(" + _BRAND_SELECTOR % "clear" + ")"
 _BRAND_RULE = (
     "  " + _BRAND_PARTS % ("", "", "") + " {{ background-color: var(" + BRAND_FILL + ") !important; }}\n"
     "  " + _BRAND_INKED + ", " + _BRAND_INKED + " * {{ color: var(" + BRAND_INK + ") !important; }}\n"
-    "  " + _BRAND_PARTS % ((_BRAND_LIFT,) * 3) + ", " + _BRAND_SELECTOR % "edge"
-    + " {{ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
     "  " + _BRAND_SELECTOR % "clear" + " {{ background-color: transparent !important; }}\n"
 )
 _GLYPH_SELECTOR = ("[" + ATTR_GLYPH + "~=\"self\"]:not(#browserglass-a):not(#browserglass-b), "
@@ -2084,10 +2072,6 @@ _CONTENT_LAYERS = (
     + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"
     + "  " + _RULE_SELECTOR + " {{ background-color: rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: var(" + BLOCK_VAR + ") !important; }}\n"
-    # a field or a secondary button veiled with no border of its own: a thin
-    # ring in its text colour, or its edge is lost on the glass
-    + "  " + _BLOCK_SELECTOR % "edge" + " {{ box-shadow: inset 0 0 0 1px color-mix(in srgb, currentcolor "
-    + str(round(RULE_OPACITY * 100)) + "%, transparent) !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "before" + "::before, " + _BLOCK_SELECTOR % "after" + "::after"
     " {{ background-color: transparent !important; }}\n"

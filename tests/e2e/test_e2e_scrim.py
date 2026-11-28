@@ -9,7 +9,7 @@ scrim in it (a fixed, empty layer in rgba(0, 0, 0, 0.5) over the whole
 window, under the form) and the form over the scrim, its white field typed
 in black (a shop's open search). The scrim dims the page round the field,
 it is no backing of the wrapper: the field's black text keeps its ink (no
-INK "light", near-white on the light veiled field).
+INK "light", near-white on the site's white field, never veiled).
 
 /dark.html on plain.test, under the dark theme: the dark twin (a page in
 its own dark colours, a dark field typed in light grey) keeps its light
@@ -89,9 +89,8 @@ class ScrimE2E(unittest.TestCase):
         if not b.wait_for("return document.getElementById('head').hasAttribute(arguments[0]);",
                           mn.WAIT_TIMEOUT, bg.ATTR_BAR):
             self.fail("the header is no bar")
-        if not dark and not b.wait_for("return document.getElementById('q').hasAttribute(arguments[0]);",
-                                       mn.WAIT_TIMEOUT, bg.ATTR_BLOCK):
-            self.fail("the field is not veiled")
+        # the field keeps the site's own fill: no block mark
+        self.assertIsNone(b.js("return document.getElementById('q').getAttribute(arguments[0]);", bg.ATTR_BLOCK))
         # the search opens: the scrim shows, the field focused
         b.js("document.getElementById('box').classList.add('open'); document.getElementById('q').focus();")
         time.sleep(PASSES_S)

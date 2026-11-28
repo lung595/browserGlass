@@ -10,13 +10,13 @@ background (so the glass tint eases in and out once the scheme switches),
 holding a white wrapper (#app) of dark text, grey text (#muted) and, far below the window,
 a light grey secondary button (#far).
 Under the light theme the wrapper is glass (no OWN, no CANVAS: the style
-clears it), the grey text gets the soft ink and the button its veil
-(BLOCK "veil"). Under a dark theme (no Dark Reader here) the page keeps its
+clears it), the grey text gets the soft ink and the button keeps its own
+look (no block mark). Under a dark theme (no Dark Reader here) the page keeps its
 light tone, and so its marks: the wrapper is not kept as the site's own
 (OWN) for text read while the root's tint still fades in (no tint yet).
-Back to the light theme everything is as on the first load: the far button
-keeps its veil (the root fading out is no page without glass, which would
-drop the marks far from the window).
+Back to the light theme everything is as on the first load (the root
+fading out is no page without glass, which would drop the marks far from
+the window).
 """
 
 import os
@@ -79,7 +79,7 @@ class SwitchBackE2E(unittest.TestCase):
         routes = {"/app.html": ("text/html; charset=utf-8", APP_PAGE.encode("utf-8"))}
         prefs = tone.browser_prefs()
         prefs.update(mn.test_host_prefs(list(tone.HOSTS)))
-        light = [False, False, "soft", "veil"]
+        light = [False, False, "soft", None]
         with mn.TestServer(routes) as srv, \
                 mn.Browser(content_css=stylesheet(), prefs=prefs, firefox=binary) as b:
             tone.set_scheme(b, False)
@@ -89,8 +89,7 @@ class SwitchBackE2E(unittest.TestCase):
             b.wait_for("return document.documentElement.getAttribute(arguments[0]) === 'light';",
                        mn.WAIT_TIMEOUT, tone.TONE)
             b.js("scrollTo(0, document.documentElement.scrollHeight);")
-            b.wait_for("return document.getElementById('far').getAttribute(arguments[0]) === 'veil';",
-                       mn.WAIT_TIMEOUT, bg.ATTR_BLOCK)
+            time.sleep(1)
             b.js("scrollTo(0, 0);")
             time.sleep(1)
             self.assertEqual(self.state(b), light)

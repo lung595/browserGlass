@@ -3,13 +3,12 @@ dark tone. In a real headless Firefox (and LibreWolf with BG_LIBREWOLF).
 
     BG_E2E=1 python3 -B -m unittest discover -s tests/e2e -p 'test_e2e_judged.py' -v
 
-/late.html on plain.test, under the light theme: two light grey buttons
-right on the glass get the field veil (BLOCK "veil"). Then the page turns
-them into brand buttons, as a framework does once hydrated or once its
+/late.html on plain.test, under the light theme: three light grey buttons
+right on the glass keep their own grey, no block mark. Then the page turns
+two into brand buttons, as a framework does once hydrated or once its
 style sheet arrives late: #code gets data-variant="primary" (a green fill,
 faded in by a transition), #late a green fill from a style sheet added
-afterwards. The next pass takes the veil off both, their green shown;
-#more, still grey, keeps its veil.
+afterwards. Their green shows, no mark; #more keeps its grey.
 
 /dark.html on plain.test, under the dark theme: a page in its own dark
 colours (no Dark Reader here) with a lone opaque dark grey box (#commit,
@@ -19,6 +18,7 @@ it is veiled as its light twin is (BLOCK "veil").
 
 import os
 import sys
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +56,9 @@ BLOCKS = """return Object.fromEntries(arguments[0].map((id) =>
 SETTLED = """return arguments[0].every((id) => !document.getElementById(id).hasAttribute(arguments[1])
   && getComputedStyle(document.getElementById(id)).backgroundColor === 'rgb(31, 136, 61)');"""
 GREEN = "rgb(31, 136, 61)"
+GREY = "rgb(246, 248, 250)"
+FILL_OF = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;"
+SETTLE_S = 1
 
 
 def stylesheet():
@@ -107,12 +110,16 @@ class JudgedE2E(unittest.TestCase):
                 b.navigate(srv.url("/late.html", "plain.test"))
                 b.js(tone.RUN_CONTENT, self.content_js)
                 self.tone_is(b, "light")
-                for el in ("code", "late", "more"):
-                    self.block_is(b, el, "veil")
+                time.sleep(SETTLE_S)
+                self.assertEqual(b.js(BLOCKS, ["code", "late", "more"], bg.ATTR_BLOCK),
+                                 {"code": None, "late": None, "more": None})
+                self.assertEqual(b.js(FILL_OF, "more"), GREY)
                 b.js(HYDRATE)
                 if not b.wait_for(SETTLED, mn.WAIT_TIMEOUT, ["code", "late"], bg.ATTR_BLOCK):
-                    self.fail("brand buttons still veiled: %r" % b.js(BLOCKS, ["code", "late"], bg.ATTR_BLOCK))
-                self.assertEqual(b.js(BLOCKS, ["more"], bg.ATTR_BLOCK), {"more": "veil"})
+                    self.fail("brand buttons not green: %r" % b.js(BLOCKS, ["code", "late"], bg.ATTR_BLOCK))
+                time.sleep(SETTLE_S)
+                self.assertEqual(b.js(BLOCKS, ["more"], bg.ATTR_BLOCK), {"more": None})
+                self.assertEqual(b.js(FILL_OF, "more"), GREY)
             with self.subTest(page="/dark.html"):
                 tone.set_scheme(b, True)
                 b.navigate(srv.url("/dark.html", "plain.test"))

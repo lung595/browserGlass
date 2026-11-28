@@ -799,44 +799,36 @@ class ExtensionSourcesTest(unittest.TestCase):
         self.assertIn('const BRAND = "%s";' % bg.ATTR_BRAND, js)
         self.assertIn('const BRAND_FILL = "%s";' % bg.BRAND_FILL, js)
         self.assertIn('const BRAND_INK = "%s";' % bg.BRAND_INK, js)
-        self.assertIn('const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]:not([" + BRAND + "=\\"" + EDGED + "\\"])"]};',
-                      js)
+        self.assertIn('const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]"]};', js)
         darken = js[js.index("function darken()"):js.index("function markBrands(")]
         self.assertLess(darken.index("markBrands();"), darken.index("DarkReader.enable(theme, DR_FIXES);"))
         self.assertLess(darken.index("DarkReader.disable();"), darken.index("unmarkBrands();"))
         layers = bg._CONTENT_LAYERS.format(dark="0, 0, 0", light="255, 255, 255", nav=1)
         self.assertIn('[%s~="before"]::before' % bg.ATTR_BRAND, layers)
         self.assertIn("{ background-color: var(%s) !important; }" % bg.BRAND_FILL, layers)
-        inked = '[%s]:not([%s~="clear"]):not([%s~="edge"])' % ((bg.ATTR_BRAND,) * 3)
+        inked = '[%s]:not([%s~="clear"])' % ((bg.ATTR_BRAND,) * 2)
         self.assertIn("%s * { color: var(%s) !important; }" % (inked, bg.BRAND_INK), layers)
         self.assertLess(layers.index(bg.ATTR_BRAND), layers.index(bg.ATTR_INK))
-        # a dark one gets a thin light ring on the part painting its fill; a
-        # control Dark Reader filled though it painted none is see-through
-        self.assertIn('[%s~="lift"][%s~="before"]::before' % (bg.ATTR_BRAND, bg.ATTR_BRAND), layers)
-        self.assertIn("{ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, %s) !important; }" % bg.RULE_OPACITY,
-                      layers)
+        # a control Dark Reader filled though it painted none is see-through
         self.assertIn('[%s~="clear"] { background-color: transparent !important; }' % bg.ATTR_BRAND, layers)
-        # a control Dark Reader left a few steps from what holds it: the
-        # ring alone, its colours Dark Reader's (no inline style left alone)
-        self.assertIn('[%s~="edge"] { box-shadow: inset 0 0 0 1px' % bg.ATTR_BRAND, layers)
-        edges = js[js.index("function markEdges("):js.index("function outlined(")]
-        for part in ("everywhere(BRANDS)", "!clears.has(el)", "bg > DARK_BG",
-                     "apart > 1 && apart < EDGE_RATIO && !outlined(el, bg)"):
-            self.assertIn(part, edges)
+        # no ring nor border of the add-on's round any button or field
+        self.assertNotIn("box-shadow: inset", layers)
+        self.assertNotIn('~="lift"', layers)
+        self.assertNotIn('~="edge"', layers)
+        for gone in ("function markEdges(", "function markFields(", "LIFT", "EDGED", "FIELD_EDGE"):
+            self.assertNotIn(gone, js)
         mark = js[js.index("function markBrands("):js.index("function unmarkBrands(")]
         for part in ("r.width > BRAND_W || r.height > BRAND_H",
                      "alpha(fill) >= SOLID ? fill : null",
                      "contrast(y, fg) < BRAND_READ",
                      "c >= BRAND_CHROMA || c >= BRAND_PASTEL && fg < y",
-                     "y < BRAND_DARK && fg > y ? LIFT : null",
+                     "y < BRAND_DARK && fg > y || null",
                      "controlState(el) !== state",
                      "text.length > BRAND_TEXT"):
             self.assertIn(part, mark)
         # the clears are looked at in the pass of the text, before the blocks
         ink = js[js.index("function markInk("):js.index("function markIcons(")]
         self.assertLess(ink.index("markClears(near);"), ink.index("markBlocks(near, texts);"))
-        # the edges once the text walk met the shadow trees
-        self.assertLess(ink.index("shownText(near)"), ink.index("markEdges(near);"))
         # a colour in another space (oklch()) is read in sRGB through a canvas
         channels = js[js.index("function channels("):js.index("function near(")]
         self.assertIn('document.createElement("canvas").getContext("2d")', channels)
@@ -883,9 +875,7 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "const outermost = j === blocks.length - 1 && !b.matches(FIELDS);",
                      "outermost ? (overs.get(b) ? OPAQUE : VEILED) : b.matches(FIELDS) ? VEILED : SEE_THROUGH",
                      "overs.set(b, overPicture(b, stop, media) || overBand(b));",
-                     "[role, ...edge, ...bands(b)].join(\" \")",
-                     # a borderless control veiled: a ring, judged once
-                     "role === VEILED && b.matches(FIELDS) && ringed ? [FIELD_EDGE] : []",
+                     "[role, ...bands(b)].join(\" \")",
                      "!holds(block, m) && overlap(r, shownBox(m)) >= OVER_SHARE * r.width * r.height",
                      'const x = style.overflowX !== "visible", y = style.overflowY !== "visible";',
                      "near(style.backgroundColor, color)",

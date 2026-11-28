@@ -10,15 +10,14 @@ main, as the bundled one does), under the light theme:
     one on each pass, it would strip the veils of its fields), its
     suggestion list open
     under it (an absolute box beside the field's wrapper, larger than it,
-    not over it): the field is veiled, the list no face of its wrapper;
+    not over it): the field keeps its white, no mark, no ring;
   - a see-through field (#tube) whose wrapper paints the field (#box: a
     white bordered box round it, the field's own fill transparent): the
-    wrapper is veiled;
-  - a field mark another pass takes off: marked again;
+    wrapper keeps its white, no mark;
   - a mega menu (an absolute dark blue panel the glass veils) holding a
     field in a faint white tint with white text and placeholder (#mega):
     its text and placeholder are inked dark on the light veil.
-Under a dark theme (no Dark Reader here) the page keeps its tone: the marks
+Under a dark theme (no Dark Reader here) the page keeps its tone: the looks
 stay as they were.
 """
 
@@ -66,9 +65,9 @@ main{padding:0 24px}
 <main><h1>Fields in the bar</h1>%s</main></body></html>""" % (TEXT * 12)
 BLOCKS = """return Object.fromEntries(arguments[0].map((id) =>
   [id, document.getElementById(id).getAttribute(arguments[1])]));"""
-WANT = {"q": "veil", "box": "veil", "tube": None}
-STRIP = "document.getElementById('q').removeAttribute(arguments[0]);"
-MARKED = "return document.getElementById(arguments[0]).getAttribute(arguments[1]) === 'veil';"
+WANT = {"q": None, "box": None, "tube": None}
+FILL_OF = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;"
+SHADOW_OF = "return getComputedStyle(document.getElementById(arguments[0])).boxShadow;"
 SAMPLES = 10
 SAMPLE_GAP = 0.2
 INK_OF = "return getComputedStyle(document.getElementById(arguments[0])).color;"
@@ -112,12 +111,14 @@ class FieldBoxE2E(unittest.TestCase):
                                                 tone.TONE), want))
 
     def marks_are(self, b):
-        b.wait_for(MARKED, mn.WAIT_TIMEOUT, "box", bg.ATTR_BLOCK)
-        b.wait_for(MARKED, mn.WAIT_TIMEOUT, "q", bg.ATTR_BLOCK)
-        self.assertEqual(b.js(BLOCKS, list(WANT), bg.ATTR_BLOCK), WANT)
         # the field on the mega menu's light veil reads in dark ink
         b.wait_for("return getComputedStyle(document.getElementById('mega')).color !== 'rgb(255, 255, 255)';",
                    mn.WAIT_TIMEOUT)
+        # the field and the box that paints one keep the site's white, no ring
+        self.assertEqual(b.js(BLOCKS, list(WANT), bg.ATTR_BLOCK), WANT)
+        for el in ("q", "box"):
+            self.assertEqual(b.js(FILL_OF, el), "rgb(255, 255, 255)")
+            self.assertEqual(b.js(SHADOW_OF, el), "none")
         self.assertLess(tone.luminance(tone.rgba(b.js(INK_OF, "mega"))), 0.2)
         self.assertLess(tone.luminance(tone.rgba(b.js(HOLDER_OF, "mega"))), 0.3)
 
@@ -131,14 +132,11 @@ class FieldBoxE2E(unittest.TestCase):
             b.js(tone.RUN_CONTENT, self.content_js)
             self.tone_is(b, "light")
             self.marks_are(b)
-            # the veil stays from pass to pass
+            # no mark from pass to pass
             for _ in range(SAMPLES):
                 time.sleep(SAMPLE_GAP)
-                self.assertEqual(b.js(BLOCKS, ["q"], bg.ATTR_BLOCK), {"q": "veil"})
-            # a mark another pass takes off comes back
-            b.js(STRIP, bg.ATTR_BLOCK)
-            b.js("window.scrollBy(0, 1);")
-            self.assertTrue(b.wait_for(MARKED, mn.WAIT_TIMEOUT, "q", bg.ATTR_BLOCK))
+                b.js("window.scrollBy(0, 1);")
+                self.assertEqual(b.js(BLOCKS, list(WANT), bg.ATTR_BLOCK), WANT)
             # a dark theme: the page's tone, and so its marks, stay
             tone.set_scheme(b, True)
             self.tone_is(b, "light")

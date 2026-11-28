@@ -61,8 +61,6 @@
 // surface.
 // A small button in a saturated colour gets data-browserglass-brand,
 // before Dark Reader dulls it: it keeps its fill and its label's colour.
-// A small control Dark Reader darkens to the tone behind it gets the
-// mark's "edge": a thin light ring.
 // A surface the generic style cleared though the text on it was drawn for
 // it (a dark section holding white text on a light page) gets
 // data-browserglass-own, which the generic style skips: its colour stays.
@@ -1009,10 +1007,8 @@ function restyle() {
 // that part, and both colours inline (BRAND_FILL, BRAND_INK; Dark Reader
 // leaves the inline style of a marked element alone: DR_FIXES): the glass
 // styles paint them back, the label's on the whole control. A dark plain
-// fill (luminance under BRAND_DARK) under a lighter label is kept too,
-// LIFT named with the part: Dark Reader leaves it dark, the same as the
-// dark glass or a dark bar's veil, and the glass styles give it a thin
-// light ring (it read as plain text). At most BRAND_ELEMENTS are looked
+// fill (luminance under BRAND_DARK) under a lighter label is kept too
+// (its own colours, not Dark Reader's). At most BRAND_ELEMENTS are looked
 // at. A button drawn once the page is darkened is not seen (Dark Reader
 // has its colours by then); the marks go with the darkening.
 // A control at most BRAND_W by BRAND_H px painting no fill of its own
@@ -1035,10 +1031,8 @@ const BRAND_DARK = 0.05;
 const BRAND_LIGHT = 0.5;
 const BRAND_READ = 3;
 const BRAND_ELEMENTS = 1000;
-const LIFT = "lift";
 const UNFILLED = "clear";
-const EDGED = "edge";
-const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]:not([" + BRAND + "=\"" + EDGED + "\"])"]};
+const DR_FIXES = {ignoreInlineStyle: ["[" + BRAND + "]"]};
 let clears = new Map();
 
 function markBrands() {
@@ -1060,7 +1054,7 @@ function markBrands() {
       const fill = brandFill(el, r, part);
       const kind = fill && brandKind(fill, ink, band);
       if (kind) {
-        el.setAttribute(BRAND, kind === LIFT ? part + " " + LIFT : part);
+        el.setAttribute(BRAND, part);
         el.style.setProperty(BRAND_FILL, fill);
         el.style.setProperty(BRAND_INK, ink);
         break;
@@ -1069,10 +1063,11 @@ function markBrands() {
   }
 }
 
-// Whether a fill and its label are kept: null, true (a saturated or a
-// pastel fill, or a light plain one, BRAND_LIGHT at least, on a band of
-// BRAND_CHROMA: a white "Sign up" on an indigo call to action, which Dark
-// Reader turns into a dark button), or LIFT (a dark plain one).
+// Whether a fill and its label are kept: true for a saturated or a pastel
+// fill, a light plain one, BRAND_LIGHT at least, on a band of BRAND_CHROMA
+// (a white "Sign up" on an indigo call to action, which Dark Reader turns
+// into a dark button), or a dark plain one under a lighter label; null
+// otherwise.
 function brandKind(fill, ink, band) {
   const y = luminance(fill), fg = luminance(ink);
   if (y === null || fg === null || contrast(y, fg) < BRAND_READ)
@@ -1080,7 +1075,7 @@ function brandKind(fill, ink, band) {
   const c = chroma(fill);
   if (c >= BRAND_CHROMA || c >= BRAND_PASTEL && fg < y || y >= BRAND_LIGHT && band && chroma(band) >= BRAND_CHROMA)
     return true;
-  return y < BRAND_DARK && fg > y ? LIFT : null;
+  return y < BRAND_DARK && fg > y || null;
 }
 
 // The opaque plain colour a control sits on (that of its first ancestor
@@ -1111,244 +1106,10 @@ function markClears(near) {
   }
 }
 
-// Fields and secondary buttons left opaque on the glass: on a see-through
-// page Dark Reader leaves alone (glassPage), the site's own dark version
-// included, a field (VEIL_FIELDS, any width) or a button (VEIL_BUTTONS, at
-// most BRAND_W by BRAND_H px) near the window painting an opaque light plain
-// fill of its own (BRAND_LIGHT of luminance at least, under BLOCK_CHROMA of
-// chroma: a white search field, GitHub's #f6f8fa "Reject all"; a brand
-// fill keeps its colour), not marked otherwise (a card's face, a bar), and
-// right on the glass or a bar (onGlass under it: a white "Sign up" on a
-// dark or a coloured band, or on a photo, is the site's call to action; a
-// white button on a white card the page keeps opaque needs no veil, but
-// for a framed light card itself on the glass under a light tone:
-// onLightCard), gets
-// BLOCK "veil": the surface of the page's tone at BLOCK_VEIL_OPACITY,
-// its border kept; "veil edge" when it draws no border nor shadow of its
-// own: a thin ring in its text colour too, or it is lost on the glass. The
-// pill holding a control (pillOf: a low box painting a few controls, or
-// its empty layers under them) is veiled first, as a field's box. A
-// field's own text is inked as text is (markInk: the black of a native
-// field on a dark veil). A mark is kept as long as the tone (a field marked
-// reads as see-through), judged again once it changes, and goes when the
-// page is darkened or not glass. It goes too once the control's own fill,
-// read with the mark off, is no longer one to veil (veilable): a
-// framework's button taking its variant's fill late, after hydration or a
-// late style sheet (GitHub's green "Code", judged while still white).
-const VEIL_FIELDS = "input:not([type=hidden], [type=checkbox], [type=radio], [type=range], [type=color],"
-  + " [type=file], [type=image], [type=submit], [type=button], [type=reset]), textarea, select";
-// the fields typed in (a select's text is shownSelects')
-const TYPED = VEIL_FIELDS.replace(", select", "");
-const VEIL_BUTTONS = "button, [role=button], input[type=submit], input[type=button], input[type=reset]";
-const FIELD_EDGE = "edge";
-let fields = new Set(), fieldTone = null;
-
-function markFields(near) {
-  const on = !darkened && glassPage && tone !== null;
-  if (!on || tone !== fieldTone) {
-    for (const el of fields)
-      el.removeAttribute(BLOCK);
-    fields = new Set();
-    fieldTone = tone;
-  }
-  if (!on)
-    return;
-  // a mark another pass took off (a header made a bar strips the block
-  // veils in it) is judged again
-  for (const el of fields)
-    if (!el.isConnected || !el.hasAttribute(BLOCK))
-      fields.delete(el);
-    else if (near(el) && !veilable(unmarked(el, BLOCK))) {
-      el.removeAttribute(BLOCK);
-      fields.delete(el);
-    }
-  const controls = everywhere(VEIL_FIELDS + ", " + VEIL_BUTTONS);
-  for (let i = 0; i < controls.length && i < BRAND_ELEMENTS; i++) {
-    const field = controls[i].matches(VEIL_FIELDS);
-    // the pill holding it first: the control is then on that veil
-    const pill = pillOf(controls[i]);
-    for (const layer of pill ? pill.layers : [])
-      veilField(layer, true, near, up(pill.box) || pill.box);
-    const el = field ? fieldBox(controls[i]) : controls[i];
-    veilField(el, field, near, up(el) || el);
-  }
-}
-
-// Veils one box of markFields: a field's (any width) or a button's, laid
-// on `under`.
-function veilField(el, field, near, under) {
-  // a colour still fading in (a framework's button taking its variant's
-  // fill after hydration: GitHub's green "Code") is judged by a later pass
-  if (fields.has(el) || el.hasAttribute(BLOCK) || el.hasAttribute(BRAND) || el.hasAttribute(BAR) || !near(el)
-      || fading(el))
-    return;
-  const r = el.getBoundingClientRect();
-  const style = getComputedStyle(el);
-  if (!field && (r.width > BRAND_W || r.height > BRAND_H || style.backgroundImage !== "none"))
-    return;
-  if (large(el) || !veilable(style.backgroundColor) || picture(style) || !(onGlass(under) || onLightCard(under)))
-    return;
-  el.setAttribute(BLOCK, edged(style) ? VEILED : VEILED + " " + FIELD_EDGE);
-  fields.add(el);
-}
-
-// Whether a box draws an edge of its own: a border or a shadow.
-function edged(style) {
-  return style.boxShadow !== "none" || ["Top", "Right", "Bottom", "Left"].some((side) =>
-    parseFloat(style["border" + side + "Width"]) > 0 && style["border" + side + "Style"] !== "none");
-}
-
-// Whether what a control lies on (`under` and up) is, under a light tone,
-// a light card the page keeps opaque (framed: a white card with a border,
-// in the page or in a shadow tree), the card itself right on the glass:
-// the control is veiled too, the card showing through it, as on a card
-// the glass veils.
-function onLightCard(under) {
-  if (tone !== "light")
-    return false;
-  for (let p = under; p && p !== document.body && p !== document.documentElement; p = up(p)) {
-    const style = getComputedStyle(p);
-    if (picture(style) || style.backgroundImage !== "none")
-      return false;
-    if (alpha(style.backgroundColor) >= OWN_BG)
-      return veilable(style.backgroundColor) && onGlass(up(p) || p);
-  }
-  return false;
-}
-
-// The pill a control sits in: the first box up from it painting
-// something, PILL_DEPTH levels at most, not past a bar nor a block
-// marked, at most BRAND_H tall and holding several controls, or, round a
-// field, no taller than FIELD_WRAP_TALL times it (a white search form round
-// its white field and button, kept opaque in a bar: ArchWiki's; Airbnb's
-// three-part search bar; never a lone button's wrapper, YouTube's hidden
-// white touch fill in its icon buttons). It paints with a fill of its own, or with empty
-// layers laid under its content (pillLayers): the box and those layers.
-// Null when that first box is no pill.
-const PILL_DEPTH = 6;
-const PILL_CONTROLS = 2;
-
-function pillOf(el) {
-  const h = el.getBoundingClientRect().height;
-  for (let p = up(el), i = 0; p && i < PILL_DEPTH && p !== document.body; i++, p = up(p)) {
-    if (p.hasAttribute(BAR) || p.hasAttribute(BLOCK))
-      return null;
-    const style = getComputedStyle(p);
-    const layers = alpha(style.backgroundColor) >= OWN_BG || style.backgroundImage !== "none" ? [p] : pillLayers(p);
-    if (!layers.length)
-      continue;
-    const tall = p.getBoundingClientRect().height;
-    const controls = p.querySelectorAll(VEIL_FIELDS + ", " + VEIL_BUTTONS).length;
-    const field = el.matches(VEIL_FIELDS) && tall <= FIELD_WRAP_TALL * h;
-    return tall <= BRAND_H && (controls >= PILL_CONTROLS || field) ? {box: p, layers} : null;
-  }
-  return null;
-}
-
-// The empty layers a box paints with: absolute children covering it,
-// holding no text nor any picture or control, and the boxes in them, in an
-// opaque colour (Airbnb's search bar: a white layer holding a grey one
-// shown while a field is open).
-const PILL_CONTENT = "img, svg, picture, video, canvas, " + VEIL_FIELDS + ", " + VEIL_BUTTONS;
-
-function pillLayers(p) {
-  const r = p.getBoundingClientRect();
-  const empty = (kid) => getComputedStyle(kid).position === "absolute" && !kid.textContent.trim()
-    && !kid.querySelector(PILL_CONTENT) && covers(r, kid);
-  return [...p.children].filter(empty).flatMap((kid) => [kid, ...kid.querySelectorAll("*")])
-    .filter((el) => covers(r, el) && alpha(getComputedStyle(el).backgroundColor) >= OWN_BG);
-}
-
-// Whether a control's fill is one markFields veils: opaque, light (BRAND_LIGHT
-// of luminance at least) and plain (under BLOCK_CHROMA of chroma).
-function veilable(color) {
-  const y = luminance(color);
-  return alpha(color) >= SOLID && y !== null && y >= BRAND_LIGHT && chroma(color) < BLOCK_CHROMA;
-}
-
-// The box that paints a field: the field, or, the field see-through
-// (under OWN_BG), the first box up from it painting a fill of its own,
-// FIELD_WRAP_DEPTH levels up at most and not past a bar, holding no other
-// field and at most FIELD_WRAP_TALL times its height (YouTube's search
-// box: a white bordered box round a transparent input).
-const FIELD_WRAP_DEPTH = 3;
-const FIELD_WRAP_TALL = 2;
-
-function fieldBox(el) {
-  if (alpha(getComputedStyle(el).backgroundColor) >= OWN_BG)
-    return el;
-  const h = el.getBoundingClientRect().height;
-  let p = up(el);
-  for (let i = 0; p && i < FIELD_WRAP_DEPTH && !p.hasAttribute(BAR); i++, p = up(p)) {
-    const style = getComputedStyle(p);
-    if (alpha(style.backgroundColor) >= OWN_BG || style.backgroundImage !== "none")
-      return p.getBoundingClientRect().height <= FIELD_WRAP_TALL * h && p.querySelectorAll(VEIL_FIELDS).length === 1
-        ? p : el;
-  }
-  return el;
-}
-
-// A control Dark Reader leaves without an edge: its fill and what holds
-// it end up a few luminance steps apart, both dark, though they were
-// not (a white button on a site's own black panel, which Dark Reader
-// leaves black, darkened to near-black: Zalando's consent banner, in a
-// shadow tree; a black button on a white card, the card darkened around
-// it: a popover shown once the page is darkened, which markBrands never
-// sees). On each pass of the ink while darkened, a control (BRANDS) near
-// the window, at most BRAND_W by BRAND_H px, not marked otherwise nor
-// one see-through before Dark Reader ran (clears), whose own opaque
-// fill reads against its label (BRAND_READ) and against what is behind
-// it (behind, from its parent) under EDGE_RATIO but not the same (an
-// equal fill: a button the page drew flat on its card), what is behind
-// it dark (DARK_BG), and that draws no border or shadow of its own that
-// reads there, gets BRAND "edge": the glass styles give it the thin
-// light ring of LIFT, its colours Dark Reader's. A mark whose control no
-// longer is such goes; all go with the darkening.
-const EDGE_RATIO = 1.25;
-
-function markEdges(near) {
-  for (const el of marked("[" + BRAND + "=\"" + EDGED + "\"]"))
-    if (!darkened || !edgeless(el))
-      el.removeAttribute(BRAND);
-  if (!darkened)
-    return;
-  const controls = everywhere(BRANDS);
-  for (let i = 0; i < controls.length && i < BRAND_ELEMENTS; i++) {
-    const el = controls[i];
-    if (!el.hasAttribute(BRAND) && !clears.has(el) && near(el) && edgeless(el))
-      el.setAttribute(BRAND, EDGED);
-  }
-}
-
-function edgeless(el) {
-  const r = el.getBoundingClientRect();
-  if (!(r.width > 0 && r.height > 0) || r.width > BRAND_W || r.height > BRAND_H)
-    return false;
-  const fill = brandFill(el, r, "self"), ink = labelColor(el);
-  const y = fill && luminance(fill), fg = ink && luminance(ink);
-  const bg = fill && up(el) ? behind(up(el)) : null;
-  if (y === null || fg === null || bg === null || bg > DARK_BG || contrast(y, fg) < BRAND_READ)
-    return false;
-  const apart = contrast(y, bg);
-  return apart > 1 && apart < EDGE_RATIO && !outlined(el, bg);
-}
-
-// Whether a control draws an edge of its own that shows on `bg`: a
-// border side (a px at least) or a shadow of its own (not the ring of an
-// edge mark) in a colour EDGE_RATIO from it at least. An edge in the
-// fill's colour (Zalando's black button, ringed by an inset shadow in
-// its black) shows on the light card it was drawn for, not on the dark.
-function outlined(el, bg) {
-  const style = getComputedStyle(el);
-  const shows = (color) => {
-    const y = luminance(color);
-    return alpha(color) >= CLEAR && y !== null && contrast(y, bg) >= EDGE_RATIO;
-  };
-  if (el.getAttribute(BRAND) !== EDGED && (style.boxShadow.match(PAINT) || []).some(shows))
-    return true;
-  return ["Top", "Right", "Bottom", "Left"].some((side) =>
-    parseFloat(style["border" + side + "Width"]) >= 1 && shows(style["border" + side + "Color"]));
-}
+// The fields typed in, whose own text is inked as text is (markInk); a
+// select's text is shownSelects'.
+const TYPED = "input:not([type=hidden], [type=checkbox], [type=radio], [type=range], [type=color],"
+  + " [type=file], [type=image], [type=submit], [type=button], [type=reset]), textarea";
 
 // What a page restyles a control by: its classes and its ARIA states (a
 // tab selected, a toggle pressed).
@@ -2571,7 +2332,7 @@ function markBars() {
   for (let i = 0; i < GRID; i++)
     markHead(unwalled(stackAt((i + 0.5) * w / GRID, EDGE), w, h, covers), w, h, pinned);
   // a header inside a bar (Galaxus's, in its sticky wrapper) has the
-  // bar's veil already: marked on each pass, it would strip its fields'
+  // bar's veil already: it is not made a bar again
   const low = slotHead(w, h);
   if (low && !inBar(low) && !floats.has(low))
     markHeadAs(low);
@@ -2790,11 +2551,8 @@ function underHeads(w, h, covers) {
 // lighter veils Dark Reader's blocks got in it gone (markBlocks leaves
 // what a bar holds alone, as in a pinned bar).
 function markHeadAs(el) {
-  // the fields' veils (markFields) stay: a field is veiled in a bar too, and
-  // a header under a bar is marked again on each pass (underHeads)
   for (const b of [el, ...el.querySelectorAll("[" + BLOCK + "]")])
-    if (!fields.has(b))
-      b.removeAttribute(BLOCK);
+    b.removeAttribute(BLOCK);
   barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el), ...rowColors(el)]));
   mark(el, BAR);
   heads.add(el);
@@ -3800,12 +3558,7 @@ function markBlocks(near, texts) {
       const role = outermost ? (overs.get(b) ? OPAQUE : VEILED) : b.matches(FIELDS) ? VEILED : SEE_THROUGH;
       if (role === VEILED && outermost)
         veiled.add(b);
-      // a control veiled with no border nor shadow of its own: a thin ring
-      // too, as markFields gives it (judged once: the ring is a shadow)
-      const had = b.getAttribute(BLOCK);
-      const ringed = had === null ? !edged(getComputedStyle(b)) : had.split(" ").includes(FIELD_EDGE);
-      const edge = role === VEILED && b.matches(FIELDS) && ringed ? [FIELD_EDGE] : [];
-      const value = [role, ...edge, ...bands(b)].join(" ");
+      const value = [role, ...bands(b)].join(" ");
       if (b.getAttribute(BLOCK) !== value)
         b.setAttribute(BLOCK, value);
     });
@@ -5121,7 +4874,6 @@ function markInk() {
       el.removeAttribute(BLOCK), el.removeAttribute(KEPT);
     owns = new WeakMap();
     cards = new Map();
-    fields = new Set();
     return;
   }
   if (darkened)
@@ -5139,7 +4891,6 @@ function markInk() {
   const texts = shownText(near);
   markBands(texts);
   markCards(near, texts);
-  markFields(near);
   markBlocks(near, texts);
   // a mark taken off would fade the text back to its colour when the page
   // gives it a transition (the colour read halfway, the mark set and taken
@@ -5166,16 +4917,15 @@ function markInk() {
     fadePseudos(el, fadesSeen);
     inkText(el, style);
   }
-  // a field's own text is no text node: the fields veiled are inked too,
-  // and the see-through ones (on a bar's veil: a mega menu's search field)
+  // a field's own text is no text node: the see-through fields are inked
+  // too (on a bar's veil: a mega menu's search field)
   const typed = everywhere(TYPED).filter((el) => near(el)
-    && (fields.has(el) || alpha(getComputedStyle(el).backgroundColor) < OWN_BG)).slice(0, INK_ELEMENTS);
+    && alpha(getComputedStyle(el).backgroundColor) < OWN_BG).slice(0, INK_ELEMENTS);
   for (const el of [...fontGlyphs(near), ...maskGlyphs(near), ...shownSelects(near), ...typed])
     inkText(el, getComputedStyle(el));
   markHolders(near);
   markRing();
   barPseudos();
-  markEdges(near);
   markIcons(near);
   if (held.length)
     getComputedStyle(held[0][0]).color;
