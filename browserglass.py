@@ -229,6 +229,14 @@ BRAND_FILL = "--browserglass-brand-fill"
 BRAND_INK = "--browserglass-brand-ink"
 # A grey text lifted to 4.5:1 on the glass (ATTR_INK "soft") in this colour, inline.
 SOFT_INK = "--browserglass-soft-ink"
+# A faded text whose ink cannot read 4.5:1 at its opacity: its own opacity
+# raised to UNFADE_OPACITY, inline.
+ATTR_UNFADE = "data-browserglass-unfade"
+UNFADE_OPACITY = "--browserglass-unfade"
+# The selection drawn in the browser's default colours (a light blue under
+# white text, 2.9:1): this fill, under white text (4.9:1). A page's own
+# ::selection wins (the style is the user's, not !important).
+SELECTION_FILL = "rgb(28, 113, 216)"
 # A field whose placeholder reads under 4.5:1 on it: the placeholder in
 # HOLDER_INK, inline.
 ATTR_HOLDER = "data-browserglass-holder"
@@ -1880,7 +1888,9 @@ _CONTENT_DARKEN = (
 #   dark one drawn for white text on a band the glass cleared smudges the
 #   dark ink: crates.io's hero title), or, for a grey secondary text
 #   readable but under 4.5:1 on the glass, "soft": the grey reaching 4.5:1
-#   the add-on sets in SOFT_INK; a placeholder under 4.5:1 on its field
+#   the add-on sets in SOFT_INK, a faded one that no ink reads 4.5:1 at its
+#   opacity less faded (ATTR_UNFADE: the opacity the add-on sets in
+#   UNFADE_OPACITY); a placeholder under 4.5:1 on its field
 #   (ATTR_HOLDER) and a focus ring under 3:1 around it (ATTR_RING) get the
 #   colour the add-on shades for them, inline. The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
@@ -1958,6 +1968,8 @@ _CONTENT_DARKEN = (
 #   a picture of the page's own: its colour as the page had it. Without the two ids: a
 #   site style that gives such a button colours of its own (data/sites/)
 #   wins, and so does ATTR_INK.
+# A selection in the browser's default colours gets SELECTION_FILL under
+# white text, not !important: a page's own ::selection wins.
 # Scrollbars follow the page's tone (ATTR_TONE): a thumb of the light
 # surface at SCROLL_THUMB_OPACITY on a dark page, of the dark one on a light
 # page, over a see-through track. Firefox picks a scrollbar's look from the
@@ -2042,6 +2054,8 @@ _CONTENT_LAYERS = (
     " text-shadow: none !important; }}\n"
     "  " + _INK_SELECTOR % "soft" + " {{ color: var(" + SOFT_INK + ") !important; -webkit-text-fill-color: currentcolor !important;"
     " text-shadow: none !important; }}\n"
+    "  [" + ATTR_UNFADE + "]:not(#browserglass-a):not(#browserglass-b) {{ opacity: var(" + UNFADE_OPACITY
+    + ") !important; }}\n"
     # the list of a drop-down field inked (the option it shows is drawn in
     # its colour): the system's colours, never the ink on the site's own
     # option fill (admin.ch's dark options under a white field)
@@ -2127,6 +2141,7 @@ _CONTENT_LAYERS = (
     + ") transparent; }}\n"
     "  html:root[" + ATTR_TONE + "=\"light\"] {{ scrollbar-color: rgba({dark}, " + str(SCROLL_THUMB_OPACITY)
     + ") transparent; }}\n"
+    "  ::selection {{ background-color: " + SELECTION_FILL + "; color: rgb(255, 255, 255); }}\n"
 )
 # The tint's opacity (the chrome's, over the wallpaper), after
 # _CONTENT_LAYERS: the add-on judges text against the glass over the worst

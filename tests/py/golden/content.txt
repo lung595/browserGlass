@@ -1791,6 +1791,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -1850,6 +1851,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -1933,6 +1935,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -1992,6 +1995,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2056,6 +2060,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2115,6 +2120,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2209,6 +2215,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2268,6 +2275,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2343,6 +2351,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2402,6 +2411,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2496,6 +2506,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2555,6 +2566,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2635,6 +2647,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2694,6 +2707,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2772,6 +2786,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2831,6 +2846,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -2890,6 +2906,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -2949,6 +2966,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3038,6 +3056,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3097,6 +3116,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3167,6 +3187,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3226,6 +3247,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3315,6 +3337,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3374,6 +3397,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=1 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3464,6 +3488,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3523,6 +3548,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3607,6 +3633,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3666,6 +3693,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3731,6 +3759,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3790,6 +3819,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -3885,6 +3915,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -3944,6 +3975,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4020,6 +4052,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4079,6 +4112,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4174,6 +4208,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4233,6 +4268,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4314,6 +4350,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4373,6 +4410,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4452,6 +4490,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4511,6 +4550,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4571,6 +4611,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4630,6 +4671,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4720,6 +4762,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4779,6 +4822,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4850,6 +4894,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -4909,6 +4954,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 
@@ -4999,6 +5045,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   [data-browserglass-ink="dark"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(16, 20, 24) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="light"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: rgb(247, 249, 255) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
   [data-browserglass-ink="soft"]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { color: var(--browserglass-soft-ink) !important; -webkit-text-fill-color: currentcolor !important; text-shadow: none !important; }
+  [data-browserglass-unfade]:not(#browserglass-a):not(#browserglass-b):where(&,& *) { opacity: var(--browserglass-unfade) !important; }
   select[data-browserglass-ink] option:where(&,& *), select[data-browserglass-ink] optgroup:where(&,& *) { color: CanvasText !important; background-color: Canvas !important; }
   html[data-darkreader-scheme="dark"] :focus-visible:where(&,& *) { outline-color: rgb(247, 249, 255) !important; }
   [data-browserglass-holder]:not(#browserglass-a):not(#browserglass-b):where(&,& *)::placeholder { color: var(--browserglass-holder-ink) !important; opacity: 1 !important; }
@@ -5058,6 +5105,7 @@ blur=1 glassEnabled=1 off=0 opacity=0.85 pagesTransparent=1 readerOpaque=0 newTa
   html:root[data-browserglass-tone="light"]:not(:where(:not([data-color-mode="light" i], [data-theme~="light" i], .light):has(> head > meta[name="color-scheme" i][content~="dark" i]), [data-theme~="dark" i], [data-theme-mode="dark" i], [data-color-mode="dark" i], [data-bs-theme="dark" i], [data-mode="dark" i], [dark], .dark, .dark-mode, .theme-dark, :has(> body > #outerContainer #viewerContainer), :has(> body:is(.dark, .dark-mode, .theme-dark, [data-theme~="dark" i])))):where(&,& *) { --browserglass-block: rgba(247, 249, 255, 0.35); }
   html:root[data-browserglass-tone="dark"]:where(&,& *) { scrollbar-color: rgba(247, 249, 255, 0.4) transparent; }
   html:root[data-browserglass-tone="light"]:where(&,& *) { scrollbar-color: rgba(16, 20, 24, 0.4) transparent; }
+  :where(&,& *)::selection { background-color: rgb(28, 113, 216); color: rgb(255, 255, 255); }
   :root:where(&,& *) { --browserglass-tint: 0.85; }}
 }
 

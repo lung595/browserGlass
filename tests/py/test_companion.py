@@ -883,7 +883,9 @@ class ExtensionSourcesTest(unittest.TestCase):
                      "const outermost = j === blocks.length - 1 && !b.matches(FIELDS);",
                      "outermost ? (overs.get(b) ? OPAQUE : VEILED) : b.matches(FIELDS) ? VEILED : SEE_THROUGH",
                      "overs.set(b, overPicture(b, stop, media) || overBand(b));",
-                     "[role, ...bands(b)].join(\" \")",
+                     "[role, ...edge, ...bands(b)].join(\" \")",
+                     # a borderless control veiled: a ring, judged once
+                     "role === VEILED && b.matches(FIELDS) && ringed ? [FIELD_EDGE] : []",
                      "!holds(block, m) && overlap(r, shownBox(m)) >= OVER_SHARE * r.width * r.height",
                      'const x = style.overflowX !== "visible", y = style.overflowY !== "visible";',
                      "near(style.backgroundColor, color)",

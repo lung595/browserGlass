@@ -89,6 +89,7 @@ const OWN = "data-browserglass-";
 const CANVAS = "data-browserglass-canvas";
 const BAR = "data-browserglass-bar";
 const INK = "data-browserglass-ink";
+const UNFADE = "data-browserglass-unfade";
 const TILE = "data-browserglass-tile";
 const UNINVERT = "data-browserglass-uninvert";
 const FILLED = "data-browserglass-filled";
@@ -1119,14 +1120,21 @@ function markClears(near) {
 // fill keeps its colour), not marked otherwise (a card's face, a bar), and
 // right on the glass or a bar (onGlass under it: a white "Sign up" on a
 // dark or a coloured band, or on a photo, is the site's call to action; a
-// white button on a white card the page keeps opaque needs no veil), gets
+// white button on a white card the page keeps opaque needs no veil, but
+// for a framed light card itself on the glass under a light tone:
+// onLightCard), gets
 // BLOCK "veil": the surface of the page's tone at BLOCK_VEIL_OPACITY,
 // its border kept; "veil edge" when it draws no border nor shadow of its
-// own: a thin ring in its text colour too, or it is lost on the glass. A
+// own: a thin ring in its text colour too, or it is lost on the glass. The
+// pill holding a control (pillOf: a low box painting a few controls, or
+// its empty layers under them) is veiled first, as a field's box. A
 // field's own text is inked as text is (markInk: the black of a native
 // field on a dark veil). A mark is kept as long as the tone (a field marked
 // reads as see-through), judged again once it changes, and goes when the
-// page is darkened or not glass.
+// page is darkened or not glass. It goes too once the control's own fill,
+// read with the mark off, is no longer one to veil (veilable): a
+// framework's button taking its variant's fill late, after hydration or a
+// late style sheet (GitHub's green "Code", judged while still white).
 const VEIL_FIELDS = "input:not([type=hidden], [type=checkbox], [type=radio], [type=range], [type=color],"
   + " [type=file], [type=image], [type=submit], [type=button], [type=reset]), textarea, select";
 // the fields typed in (a select's text is shownSelects')
@@ -1150,28 +1158,112 @@ function markFields(near) {
   for (const el of fields)
     if (!el.isConnected || !el.hasAttribute(BLOCK))
       fields.delete(el);
+    else if (near(el) && !veilable(unmarked(el, BLOCK))) {
+      el.removeAttribute(BLOCK);
+      fields.delete(el);
+    }
   const controls = everywhere(VEIL_FIELDS + ", " + VEIL_BUTTONS);
   for (let i = 0; i < controls.length && i < BRAND_ELEMENTS; i++) {
     const field = controls[i].matches(VEIL_FIELDS);
+    // the pill holding it first: the control is then on that veil
+    const pill = pillOf(controls[i]);
+    for (const layer of pill ? pill.layers : [])
+      veilField(layer, true, near, up(pill.box) || pill.box);
     const el = field ? fieldBox(controls[i]) : controls[i];
-    // a colour still fading in (a framework's button taking its variant's
-    // fill after hydration: GitHub's green "Code") is judged by a later pass
-    if (fields.has(el) || el.hasAttribute(BLOCK) || el.hasAttribute(BRAND) || el.hasAttribute(BAR) || !near(el)
-        || fading(el))
-      continue;
-    const r = el.getBoundingClientRect();
-    const style = getComputedStyle(el);
-    const color = style.backgroundColor, y = luminance(color);
-    if (!field && (r.width > BRAND_W || r.height > BRAND_H || style.backgroundImage !== "none"))
-      continue;
-    if (large(el) || alpha(color) < SOLID || y === null || y < BRAND_LIGHT || chroma(color) >= BLOCK_CHROMA
-        || picture(style) || !onGlass(up(el) || el))
-      continue;
-    const edged = ["Top", "Right", "Bottom", "Left"].some((side) =>
-      parseFloat(style["border" + side + "Width"]) > 0 && style["border" + side + "Style"] !== "none");
-    el.setAttribute(BLOCK, edged || style.boxShadow !== "none" ? VEILED : VEILED + " " + FIELD_EDGE);
-    fields.add(el);
+    veilField(el, field, near, up(el) || el);
   }
+}
+
+// Veils one box of markFields: a field's (any width) or a button's, laid
+// on `under`.
+function veilField(el, field, near, under) {
+  // a colour still fading in (a framework's button taking its variant's
+  // fill after hydration: GitHub's green "Code") is judged by a later pass
+  if (fields.has(el) || el.hasAttribute(BLOCK) || el.hasAttribute(BRAND) || el.hasAttribute(BAR) || !near(el)
+      || fading(el))
+    return;
+  const r = el.getBoundingClientRect();
+  const style = getComputedStyle(el);
+  if (!field && (r.width > BRAND_W || r.height > BRAND_H || style.backgroundImage !== "none"))
+    return;
+  if (large(el) || !veilable(style.backgroundColor) || picture(style) || !(onGlass(under) || onLightCard(under)))
+    return;
+  el.setAttribute(BLOCK, edged(style) ? VEILED : VEILED + " " + FIELD_EDGE);
+  fields.add(el);
+}
+
+// Whether a box draws an edge of its own: a border or a shadow.
+function edged(style) {
+  return style.boxShadow !== "none" || ["Top", "Right", "Bottom", "Left"].some((side) =>
+    parseFloat(style["border" + side + "Width"]) > 0 && style["border" + side + "Style"] !== "none");
+}
+
+// Whether what a control lies on (`under` and up) is, under a light tone,
+// a light card the page keeps opaque (framed: a white card with a border,
+// in the page or in a shadow tree), the card itself right on the glass:
+// the control is veiled too, the card showing through it, as on a card
+// the glass veils.
+function onLightCard(under) {
+  if (tone !== "light")
+    return false;
+  for (let p = under; p && p !== document.body && p !== document.documentElement; p = up(p)) {
+    const style = getComputedStyle(p);
+    if (picture(style) || style.backgroundImage !== "none")
+      return false;
+    if (alpha(style.backgroundColor) >= OWN_BG)
+      return veilable(style.backgroundColor) && onGlass(up(p) || p);
+  }
+  return false;
+}
+
+// The pill a control sits in: the first box up from it painting
+// something, PILL_DEPTH levels at most, not past a bar nor a block
+// marked, at most BRAND_H tall and holding several controls, or, round a
+// field, no taller than FIELD_WRAP_TALL times it (a white search form round
+// its white field and button, kept opaque in a bar: ArchWiki's; Airbnb's
+// three-part search bar; never a lone button's wrapper, YouTube's hidden
+// white touch fill in its icon buttons). It paints with a fill of its own, or with empty
+// layers laid under its content (pillLayers): the box and those layers.
+// Null when that first box is no pill.
+const PILL_DEPTH = 6;
+const PILL_CONTROLS = 2;
+
+function pillOf(el) {
+  const h = el.getBoundingClientRect().height;
+  for (let p = up(el), i = 0; p && i < PILL_DEPTH && p !== document.body; i++, p = up(p)) {
+    if (p.hasAttribute(BAR) || p.hasAttribute(BLOCK))
+      return null;
+    const style = getComputedStyle(p);
+    const layers = alpha(style.backgroundColor) >= OWN_BG || style.backgroundImage !== "none" ? [p] : pillLayers(p);
+    if (!layers.length)
+      continue;
+    const tall = p.getBoundingClientRect().height;
+    const controls = p.querySelectorAll(VEIL_FIELDS + ", " + VEIL_BUTTONS).length;
+    const field = el.matches(VEIL_FIELDS) && tall <= FIELD_WRAP_TALL * h;
+    return tall <= BRAND_H && (controls >= PILL_CONTROLS || field) ? {box: p, layers} : null;
+  }
+  return null;
+}
+
+// The empty layers a box paints with: absolute children covering it,
+// holding no text nor any picture or control, and the boxes in them, in an
+// opaque colour (Airbnb's search bar: a white layer holding a grey one
+// shown while a field is open).
+const PILL_CONTENT = "img, svg, picture, video, canvas, " + VEIL_FIELDS + ", " + VEIL_BUTTONS;
+
+function pillLayers(p) {
+  const r = p.getBoundingClientRect();
+  const empty = (kid) => getComputedStyle(kid).position === "absolute" && !kid.textContent.trim()
+    && !kid.querySelector(PILL_CONTENT) && covers(r, kid);
+  return [...p.children].filter(empty).flatMap((kid) => [kid, ...kid.querySelectorAll("*")])
+    .filter((el) => covers(r, el) && alpha(getComputedStyle(el).backgroundColor) >= OWN_BG);
+}
+
+// Whether a control's fill is one markFields veils: opaque, light (BRAND_LIGHT
+// of luminance at least) and plain (under BLOCK_CHROMA of chroma).
+function veilable(color) {
+  const y = luminance(color);
+  return alpha(color) >= SOLID && y !== null && y >= BRAND_LIGHT && chroma(color) < BLOCK_CHROMA;
 }
 
 // The box that paints a field: the field, or, the field see-through
@@ -2698,8 +2790,11 @@ function underHeads(w, h, covers) {
 // lighter veils Dark Reader's blocks got in it gone (markBlocks leaves
 // what a bar holds alone, as in a pinned bar).
 function markHeadAs(el) {
+  // the fields' veils (markFields) stay: a field is veiled in a bar too, and
+  // a header under a bar is marked again on each pass (underHeads)
   for (const b of [el, ...el.querySelectorAll("[" + BLOCK + "]")])
-    b.removeAttribute(BLOCK);
+    if (!fields.has(b))
+      b.removeAttribute(BLOCK);
   barColors.set(el, new Set([...(barColors.get(el) || []), ...painted(el), ...rowColors(el)]));
   mark(el, BAR);
   heads.add(el);
@@ -3219,11 +3314,15 @@ function edgeBar(r, w, h) {
 
 // Whether a see-through box holds nothing to read: no text, no picture,
 // no control. An empty positioner the site leaves fixed for its popovers
-// (Galaxus', sidebar-shaped) is no bar, nor stays one once emptied.
+// (Galaxus', sidebar-shaped) is no bar, nor stays one once emptied or
+// once its popover is closed (display:none, its text and buttons still in
+// the DOM): only what is shown counts.
 const SHOWN_PARTS = "img, svg, video, canvas, picture, iframe, input, select, textarea, button";
 
 function blank(el) {
-  return !texted(el) && !el.querySelector(SHOWN_PARTS) && !(el.shadowRoot && el.shadowRoot.querySelector(SHOWN_PARTS));
+  return !(texted(el) && textShown(el))
+    && ![...el.querySelectorAll(SHOWN_PARTS)].some((part) => part.checkVisibility(SHOWN))
+    && !(el.shadowRoot && el.shadowRoot.querySelector(SHOWN_PARTS));
 }
 
 function texted(el) {
@@ -3701,7 +3800,12 @@ function markBlocks(near, texts) {
       const role = outermost ? (overs.get(b) ? OPAQUE : VEILED) : b.matches(FIELDS) ? VEILED : SEE_THROUGH;
       if (role === VEILED && outermost)
         veiled.add(b);
-      const value = [role, ...bands(b)].join(" ");
+      // a control veiled with no border nor shadow of its own: a thin ring
+      // too, as markFields gives it (judged once: the ring is a shadow)
+      const had = b.getAttribute(BLOCK);
+      const ringed = had === null ? !edged(getComputedStyle(b)) : had.split(" ").includes(FIELD_EDGE);
+      const edge = role === VEILED && b.matches(FIELDS) && ringed ? [FIELD_EDGE] : [];
+      const value = [role, ...edge, ...bands(b)].join(" ");
       if (b.getAttribute(BLOCK) !== value)
         b.setAttribute(BLOCK, value);
     });
@@ -3977,24 +4081,32 @@ function markCards(near, texts) {
       veilCard(el, color);
 }
 
-// A light panel alone on the glass, under a light tone: a box that reads as
+// A panel alone on the glass in the page's tone: a box that reads as
 // no card or is one alone in its colour (lower than CARD_LOW, outlined,
 // narrower than a module: GitHub's #f6f8fa header of a file list, 54 px
-// high; the French state's lone grey "France services" panel) but paints an opaque light plain colour (BRAND_LIGHT of luminance
-// at least, BLOCK_CHROMA of chroma at most, thin lines allowed: plain) right
+// high; the French state's lone grey "France services" panel) but paints an opaque plain colour of the tone (under a light
+// tone BRAND_LIGHT of luminance at least; under a dark one under LONE_DARK
+// and lower than CARD_LOW, a strip rather than a card: GitHub's dark
+// rgb(21, 27, 35) box of the latest commit, 54 px high, where YouTube's
+// dark notice card and GitHub's dark pinned repositories keep their fill;
+// BLOCK_CHROMA of
+// chroma at most, thin lines allowed: plain) right
 // on the glass (onGlass under it, no page layer, CANVAS, round it), a tint
-// of its own (not white nor one of the page's colours, pageColors: a white
+// of its own (not white nor black, nor one of the page's colours, pageColors: a white
 // card or a box in the page's colour left on the glass keeps its fill, as
 // YouTube's sign-in nudge does), LONE_LOW px each way and CARD_SIDE one
 // way at least, not a layer of the page (wide, large), floating (afloat),
 // a picture's mat (cardLike) nor laid over a saturated band (overBand):
 // it stands as a solid slab on the glass, and is veiled as cards are.
 const LONE_LOW = 40;
+const LONE_DARK = 0.05;
 
 function lone(el, r, color) {
-  return tone === "light" && Math.min(r.width, r.height) >= LONE_LOW && Math.max(r.width, r.height) >= CARD_SIDE
-    && !wide(el) && !large(el) && alpha(color) >= SOLID && luminance(color) >= BRAND_LIGHT
-    && luminance(color) < 1 && !pageColors.has(color) && !el.closest("[" + CANVAS + "]")
+  const y = luminance(color);
+  const toned = tone === "light" ? y >= BRAND_LIGHT && y < 1 : tone === "dark" && y !== null && y > 0 && y < LONE_DARK
+    && Math.min(r.width, r.height) < CARD_LOW;
+  return toned && Math.min(r.width, r.height) >= LONE_LOW && Math.max(r.width, r.height) >= CARD_SIDE
+    && !wide(el) && !large(el) && alpha(color) >= SOLID && !pageColors.has(color) && !el.closest("[" + CANVAS + "]")
     && plain(el, color, BLOCK_CHROMA, true) && !afloat(el) && onGlass(up(el) || el)
     && cardLike(el, r, Infinity) && !overBand(el);
 }
@@ -4564,6 +4676,20 @@ function layerPaints(el, r, depth) {
   return undefined;
 }
 
+// Whether `kid`, laid in a box `r` smaller than the window, is the site's
+// scrim: a see-through layer over the whole window (Galaxus' open search,
+// its rgba(0, 0, 0, 0.5) dimming layer kept in the field's wrapper, under
+// the form). It dims the page round the box, it is no backing of the box:
+// the field's black text, read on that black, was inked light on the light
+// veil.
+function dimsWindow(kid, r) {
+  const w = document.documentElement.clientWidth, h = window.innerHeight;
+  const k = kid.getBoundingClientRect();
+  return (r.width < FLOAT_WINDOW * w || r.height < FLOAT_WINDOW * h)
+    && k.width >= FLOAT_WINDOW * w && k.height >= FLOAT_WINDOW * h
+    && alpha(getComputedStyle(kid).backgroundColor) < SOLID;
+}
+
 function face(p) {
   if (faces.has(p))
     return faces.get(p);
@@ -4582,7 +4708,7 @@ function face(p) {
     if (value === undefined && p !== document.body && p.childElementCount <= FACE_KIDS)
       for (const kid of p.children) {
         const position = getComputedStyle(kid).position;
-        if ((position === "absolute" || position === "fixed") && covers(r, kid)) {
+        if ((position === "absolute" || position === "fixed") && covers(r, kid) && !dimsWindow(kid, r)) {
           value = layerPaints(kid, r, FACE_DEPTH);
           if (value !== undefined)
             break;
@@ -4642,7 +4768,9 @@ function behind(el, follow = true, worst = false, ink = false) {
   if (clipped(getComputedStyle(el)))
     el = up(el) || root;
   const tints = [];
-  for (let p = el; p && p !== root; p = up(p)) {
+  for (let p = el, kid = null; p && p !== root; kid = p, p = up(p)) {
+    if (tableCaption(kid))
+      continue;
     const style = getComputedStyle(p);
     const own = face(p);
     if (own !== undefined)
@@ -4666,6 +4794,14 @@ function behind(el, follow = true, worst = false, ink = false) {
       return underTints(behind(under, false, worst, ink), tints);
   }
   return underTints(glassUnder(ink), tints);
+}
+
+// Whether `kid` is a table's caption (display: table-caption: Wikipedia's
+// figure captions, the figure in display: table): the table paints its
+// fill on its own box only, the caption lies beside it, on what holds the
+// table. A walk up from the caption skips the table.
+function tableCaption(kid) {
+  return kid !== null && getComputedStyle(kid).display === "table-caption";
 }
 
 // The see-through backings `tints` ([luminance, alpha], the nearest the
@@ -4972,7 +5108,9 @@ function markInk() {
   if (off !== false) {
     for (const el of marked("[" + INK + "], [" + TILE + "], [" + UNINVERT + "]")) {
       el.removeAttribute(INK), el.removeAttribute(TILE), el.removeAttribute(UNINVERT);
+      el.removeAttribute(UNFADE);
       el.style.removeProperty(SOFT_INK);
+      el.style.removeProperty(UNFADE_OPACITY);
       setSides(el);
     }
     for (const el of marked("[" + GLYPH + "], [" + RULE + "]"))
@@ -5009,9 +5147,12 @@ function markInk() {
   // attribute put back once the marks are set
   const held = [];
   softs = new Map();
+  unfades = new Map();
   for (const el of marked("[" + INK + "]"))
     if (near(el)) {
       el.style.removeProperty(SOFT_INK);
+      el.style.removeProperty(UNFADE_OPACITY);
+      el.removeAttribute(UNFADE);
       held.push([el, el.getAttribute("style")]);
       el.style.setProperty("transition", "none", "important");
       el.removeAttribute(INK);
@@ -5042,6 +5183,10 @@ function markInk() {
     style === null ? el.removeAttribute("style") : el.setAttribute("style", style);
   for (const [el, color] of softs)
     el.style.setProperty(SOFT_INK, color);
+  for (const [el, op] of unfades) {
+    el.style.setProperty(UNFADE_OPACITY, String(op));
+    el.setAttribute(UNFADE, "");
+  }
   markTiles(near);
   markUninverted(near);
   markGlyphs(near);
@@ -5067,6 +5212,9 @@ function inkText(el, style) {
   const fgs = shown(bg), seen = shown(bare);
   const grey = inks(style).every((c) => chroma(c) < GLASS_CHROMA);
   const worst = bare !== null && grey && inBar(el) ? behind(el, true, true, true) : bare;
+  // a grey in a bar is shaded for the worst under its veil too (a dark
+  // veil over a white section of the page): the back it reads least on
+  const judged = worst === bare || worst === null || bg === null ? bg : leastOn(fgs, bg, worst);
   const low = (fg) => contrast(fg, bare) < INK_RATIO || contrast(fg, worst) < INK_RATIO
     || (grey && bare > DARK_BG && contrast(fg, bare) < GLASS_RATIO && onGlass(el));
   const fill = style.webkitTextFillColor || style.color;
@@ -5080,7 +5228,11 @@ function inkText(el, style) {
   const lost = bare !== null && seen.every(low) && !kept(el, seen);
   // a colour of its own reads SOFT_RATIO whichever side of the glass it is
   // on (the light end of a gradient); a grey on the far side is inked
-  const dim = own ? fgs.some((fg) => contrast(fg, bg) < SOFT_RATIO) : fgs.every((fg) => muddy(fg, bg));
+  // a grey label on the far side of its button's fill (white on a mid
+  // violet "Sign in", 3.2:1) is shaded to the other side of it
+  const label = onButton(el);
+  const dim = own ? fgs.some((fg) => contrast(fg, judged) < SOFT_RATIO)
+    : fgs.every((fg) => muddy(fg, judged) || label && contrast(fg, judged) < SOFT_RATIO);
   // a faded text inked to the tone stays faded: on the glass or a fill of
   // its own it is shaded to read instead
   const backed = glass || onFill(host);
@@ -5088,13 +5240,50 @@ function inkText(el, style) {
     inkFrom.set(el, style.color);
     el.setAttribute(INK, bare > 0.179 ? "dark" : "light");
   } else if (bg !== null && (lost || dim) && backed) {
-    const soft = grey && op === 1 && !gradient ? softInk(bg) : grey || own ? shadeInk(faintest(style, bg, op), bg, op) : null;
+    const soft = grey && op === 1 && !gradient ? softInk(judged)
+      : grey || own ? shadeInk(faintest(style, judged, op), judged, op) : null;
     if (soft === null)
       return;
     inkFrom.set(el, style.color);
     softs.set(el, soft);
     el.setAttribute(INK, "soft");
+    const lift = op < 1 ? unfaded(el, soft, judged, op) : null;
+    if (lift !== null)
+      unfades.set(el, lift);
   }
+}
+
+// Whether a text is the label of a control (BRANDS) painting an opaque
+// fill of its own.
+function onButton(el) {
+  const control = el.closest(BRANDS);
+  return control !== null && alpha(getComputedStyle(control).backgroundColor) >= SOLID;
+}
+
+// Of the backs `a` and `b`, the one the inks `fgs` read least on.
+function leastOn(fgs, a, b) {
+  const least = (back) => Math.min(...fgs.map((fg) => contrast(fg, back)));
+  return least(b) < least(a) ? b : a;
+}
+
+// A faded text whose ink, even shaded to the end (white on the dark glass
+// over a light wallpaper, at opacity 0.6: 4.48:1), does not read
+// SOFT_RATIO and SOFT_MARGIN on `bg` at the opacity `op` it shows with:
+// the opacity its own box needs for it, raised by UNFADE_STEP, 1 at most;
+// null if it reads, or if its own opacity cannot help (an ancestor's).
+// It gets UNFADE and that opacity in UNFADE_OPACITY inline.
+const UNFADE_OPACITY = "--browserglass-unfade";
+const UNFADE_STEP = 0.02;
+let unfades = new Map();
+
+function unfaded(el, ink, bg, op) {
+  const y = luminance(ink), ratio = SOFT_RATIO + SOFT_MARGIN;
+  let shown = op;
+  while (shown < 1 && contrast(mixed(y, shown, bg), bg) < ratio)
+    shown = Math.min(1, shown + UNFADE_STEP);
+  const own = parseFloat(getComputedStyle(el).opacity);
+  const lifted = Math.min(1, own * shown / op);
+  return shown > op && lifted > own ? Math.round(lifted * 100) / 100 : null;
 }
 
 // The luminance of a text colour as it shows on `bg`: a see-through one
@@ -5136,7 +5325,9 @@ function faintest(style, bg, op) {
 // ancestor painting a background paints it OWN_BG at least, not a page
 // layer the glass cleared.
 function onFill(el) {
-  for (let p = el; p && p !== document.documentElement; p = up(p)) {
+  for (let p = el, kid = null; p && p !== document.documentElement; kid = p, p = up(p)) {
+    if (tableCaption(kid))
+      continue;
     const style = getComputedStyle(p);
     if (picture(style) || p.hasAttribute(CANVAS))
       return false;
@@ -5708,14 +5899,46 @@ function lightInk(el, bar = false) {
 // (python.org's white word mark beside its blue and yellow snake, made
 // for a dark header): BACK_INK of its ink at least, light grey (under
 // MONO_CHROMA) and lost, gets "back", a dark backing; its colours stay.
-// Only a picture, read by area: an inline svg's shapes are counted one
-// each (a toggle's white knob and tick on its blue pill would pass), and
-// a colour logo whose white is a smaller part (PyPI's) stays as it is.
+// A picture is read by its pixels, and a colour logo whose white is a
+// smaller part (PyPI's) stays as it is. An inline svg is read by the
+// boxes of its shapes (svgBacked).
 function backed(el, raw, lost) {
+  if (el.localName === "svg")
+    return svgBacked(el, lost);
   if (el.localName !== "img")
     return null;
   const grey = raw.inks.filter((y, i) => lost(y) && raw.tints[i] < MONO_CHROMA);
   return grey.length >= BACK_INK * raw.inks.length ? "back" : null;
+}
+
+// An inline svg logo in two colours whose light grey shapes are lost
+// (Ars Technica's white "TECHNICA" beside its orange disc): "back" when
+// those shapes cover TILE_INK of the area of its painted shapes' boxes.
+// A lost shape whose box lies within another painted shape's (a toggle's
+// white knob on its blue pill, a white tick on a badge) sits on that
+// shape, not on the glass: not counted lost.
+function svgBacked(svg, lost) {
+  const shapes = [];
+  for (const shape of svg.querySelectorAll(SHAPES)) {
+    if (shape.closest(UNPAINTED))
+      continue;
+    const style = getComputedStyle(shape);
+    const paint = style.fill !== "none" && alpha(style.fill) >= CLEAR ? style.fill : style.stroke;
+    const box = shape.getBoundingClientRect();
+    if (paint !== "none" && alpha(paint) >= CLEAR && box.width * box.height > 0)
+      shapes.push({paint, box});
+  }
+  const within = (a, b) => a !== b && a.box.left >= b.box.left && a.box.right <= b.box.right
+    && a.box.top >= b.box.top && a.box.bottom <= b.box.bottom;
+  let all = 0, grey = 0;
+  for (const s of shapes) {
+    const area = s.box.width * s.box.height;
+    all += area;
+    const y = luminance(s.paint);
+    if (y !== null && lost(y) && chroma(s.paint) < MONO_CHROMA && !shapes.some((o) => within(s, o)))
+      grey += area;
+  }
+  return all > 0 && grey >= TILE_INK * all ? "back" : null;
 }
 
 // Whether a picture is of one colour as well as its light ink of one
@@ -5867,7 +6090,9 @@ function filtered(el) {
 // own up to the root (a layer the glass cleared paints none), or a bar
 // (the glass styles paint it).
 function onGlass(el) {
-  for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+  for (let p = el, kid = null; p && p !== document.documentElement; kid = p, p = p.parentElement) {
+    if (tableCaption(kid))
+      continue;
     if (p.hasAttribute(BAR))
       return true;
     const style = getComputedStyle(p);

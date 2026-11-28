@@ -19,7 +19,10 @@ theme:
   - a white ligature icon (#menu) in a box holding a hidden dark scrim
     over the window is inked dark, not light;
   - a 24 px svg in a grey under 3:1 with a white part (#acct) is inverted;
-  - a colour logo whose white part is small (#color) is left alone.
+  - an inline svg logo, an orange disc beside a wide white path on the
+    page's glass (#ars, Ars Technica's), gets the dark backing too;
+  - a colour logo whose white part is small (#color), and a toggle's
+    white knob within its blue pill (#toggle), are left alone.
 Under a dark theme with Dark Reader: a white word mark the site's own
 invert(1) turns black in the header (#fw) gets "plain" (no filter); under
 the light theme it is left alone.
@@ -76,7 +79,12 @@ html, body {margin:0; background:rgb(255,255,255); color:rgb(20,20,20); font:14p
 <div class="row"><img id="color" width="145" height="41" alt="" src="/color.svg">
 <svg id="acct" width="24" height="24" viewBox="0 0 24 24"><path d="M2 2h9v9H2z" fill="#a7a9ad"/>
 <path d="M13 2h9v9h-9z" fill="#a7a9ad"/><path d="M2 13h9v9H2z" fill="#a7a9ad"/><path d="M15 15h5v5h-5z" fill="#fff"/></svg>
-<span>Account</span></div>%(text)s</body></html>""" % {"chevron": CHEVRON, "text": dk.TEXT * 12}
+<span>Account</span></div>
+<div class="row"><svg id="ars" width="197" height="65" viewBox="0 0 436 144"><circle cx="72" cy="72" r="72" fill="#ff4e00"/>
+<path d="M20 50h100v44H20zM160 50h270v44H160z" fill="#fff"/></svg>
+<svg id="toggle" width="64" height="32" viewBox="0 0 64 32"><rect width="64" height="32" rx="16" fill="#1a73e8"/>
+<circle cx="48" cy="16" r="12" fill="#fff"/></svg><span>A two-colour svg logo, a toggle</span></div>
+%(text)s</body></html>""" % {"chevron": CHEVRON, "text": dk.TEXT * 12}
 # A light page's white sticky header: its logo a white picture its own
 # invert(1) turns black (frame.work's class "filter-invert").
 FW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
@@ -121,7 +129,8 @@ class IconsE2E(unittest.TestCase):
                 b.js(dk.RUN, self.content_js, self.darkreader_js, [])
                 self.assertTrue(b.wait_for(dk.TONE_IS, mn.WAIT_TIMEOUT, bg.ATTR_TONE, "light"), "the tone")
                 self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "hdr", bg.ATTR_BAR), "the header no bar")
-                for el, kind in (("py", "back"), ("py2", "back"), ("mdn", "invert"), ("acct", "invert")):
+                for el, kind in (("py", "back"), ("py2", "back"), ("mdn", "invert"), ("acct", "invert"),
+                                 ("ars", "back")):
                     self.tiled(b, el, kind)
                 self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "chev", INK, "dark"),
                                 "the chevron's button: %r" % b.js(dk.TILED, "chev", INK))
@@ -132,6 +141,7 @@ class IconsE2E(unittest.TestCase):
                                 "the menu icon: %r" % b.js(dk.TILED, "menu", INK))
                 b.js("window.scrollBy(0, 10);")
                 self.assertIsNone(b.js(dk.TILED, "color", TILE), "a colour logo tiled")
+                self.assertIsNone(b.js(dk.TILED, "toggle", TILE), "a toggle's white knob backed")
                 b.navigate(srv.url("/f.html", "light.test"))
                 b.js(dk.RUN, self.content_js, self.darkreader_js, [])
                 self.assertTrue(b.wait_for(dk.TONE_IS, mn.WAIT_TIMEOUT, bg.ATTR_TONE, "light"), "the tone")

@@ -17,6 +17,9 @@ the same layers):
     panel is veiled, never the positioner;
   - the same positioner left empty while the page is inert under a search
     sheet (Galaxus' search): no veil on it (a ghost over the page);
+  - the same, the positioner holding its popover closed (display:none,
+    its text, buttons and icons still in the DOM; Galaxus' wish list once
+    closed): no veil on it either;
   - a mega menu hanging from a header's nav, a see-through absolute
     wrapper around its painted list, in the list's flow (the French
     state's DSFR menus): the list is veiled, not the wrapper;
@@ -72,6 +75,13 @@ CASES = [
      + """<div id="app" inert style="padding-top:48px"><p>Search results behind the sheet</p></div>
 <div id="pos" style="position:fixed; top:64px; right:0; width:34vw; height:85vh; z-index:12;
   pointer-events:none"><div id="overlay"></div></div>""", [], ["pos"]),
+    ("closed", HEAD.replace('id="head"', 'id="head" style="position:fixed; width:100%%"')
+     + """<div id="app" inert style="padding-top:48px"><p>Search results behind the sheet</p></div>
+<div id="pos" style="position:fixed; top:64px; right:0; width:34vw; height:85vh;
+  z-index:12; pointer-events:none"><div id="overlay" style="display:none; height:316px; background:%(page)s">
+  <h2>Wish lists</h2><button>Close <svg width="16" height="16"><path d="M0 0L16 16"/></svg></button>
+  <p>Click the heart symbol to add products.</p><button>Create a new list</button></div></div>""",
+     [], ["pos", "overlay"]),
     ("dsfr", """<header id="head"><nav id="nav"><ul style="display:flex; gap:24px; margin:0; list-style:none">
   <li><a href="#">Home</a></li><li style="position:relative"><button aria-expanded="true"
   aria-controls="menu">Life events</button>
