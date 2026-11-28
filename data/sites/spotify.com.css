@@ -1,0 +1,17 @@
+/* browserGlass: the Spotify web player is now served at www.spotify.com
+   too, where the open.spotify.com style (its panels made transparent) does
+   not apply: its main view, its side panels and its bars stood as opaque
+   near-black slabs over the glass. The same panels are made transparent
+   here (spotify.com and www.spotify.com; open. and developer. keep their
+   own styles), the main view as well. */
+html, body, nav, header, [data-right-sidebar-hidden], [data-testid="global-nav-bar"],
+#Desktop_LeftSidebar_Id, nav[aria-label="Main"] > div, .YourLibraryX,
+#Desktop_PanelContainer_Id, #main-view {
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root {
+  --darkreader-background-ffffff: transparent !important;
+}

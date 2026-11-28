@@ -1,0 +1,8 @@
+/* browserGlass: the web player's main view (#main-view, a near-black
+   rgb(18, 18, 18) slab) stood opaque over the glass, the panels round it
+   see-through: the my-internet style names it by hashed class names that
+   no longer exist. It goes transparent as its panels do. */
+#main-view {
+  background-color: transparent !important;
+  background: none !important;
+}

@@ -194,7 +194,8 @@ ATTR_RULE = "data-browserglass-rule"
 # both painted back; "lift" with the part on a dark one (a thin light
 # ring), "edge" alone on one Dark Reader left without contrast to what
 # holds it (the ring only), "clear" alone on one Dark Reader filled
-# though it painted none.
+# though it painted none, "text" alone on a text over a picture (its
+# colour in BRAND_INK, painted back).
 ATTR_BRAND = "data-browserglass-brand"
 # ... and UNDER on a layer laid behind a bar's content that holds hidden
 # text (skip links): hidden until the focus enters it, not cleared.
@@ -228,6 +229,14 @@ BRAND_FILL = "--browserglass-brand-fill"
 BRAND_INK = "--browserglass-brand-ink"
 # A grey text lifted to 4.5:1 on the glass (ATTR_INK "soft") in this colour, inline.
 SOFT_INK = "--browserglass-soft-ink"
+# A field whose placeholder reads under 4.5:1 on it: the placeholder in
+# HOLDER_INK, inline.
+ATTR_HOLDER = "data-browserglass-holder"
+HOLDER_INK = "--browserglass-holder-ink"
+# A focused element whose focus ring reads under 3:1 around it: the ring
+# in RING_INK, inline.
+ATTR_RING = "data-browserglass-ring"
+RING_INK = "--browserglass-ring-ink"
 
 # ---- v0 markers (byte-exact copies of what v0 wrote; do not "fix") ---------
 # Non-ASCII characters are written as escapes so this file stays pure ASCII
@@ -1871,7 +1880,9 @@ _CONTENT_DARKEN = (
 #   dark one drawn for white text on a band the glass cleared smudges the
 #   dark ink: crates.io's hero title), or, for a grey secondary text
 #   readable but under 4.5:1 on the glass, "soft": the grey reaching 4.5:1
-#   the add-on sets in SOFT_INK. The add-on reads the
+#   the add-on sets in SOFT_INK; a placeholder under 4.5:1 on its field
+#   (ATTR_HOLDER) and a focus ring under 3:1 around it (ATTR_RING) get the
+#   colour the add-on shades for them, inline. The add-on reads the
 #   colour of the glass from --browserglass-glass (the surface of the theme)
 #   to measure it;
 # - a picture made for a white page on a background now dark (ATTR_TILE: a
@@ -1897,7 +1908,12 @@ _CONTENT_DARKEN = (
 #   under a light theme), or a header in the flow the glass cleared whose
 #   labels did, white ink of one tone (a logo painting #fff) is inverted
 #   the same way, to dark ink; an icon the site whitened with a filter of
-#   its own gets "plain": no filter, its own dark ink shows. A light logo
+#   its own gets "plain": no filter, its own dark ink shows. There, ink all
+#   lost (a pale blue and white word mark) is inverted too, a small icon
+#   needing 3:1; a logo whose lost part is grey beside colour parts (a
+#   white word mark by a blue and yellow snake) gets "back": the tile in
+#   the dark of the theme, its colours untouched. On a dark background, a
+#   white logo the site's own filter turns black gets "plain". A light logo
 #   of one tone whose fill Dark Reader darkened against its dark page is
 #   inverted back to light ink;
 # - an inline SVG logo Dark Reader inverts, its shapes painted light by a
@@ -1923,7 +1939,11 @@ _CONTENT_DARKEN = (
 #   see-through page Dark Reader leaves alone (SRF's teasers, the Docker
 #   docs' link cards, in the site's own dark theme or its light one) gets
 #   "veil" too: the veil is the surface of the page's tone (BLOCK_VAR, set
-#   on the root as the bar's), the light one on a light page;
+#   on the root as the bar's), the light one on a light page; and so does
+#   a field or a secondary button painting an opaque light plain fill on
+#   the glass or a light box (a white search field, a #f6f8fa "Cancel"),
+#   "edge" with it when it draws no border nor shadow of its own: a thin
+#   ring in its text colour (currentcolor at RULE_OPACITY), inset;
 # - a small button in a saturated colour (ATTR_BRAND, the part painting its
 #   fill named): that fill and its label's colour as the page had them
 #   before Dark Reader ran (a brand yellow it turns olive), the label's on
@@ -1934,7 +1954,8 @@ _CONTENT_DARKEN = (
 #   one darkened on a site's black panel): that ring only, its colours
 #   Dark Reader's; "clear", a button that
 #   painted no fill before Dark Reader filled it (a var() the page never
-#   set): see-through, its colours Dark Reader's. Without the two ids: a
+#   set): see-through, its colours Dark Reader's; "text" alone, a text on
+#   a picture of the page's own: its colour as the page had it. Without the two ids: a
 #   site style that gives such a button colours of its own (data/sites/)
 #   wins, and so does ATTR_INK.
 # Scrollbars follow the page's tone (ATTR_TONE): a thumb of the light
@@ -1964,7 +1985,8 @@ NAV_BAR_VAR = "--browserglass-nav"
 BLOCK_VAR = "--browserglass-block"
 _INK_SELECTOR = "[" + ATTR_INK + "=\"%s\"]:not(#browserglass-a):not(#browserglass-b)"
 _TILE_SELECTOR = ("[" + ATTR_TILE + "]:not([" + ATTR_TILE + "=\"invert\"]):not([" + ATTR_TILE + "=\"plain\"])"
-                  ":not(#browserglass-a):not(#browserglass-b)")
+                  ":not([" + ATTR_TILE + "=\"back\"]):not(#browserglass-a):not(#browserglass-b)")
+_BACK_SELECTOR = "[" + ATTR_TILE + "=\"back\"]:not(#browserglass-a):not(#browserglass-b)"
 _INVERT_SELECTOR = "[" + ATTR_TILE + "=\"invert\"]:not(#browserglass-a):not(#browserglass-b)"
 _PLAIN_SELECTOR = "[" + ATTR_TILE + "=\"plain\"]:not(#browserglass-a):not(#browserglass-b)"
 _RULE_SELECTOR = "[" + ATTR_RULE + "]:not(#browserglass-a):not(#browserglass-b)"
@@ -1989,16 +2011,25 @@ TILE_PAD = 6
 TILE_SIDES = tuple("--browserglass-tile-" + side for side in ("top", "right", "bottom", "left"))
 TILE_RADIUS = 8
 TILE_INVERT = 0.9
-_TILE_RULE = (
-    "  " + _TILE_SELECTOR + " {{\n"
-    "    filter: none !important; mix-blend-mode: normal !important;\n"
-    "    background-color: rgb(255, 255, 255) !important;\n"
-    "    border-radius: 0 !important;\n"
-    "    box-shadow: 0 0 0 " + str(TILE_PAD) + "px rgb(255, 255, 255) !important;\n"
-    "    clip-path: inset(" + " ".join("calc(var(" + side + ", 0px) - " + str(TILE_PAD) + "px)" for side in TILE_SIDES)
-    + " round " + str(TILE_RADIUS) + "px) !important;\n"
-    "  }}\n"
-)
+
+
+def _tile_rule(selector, color):
+    """A tile in `color` round the pictures `selector` matches."""
+    return (
+        "  " + selector + " {{\n"
+        "    filter: none !important; mix-blend-mode: normal !important;\n"
+        "    background-color: " + color + " !important;\n"
+        "    border-radius: 0 !important;\n"
+        "    box-shadow: 0 0 0 " + str(TILE_PAD) + "px " + color + " !important;\n"
+        "    clip-path: inset(" + " ".join("calc(var(" + side + ", 0px) - " + str(TILE_PAD) + "px)" for side in TILE_SIDES)
+        + " round " + str(TILE_RADIUS) + "px) !important;\n"
+        "  }}\n"
+    )
+
+
+# a white tile on a dark page; a colour logo whose white part is lost on a
+# light veil ("back") on a backing of the dark glass
+_TILE_RULE = _tile_rule(_TILE_SELECTOR, "rgb(255, 255, 255)") + _tile_rule(_BACK_SELECTOR, "rgb({dark})")
 _CONTENT_LAYERS = (
     "  :root {{ --browserglass-glass: rgb({dark}); }}\n"
     "  @media not (prefers-color-scheme: dark) {{\n"
@@ -2011,6 +2042,18 @@ _CONTENT_LAYERS = (
     " text-shadow: none !important; }}\n"
     "  " + _INK_SELECTOR % "soft" + " {{ color: var(" + SOFT_INK + ") !important; -webkit-text-fill-color: currentcolor !important;"
     " text-shadow: none !important; }}\n"
+    # the list of a drop-down field inked (the option it shows is drawn in
+    # its colour): the system's colours, never the ink on the site's own
+    # option fill (admin.ch's dark options under a white field)
+    "  select[" + ATTR_INK + "] option, select[" + ATTR_INK + "] optgroup"
+    " {{ color: CanvasText !important; background-color: Canvas !important; }}\n"
+    # a focus ring Dark Reader darkened (a blue ring turned navy on the
+    # dark glass): the light ink, while Dark Reader darkens the page
+    "  html[data-darkreader-scheme=\"dark\"] :focus-visible {{ outline-color: rgb({light}) !important; }}\n"
+    "  [" + ATTR_HOLDER + "]:not(#browserglass-a):not(#browserglass-b)::placeholder {{ color: var(" + HOLDER_INK
+    + ") !important; opacity: 1 !important; }}\n"
+    "  [" + ATTR_RING + "]:not(#browserglass-a):not(#browserglass-b):focus-visible {{ outline-color: var(" + RING_INK
+    + ") !important; }}\n"
     "  [" + ATTR_CANVAS + "] {{ background-color: transparent !important; }}\n"
     "  [" + ATTR_UNDER + "]:not(:focus-within) {{ opacity: 0 !important; }}\n"
     "  [" + ATTR_SEAM + "] {{ border-color: transparent !important; }}\n"
@@ -2027,6 +2070,10 @@ _CONTENT_LAYERS = (
     + "  " + _GLYPH_SELECTOR + " {{ background-color: currentcolor !important; }}\n"
     + "  " + _RULE_SELECTOR + " {{ background-color: rgba(255, 255, 255, " + str(RULE_OPACITY) + ") !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "veil" + " {{ background-color: var(" + BLOCK_VAR + ") !important; }}\n"
+    # a field or a secondary button veiled with no border of its own: a thin
+    # ring in its text colour, or its edge is lost on the glass
+    + "  " + _BLOCK_SELECTOR % "edge" + " {{ box-shadow: inset 0 0 0 1px color-mix(in srgb, currentcolor "
+    + str(round(RULE_OPACITY * 100)) + "%, transparent) !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "glass" + " {{ background-color: transparent !important; }}\n"
     + "  " + _BLOCK_SELECTOR % "before" + "::before, " + _BLOCK_SELECTOR % "after" + "::after"
     " {{ background-color: transparent !important; }}\n"
@@ -2050,6 +2097,10 @@ _CONTENT_LAYERS = (
     " border-radius: inherit !important; background: none !important;"
     " backdrop-filter: " + NAV_BAR_BLUR + " !important; }}\n"
     + "  " + _FLAT_SELECTOR + "::before {{ content: none !important; }}\n"
+    # a flat bar has no ::before to hold: no stacking context of its own,
+    # or its fixed sheets and menus (IKEA's, at 400) would paint under the
+    # page's content after it (its hero cards, at 98)
+    + "  " + _FLAT_SELECTOR + " {{ isolation: auto !important; }}\n"
     + "  " + _TUCK_SELECTOR + " {{ clip-path: inset(var(" + TUCK_SIDES[0] + ", -100vmax) -100vmax var("
     + TUCK_SIDES[1] + ", -100vmax) -100vmax) !important; }}\n"
     # a tucked bar's clip-path would make it the Backdrop Root of its
@@ -2077,6 +2128,12 @@ _CONTENT_LAYERS = (
     "  html:root[" + ATTR_TONE + "=\"light\"] {{ scrollbar-color: rgba({dark}, " + str(SCROLL_THUMB_OPACITY)
     + ") transparent; }}\n"
 )
+# The tint's opacity (the chrome's, over the wallpaper), after
+# _CONTENT_LAYERS: the add-on judges text against the glass over the worst
+# wallpaper (the light tint over black, the dark one over white), not
+# against the bare surface (--browserglass-glass).
+TINT_VAR = "--browserglass-tint"
+_CONTENT_TINT = "  :root {{ " + TINT_VAR + ": {a}; }}\n"
 # --browserglass-bar: the DMS surface (the tint's colour) at SITES_BAR_OPACITY,
 # for site parts that float over the page (data/sites/), with the light
 # surface while the theme is light, like the chrome tint.
@@ -2701,7 +2758,8 @@ def content_css(settings, opacity, sites_css="", off=False, surfaces=None, sites
         # also sets ATTR_OFF on an excluded page (see "live gating")
         parts.append(_content_block("https?://.*", _CONTENT_TONE.format(
             a=format_number(SITES_TONE_OPACITY), bar=bar, **rgb), gate))
-        parts.append(_content_block("https?://.*", _CONTENT_LAYERS.format(nav=format_number(NAV_BAR_OPACITY), **rgb), gate))
+        parts.append(_content_block("https?://.*", _CONTENT_LAYERS.format(nav=format_number(NAV_BAR_OPACITY), **rgb)
+                                    + _CONTENT_TINT.format(a=format_number(_clamp01(opacity))), gate))
         if settings["darkPages"]:
             hexes = {mode + "_hex": "#%02x%02x%02x" % surface_rgb(surfaces.get(mode), mode)
                      for mode in MODES}

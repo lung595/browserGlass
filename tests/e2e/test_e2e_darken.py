@@ -797,9 +797,11 @@ OWN_BG = "rgb(28, 40, 52)"
 ATTRS = ("return [document.getElementById(arguments[0]), document.documentElement, document.body]"
          ".map(e => [...e.attributes].map(a => a.name + '=' + a.value).join(' '));")
 # A page measured dark while it loads (ch.ch): light text that goes, and
-# navy text on a yellow half of its own.
+# navy text on a yellow half of its own. Its white is painted by <html>
+# alone: a body painting white would make it light at once under a light
+# theme (lightBody), with no dark loading view to measure.
 YELLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
-html, body {margin:0; background:rgb(255,255,255)} #lights {color:rgb(240,240,240)}
+html, body {margin:0} html {background:rgb(255,255,255)} #lights {color:rgb(240,240,240)}
 #yellow {display:block; background:rgb(240,225,117); color:rgb(1,46,90); min-height:60vh; padding:20px}
 </style></head><body><div id="lights">""" + (
     "<p>" + "Light text of the loading view. " * 6 + "</p>") * 4 + """</div>
@@ -1712,7 +1714,9 @@ class DarkenE2E(unittest.TestCase):
             self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('yellow')).backgroundColor"
                                        " === 'rgba(0, 0, 0, 0)';"),
                             "yellow half left opaque: %s" % self.bg_of(b, "yellow"))
-            self.assertFalse(b.js(MARKED, "yellowtext", INK), "navy text inked on the light glass")
+            # (a pass during the fade can shade it a moment: the next one clears it)
+            self.assertTrue(b.wait_for("return !" + MARKED[7:], mn.WAIT_TIMEOUT, "yellowtext", INK),
+                            "navy text inked on the light glass")
 
     def test_own_shadow_section(self):
         for name, binary in tone.browsers():

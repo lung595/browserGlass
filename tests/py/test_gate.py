@@ -617,7 +617,7 @@ class LayersTest(unittest.TestCase):
         css = bg._render_content(settings(liveControl=True, darkPages=False), 0.8, None, False, None)
         rgb = {mode: "%d, %d, %d" % bg.surface_rgb(None, mode) for mode in bg.MODES}
         block = bg._content_block("https?://.*", bg._CONTENT_LAYERS.format(
-            nav="0.65", **rgb), bg.GATE_NORMAL_ROOT)
+            nav="0.65", **rgb) + bg._CONTENT_TINT.format(a="0.8"), bg.GATE_NORMAL_ROOT)
         self.assertEqual(css.count(block), 1)
         bar = "[%s]:not(#browserglass-a):not(#browserglass-b)" % bg.ATTR_BAR
         self.assertIn("[%s]:where(&,& *) { background-color: transparent !important; }"
@@ -672,7 +672,7 @@ class ContentTest(unittest.TestCase):
         tint = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
                 % bg._CONTENT_TONE.format(a="0.88", bar="0.8", **rgb))
         bars = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
-                % bg._CONTENT_LAYERS.format(nav="0.65", **rgb))
+                % (bg._CONTENT_LAYERS.format(nav="0.65", **rgb) + bg._CONTENT_TINT.format(a="0.8")))
         hexes = {mode + "_hex": "#%02x%02x%02x" % bg.surface_rgb(None, mode) for mode in bg.MODES}
         darken = ('\n@-moz-document regexp("https?://.*") {\n%s}\n'
                   % bg._CONTENT_DARKEN.format(**hexes))

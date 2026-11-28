@@ -123,7 +123,7 @@ test_e2e_darken.py. Checked:
     top in a grey near the page's white is glass, a list's fade into the
     white (an empty ::after) paints nothing, under a dark theme too on a
     dark page into its colour, a fade into blue stays; a pale grey
-    straight on the light glass is inked dark, on its own white card not;
+    straight on the light glass is inked dark, on its own white card shaded;
   - pseudo-elements in the page's colour (test_page_pseudos), in the
     site's own dark and light themes and darkened by Dark Reader: the
     gutters a section draws down its sides (an empty ::before and ::after)
@@ -208,6 +208,7 @@ sys.path.insert(0, HERE)
 import marionette as mn  # noqa: E402
 import test_e2e_darken as dk  # noqa: E402
 import test_e2e_tone as tone  # noqa: E402
+import test_e2e_wallglass as wg  # noqa: E402
 
 bg = dk.bg
 CANVAS, BAR, UNDER = bg.ATTR_CANVAS, bg.ATTR_BAR, bg.ATTR_UNDER
@@ -1541,10 +1542,11 @@ class LayersE2E(unittest.TestCase):
             # the grey link, lost over a light section, is inked light
             self.assertTrue(b.wait_for(dk.TILED + " === 'light';", mn.WAIT_TIMEOUT, "de", INK),
                             "the grey link on the dark veil not inked light")
-            # the pink one reads on the veil: its colour stays
-            self.assertFalse(self.marked(b, "fr", INK), "the pink accent link re-inked")
-            self.assertEqual(b.js("return getComputedStyle(document.getElementById('fr')).color;"),
-                             "rgb(244, 15, 151)")
+            # the pink one, near 4.5:1 on the veil over the worst
+            # wallpaper: never inked to the tone, at most shaded, its hue kept
+            self.assertIn(b.js(dk.TILED, "fr", INK), (None, "soft"), "the pink accent link re-inked")
+            r, g, b_, _ = tone.rgba(b.js("return getComputedStyle(document.getElementById('fr')).color;"))
+            self.assertTrue(r > b_ > g, "the pink accent link lost its hue: %r" % ((r, g, b_),))
 
     def test_sections(self):
         for name, binary in tone.browsers():
@@ -1658,9 +1660,17 @@ class LayersE2E(unittest.TestCase):
                             "a pale grey on the light glass not inked")
             self.assertTrue(b.wait_for(dk.TILED + " === 'dark';", mn.WAIT_TIMEOUT, "slate", INK),
                             "a pale slate grey tinted blue on the light glass not inked")
-            self.assertFalse(self.marked(b, "cardgrey", INK), "a pale grey on its own white card inked")
-            # an orange link (2.9:1 on the light glass) keeps its colour
-            self.assertFalse(self.marked(b, "orange", INK), "an orange on the light glass inked")
+            # on its own white card (2.5:1 there) it is shaded on the card,
+            # never inked to the tone
+            self.assertTrue(b.wait_for(dk.TILED + " === 'soft';", mn.WAIT_TIMEOUT, "cardgrey", INK),
+                            "a pale grey on its own white card not shaded")
+            self.assertGreaterEqual(wg.ratio(b.js("return getComputedStyle(document.getElementById('cardgrey')).color;"),
+                                             (255.0, 255.0, 255.0)), 4.5)
+            # an orange link (2.9:1 on the light glass): never inked to the
+            # tone, shaded to 4.5:1, still an orange
+            self.check_soft(b, "orange", None)
+            r, g, b_, _ = tone.rgba(b.js("return getComputedStyle(document.getElementById('orange')).color;"))
+            self.assertTrue(r > g > b_, "the orange link lost its hue: %r" % ((r, g, b_),))
             # the shop's grey meta line, readable but under 4.5:1, lifted
             # to 4.5:1, still greyer than the text inked dark
             self.check_soft(b, "meta", "crumb")
@@ -1682,11 +1692,16 @@ class LayersE2E(unittest.TestCase):
             self.check_soft(b, "credit", None)
 
     def check_soft(self, b, element_id, inked):
-        """`element_id`'s grey text reads 4.5:1 at least on the glass, and
-        less than `inked`'s (text inked to the tone), if given."""
+        """`element_id`'s grey text reads 4.5:1 at least on the glass (its
+        tint over a black and a white wallpaper), and less than `inked`'s
+        (text inked to the tone), if given."""
         self.assertTrue(b.wait_for(dk.TILED + " === 'soft';", mn.WAIT_TIMEOUT, element_id, INK),
                         "a grey under 4.5:1 on the glass not lifted: %r" % b.js(dk.TILED, element_id, INK))
-        glass = b.js("return getComputedStyle(document.documentElement).getPropertyValue('--browserglass-glass').trim();")
+        r, g, b_, _ = tone.rgba(b.js("return getComputedStyle(document.documentElement)"
+                                     ".getPropertyValue('--browserglass-glass').trim();"))
+        tint = b.js("return getComputedStyle(document.documentElement).getPropertyValue(arguments[0]).trim();",
+                    bg.TINT_VAR)
+        glass = "rgba(%d, %d, %d, %s)" % (r, g, b_, tint)
         color = "return getComputedStyle(document.getElementById(arguments[0])).color;"
         ratio = tone.contrast(b.js(color, element_id), glass)
         self.assertGreaterEqual(ratio, 4.5, "%s reads %.2f:1 on the glass" % (element_id, ratio))
@@ -2426,15 +2441,18 @@ class LayersE2E(unittest.TestCase):
             b.js("return new Promise((resolve) => setTimeout(resolve, 3500));")
             b.js(COOKIE)
             b.js(PICTURE, dk.svg(1, 1, ""))
-            # then a pass of the layers: the banner a bar, its kept
-            # section never filled as the bar's own paint
+            # then a pass of the layers: the banner a bar, the light veil
+            # its one surface: its dark section, kept before, is not any
+            # more (no dark slab in the light veil), its light title inked
             b.js("window.scrollTo(0, 50);")
             self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "prompt", BAR), "the cookie banner not a bar")
-            b.js("return new Promise((resolve) => setTimeout(resolve, 1000));")
-            self.assertFalse(self.marked(b, "notice", CANVAS), "the banner's kept section filled see-through")
-            self.assertEqual(self.bg_of(b, "notice"), "rgb(50, 50, 50)")
-            self.assertTrue(self.marked(b, "notice", bg.ATTR_OWN), "the banner's dark section not kept")
-            self.assertFalse(self.marked(b, "title", INK), "the banner's light title inked")
+            self.assertTrue(b.wait_for("return !document.getElementById('notice').hasAttribute(arguments[0]);",
+                                       mn.WAIT_TIMEOUT, bg.ATTR_OWN), "the banner's dark section kept in the veil")
+            self.assertTrue(b.wait_for(dk.TILED_IS, mn.WAIT_TIMEOUT, "title", INK, "dark"),
+                            "the banner's light title not inked on the light veil")
+            self.assertTrue(b.wait_for("return getComputedStyle(document.getElementById('notice')).backgroundColor"
+                                       " === 'rgba(0, 0, 0, 0)';", mn.WAIT_TIMEOUT),
+                            "the banner's dark section left opaque")
 
     def check_columns(self, binary):
         routes = {"/c.html": ("text/html; charset=utf-8", COLUMN_PAGE.encode("utf-8")),
@@ -2695,12 +2713,15 @@ class LayersE2E(unittest.TestCase):
             self.assertEqual(b.js("return document.getElementById('fade').getAttribute('style');"), "font-weight:bold")
 
             # under a light theme, the light words drawn with a gradient
-            # clipped to them: marked dark, the fill drawn over the gradient
+            # clipped to them: shaded in their own hue, the fill drawn over
+            # the gradient
             tone.set_scheme(b, False)
             b.navigate(srv.url("/ink.html", "dark.test"))
             b.js(dk.RUN, self.content_js, self.darkreader_js, [])
-            self.assertTrue(b.wait_for("return document.getElementById('clip').getAttribute(arguments[0]) === 'dark';",
+            self.assertTrue(b.wait_for("return document.getElementById('clip').getAttribute(arguments[0]) === 'soft';",
                                        mn.WAIT_TIMEOUT, INK), "light gradient text on the light glass not marked")
+            r, g, b_, _ = tone.rgba(b.js("return getComputedStyle(document.getElementById('clip')).color;"))
+            self.assertGreater(r, b_ + 40, "the gradient text lost its hue")
             self.assertEqual(b.js("return getComputedStyle(document.getElementById('clip')).webkitTextFillColor;"),
                              b.js("return getComputedStyle(document.getElementById('clip')).color;"))
             self.assertFalse(self.marked(b, "dim", INK), "dark text on the light glass marked")

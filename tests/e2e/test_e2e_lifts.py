@@ -15,7 +15,12 @@ theme, and a light page Dark Reader darkens:
     window wide (Apple), keeps that nav's width: it is left static, its
     veil without the blur;
   - a mega menu shown a while after the pointer came, with no other event,
-    gets the veil; hidden by its content's opacity (Shopify), it loses it.
+    gets the veil; hidden by its content's opacity (Shopify), it loses it;
+  - a flat header (a skip link placed by the body, IKEA, Amazon) holding a
+    fixed sheet at 400 keeps no stacking context of its own: the sheet
+    stays over the hero cards at 98 after it;
+  - a lifted header whose site adds a flyout at 300 later is lifted to 300:
+    the flyout stays over the hero at 200 after it.
 """
 
 import os
@@ -80,10 +85,43 @@ html, body {margin:0; background:%(page)s; color:%(text)s}
 </body></html>""" % {"page": page, "text": text, "lorem": dk.TEXT * 10}
 
 
+def sheet_page(page, text):
+    return """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:%(page)s; color:%(text)s}
+#khead {height:120px}
+#skip {position:absolute; left:-9999px}
+#sheet {position:fixed; top:0; left:0; width:480px; height:100vh; z-index:400; background:%(page)s}
+.card {position:relative; height:400px; margin:16px}
+.card a {position:absolute; inset:0; z-index:98}
+#long {height:300vh}
+</style></head><body>
+<div id="khead"><a id="skip" href="#long">Skip</a><nav><a href="#">Products</a> <a href="#">Rooms</a>
+<a href="#">Offers</a></nav><div id="sheet" role="dialog"><a href="#">English</a> <a href="#">Deutsch</a></div></div>
+<div class="card"><a id="card" href="#">Hero card</a></div>
+<div id="long">%(lorem)s</div>
+</body></html>""" % {"page": page, "text": text, "lorem": dk.TEXT * 10}
+
+
+def flyout_page(page, text):
+    return """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body {margin:0; background:%(page)s; color:%(text)s}
+#zhead {height:64px; display:flex; gap:24px; align-items:center; position:relative}
+#fly {position:absolute; top:64px; left:0; width:400px; height:300px; z-index:300; background:%(page)s}
+#zhero {position:absolute; top:64px; left:0; width:100%%; height:600px; z-index:200; background:%(page)s}
+#long {height:300vh}
+</style></head><body>
+<header id="zhead"><nav><a href="#">Products</a> <a href="#">Pricing</a></nav>
+<span style="position:relative; z-index:5">Cart</span></header>
+<div id="zhero"><h1>Hero</h1></div>
+<div id="long">%(lorem)s</div>
+</body></html>""" % {"page": page, "text": text, "lorem": dk.TEXT * 10}
+
+
 BG = "return getComputedStyle(document.getElementById(arguments[0])).backgroundColor;"
 HAS_BG = BG[:-1] + " === arguments[1];"
 BEFORE = "return getComputedStyle(document.getElementById(arguments[0]), '::before')[arguments[1]];"
 TOP_AT = "return document.elementFromPoint(arguments[0], arguments[1]).closest('#mega, #hero').id;"
+ON_TOP = "return document.elementFromPoint(arguments[0], arguments[1]).closest(arguments[2]).id;"
 WIDTH = "return document.getElementById(arguments[0]).getBoundingClientRect().width;"
 HOVER = ("document.getElementById(arguments[0]).dispatchEvent("
          "new PointerEvent('pointerover', {bubbles: true}));")
@@ -158,6 +196,28 @@ class LiftsE2E(unittest.TestCase):
         b.js("document.getElementById('lvl2in').style.opacity = '0';" + HOVER, "para")
         self.assertTrue(b.wait_for("return !" + dk.MARKED[7:], mn.WAIT_TIMEOUT, "lvl2", BAR),
                         "the closed menu still veiled")
+
+    def test_flat_sheet(self):
+        self.run_cases(sheet_page, self.check_sheet)
+
+    def check_sheet(self, b, veil):
+        self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "khead", BAR), "the header not veiled")
+        self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "khead", FLAT), "the header not left static")
+        self.assertEqual(b.js(ON_TOP, 200, 300, "#sheet, #card"), "sheet", "the header's sheet under the hero cards")
+
+    def test_late_flyout(self):
+        self.run_cases(flyout_page, self.check_flyout)
+
+    def check_flyout(self, b, veil):
+        self.assertTrue(b.wait_for(dk.MARKED, mn.WAIT_TIMEOUT, "zhead", BAR), "the header not veiled")
+        self.assertTrue(b.wait_for(HAS_BG, mn.WAIT_TIMEOUT, "zhead", veil), "the header: %r" % b.js(BG, "zhead"))
+        time.sleep(SETTLED_S)
+        # the site's suggestions, added as its search field takes the focus
+        b.js("document.getElementById('zhead').insertAdjacentHTML('beforeend',"
+             " '<div id=\"fly\" role=\"listbox\"><a href=\"#\">testing tools</a></div>');"
+             "document.querySelector('#zhead a').dispatchEvent(new FocusEvent('focusin', {bubbles: true}));")
+        self.assertTrue(b.wait_for("return document.elementFromPoint(100, 200).closest('#fly, #zhero').id === 'fly';",
+                                   mn.WAIT_TIMEOUT), "the late flyout under the hero")
 
 
 if __name__ == "__main__":
